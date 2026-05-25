@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Monitor de Autores</title>
     
+    <!-- Librerías cargadas desde CDN para funcionamiento independiente -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -25,6 +26,7 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
+    <!-- Librería para el mapa de red interactivo -->
     <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
     <style>
         .vis-network:focus { outline: none; }
@@ -452,8 +454,8 @@
                         label: `Cátedra:\n${c}`, 
                         group: 'catedra', 
                         shape: 'box',
-                        font: { size: 14, color: '#e66b1d' },
-                        color: { background: 'rgba(255,125,41,0.08)', border: '#ff7d29' },
+                        font: { size: 14, color: '#e66b1d' }, // primaryDark
+                        color: { background: 'rgba(255,125,41,0.08)', border: '#ff7d29' }, // primary
                         mass: 1.5,
                         margin: 10
                     });
@@ -1043,21 +1045,22 @@
                         </div>
                     )}
 
-                    <header className="bg-dark text-white shadow-lg sticky top-0 z-40">
+                    {}
+                    <header className="bg-primary text-white shadow-lg sticky top-0 z-40 border-b border-primaryDark">
                         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row justify-between items-center">
                             <div className="flex items-center space-x-3 mb-4 sm:mb-0">
-                                <Activity className="h-8 w-8 text-blue-400" />
+                                <Activity className="h-8 w-8 text-white" />
                                 <div>
-                                    <h1 className="text-2xl font-bold leading-tight">Monitor Sociológico</h1>
-                                    <p className="text-xs text-slate-400 font-medium tracking-wide uppercase">El programa de programas</p>
+                                    <h1 className="text-2xl font-bold leading-tight drop-shadow-sm">Monitor Sociológico</h1>
+                                    <p className="text-xs text-primaryLight font-medium tracking-wide uppercase drop-shadow-sm">El programa de programas</p>
                                 </div>
                             </div>
                             
-                            <div className="flex items-center bg-dark rounded-lg p-2 border border-slate-700">
+                            <div className="flex items-center bg-primaryDark rounded-lg p-2 shadow-inner">
                                 <button
                                     onClick={fetchSheetData}
                                     disabled={isLoading}
-                                    className="flex items-center space-x-2 text-sm text-slate-300 hover:text-white transition-colors px-3 py-1 disabled:opacity-50"
+                                    className="flex items-center space-x-2 text-sm text-white hover:text-primaryLight transition-colors px-3 py-1 disabled:opacity-50 font-medium"
                                     title="Sincronizar cambios desde Google Sheets"
                                 >
                                     <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
@@ -1085,6 +1088,7 @@
                             </div>
                         ) : (
                             <>
+                                {}
                                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8">
                                     <div className="flex items-center mb-8 border-b border-slate-100 pb-4">
                                         <BarChart3 className="h-6 w-6 text-primary mr-3" />
@@ -1151,6 +1155,7 @@
                                     </div>
                                 </div>
 
+                                {}
                                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8 flex flex-col">
                                     <div className="flex items-center justify-between mb-4">
                                         <div className="flex items-center">
@@ -1262,6 +1267,7 @@
                                     </div>
                                 </div>
 
+                                {}
                                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
                                     <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 border-b border-slate-100 pb-4 gap-4">
                                         <div className="flex items-center">
