@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Monitor de Autores</title>
     
-    <!-- Librerías cargadas desde CDN para funcionamiento independiente -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -17,6 +16,10 @@
                         dark: '#2c3e50',
                         primaryLight: '#fff2eb',
                         primaryMuted: '#ffdfcc'
+                    },
+                    fontFamily: {
+                        sans: ['"Segoe UI"', 'Tahoma', 'Geneva', 'Verdana', 'sans-serif'],
+                        segoe: ['"Segoe UI"', 'Tahoma', 'Geneva', 'Verdana', 'sans-serif']
                     }
                 }
             }
@@ -57,7 +60,6 @@
     <script type="text/babel">
         const { useState, useMemo, useEffect, useRef, useCallback } = React;
 
-        // Íconos SVG integrados
         const Activity = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>;
         const RefreshCw = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>;
         const AlertCircle = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>;
@@ -76,6 +78,8 @@
         const Settings = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>;
         const SearchIcon = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>;
         const TrendingUp = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>;
+        const Info = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>;
+        const HelpCircle = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>;
 
         // Procesador de identidad de autores
         const getAuthorName = (row) => {
@@ -129,7 +133,6 @@
         // Definición global de colores actualizada para incorporar la paleta semántica
         const SLICE_COLORS = ['#ff7d29', '#0ea5e9', '#10b981', '#f59e0b', '#f43f5e', '#8b5cf6', '#ec4899', '#14b8a6', '#94a3b8'];
 
-        // Componente Gráfico de Dona para Género
         const SVGGenderDonut = ({ data }) => {
             const total = data['Femenino'] + data['Masculino'] + data['Otro/No especificado'];
             if (total === 0) return <div className="text-sm text-slate-400 h-full flex items-center justify-center">Sin datos de género</div>;
@@ -178,9 +181,7 @@
                                     </path>
                                 );
                             })}
-                            {/* Centro de la dona */}
                             <circle cx="50" cy="50" r="28" fill="#ffffff" />
-                            {/* Texto interno actualizado al tono dark */}
                             <text x="50" y="47" transform="rotate(90 50 50)" textAnchor="middle" dominantBaseline="middle" fontSize="18" fontWeight="bold" fill="#2c3e50">{total}</text>
                             <text x="50" y="62" transform="rotate(90 50 50)" textAnchor="middle" dominantBaseline="middle" fontSize="9" fontWeight="500" fill="#64748b">Textos</text>
                         </svg>
@@ -198,11 +199,9 @@
             );
         };
 
-        // Componente Gráfico de Torta Personalizado (SVG Nativo) e Interactivo
         const SVGCompositionPie = ({ data, onAuthorClick }) => {
             if (!data || data.length === 0) return <div className="text-sm text-slate-400 h-full flex items-center justify-center">Sin datos vigentes</div>;
             
-            // Limitado a los 10 principales para dejar espacio visual
             const topN = data.slice(0, 10);
             const othersCount = data.slice(10).reduce((sum, item) => sum + item.count, 0);
             const chartData = [...topN];
@@ -280,7 +279,6 @@
             );
         };
 
-        // Componente Gráfico Lineal para Evolución de Autores
         const SVGAuthorEvolutionLineChart = ({ selectedAuthors, evolution, yearlyDataMap }) => {
             if (!selectedAuthors || selectedAuthors.length === 0) {
                 return (
@@ -304,22 +302,19 @@
                 });
             });
 
-            // Añadir padding visual al techo del gráfico
             maxY = Math.ceil(maxY * 1.15);
             if (maxY < 5) maxY = 5; 
 
-            // Función segura para calcular la posición X centralizada
             const getX = (index) => {
-                if (years.length === 1) return 410; // Centro aproximado de 40 a 780
+                if (years.length === 1) return 410; 
                 return 40 + (740 / (years.length - 1)) * index;
             };
 
             return (
                 <div className="w-full h-64 sm:h-80 relative group">
                     <svg viewBox="0 0 800 300" className="w-full h-full overflow-visible" preserveAspectRatio="none">
-                        {/* Grid horizontal */}
                         {[0, 0.25, 0.5, 0.75, 1].map(ratio => {
-                            const y = 260 - (240 * ratio); // 260 es el piso, 20 es el techo (240 altura total)
+                            const y = 260 - (240 * ratio);
                             const val = Math.round(maxY * ratio);
                             return (
                                 <g key={`grid-${ratio}`}>
@@ -329,7 +324,6 @@
                             );
                         })}
 
-                        {/* Etiquetas del eje X (Años) */}
                         {years.map((year, i) => {
                             const x = getX(i);
                             return (
@@ -337,7 +331,6 @@
                             );
                         })}
 
-                        {/* Dibujo de líneas y puntos por cada autor */}
                         {selectedAuthors.map((author, aIdx) => {
                             const color = SLICE_COLORS[aIdx % SLICE_COLORS.length];
                             
@@ -363,9 +356,7 @@
                                     />
                                     {points.map((p, i) => (
                                         <g key={`point-${i}`}>
-                                            {/* Círculo invisible más grande para atrapar mejor el hover */}
                                             <circle cx={p.x} cy={p.y} r="15" fill="transparent" />
-                                            {/* Círculo visible */}
                                             <circle 
                                                 cx={p.x} cy={p.y} r="5" 
                                                 fill="#ffffff" stroke={color} strokeWidth="2.5" 
@@ -454,8 +445,8 @@
                         label: `Cátedra:\n${c}`, 
                         group: 'catedra', 
                         shape: 'box',
-                        font: { size: 14, color: '#e66b1d' }, // primaryDark
-                        color: { background: 'rgba(255,125,41,0.08)', border: '#ff7d29' }, // primary
+                        font: { size: 14, color: '#e66b1d' },
+                        color: { background: 'rgba(255,125,41,0.08)', border: '#ff7d29' },
                         mass: 1.5,
                         margin: 10
                     });
@@ -627,6 +618,10 @@
             const [selectedAuthor, setSelectedAuthor] = useState(null);
             const [selectedEvolutionYear, setSelectedEvolutionYear] = useState(null);
             
+            // Estados para los modales de información
+            const [showInfoModal, setShowInfoModal] = useState(false);
+            const [showMapInfoModal, setShowMapInfoModal] = useState(false);
+
             // Estados para el mapa epistemológico
             const [mapHiddenCatedras, setMapHiddenCatedras] = useState(new Set()); 
             const [mapSelectedYear, setMapSelectedYear] = useState('Todos');
@@ -646,9 +641,7 @@
                 setIsLoading(true);
                 setError(null);
                 try {
-                    // ID de la hoja de cálculo de Google provista
                     const sheetId = '1ARaGDBVnQaE2HijdVwLE6xe00fuaOJsZ';
-                    // Utilizamos la exportación directa a formato CSV que ofrece Google Sheets para documentos públicos
                     const url = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`;
                     
                     const response = await fetch(url);
@@ -660,7 +653,6 @@
                     const data = parseCSV(csvText);
                     setRawData(data);
                     
-                    // Reiniciar estados visuales ante nueva carga de datos
                     setMapHiddenCatedras(new Set());
                     setMapSelectedYear('Todos');
                     setSelectedEvolutionAuthors([]);
@@ -671,25 +663,23 @@
                 }
             }, []);
 
-            // Disparar la primera carga de datos al iniciar la aplicación
             useEffect(() => {
                 fetchSheetData();
             }, [fetchSheetData]);
 
             useEffect(() => {
-                if (selectedAuthor) {
+                const isAnyModalOpen = selectedAuthor || showInfoModal || showMapInfoModal;
+                if (isAnyModalOpen) {
                     document.body.classList.add('modal-open');
                 } else {
                     document.body.classList.remove('modal-open');
                 }
-            }, [selectedAuthor]);
+            }, [selectedAuthor, showInfoModal, showMapInfoModal]);
 
-            // Conjunto de datos base válidos (para métricas y mapa globales)
             const validData = useMemo(() => {
                 return rawData.filter(row => Boolean(getAuthorName(row)));
             }, [rawData]);
 
-            // Listado único de cátedras para los filtros de la aplicación
             const allCatedrasForMap = useMemo(() => {
                 const cats = new Set();
                 validData.forEach(row => {
@@ -698,7 +688,6 @@
                 return Array.from(cats).sort();
             }, [validData]);
 
-            // Años únicos disponibles para el filtro del mapa
             const availableMapYears = useMemo(() => {
                 const years = new Set();
                 validData.forEach(row => {
@@ -708,12 +697,10 @@
                 return Array.from(years).sort((a,b) => a - b).map(String);
             }, [validData]);
 
-            // Inicializar las cátedras seleccionadas para la evolución cuando cambian los datos
             useEffect(() => {
                 setEvolutionSelectedCatedras(new Set(allCatedrasForMap));
             }, [allCatedrasForMap]);
 
-            // Cierre del dropdown de búsqueda al hacer clic afuera
             useEffect(() => {
                 const handleClickOutside = (event) => {
                     if (searchInputRef.current && !searchInputRef.current.contains(event.target)) {
@@ -733,7 +720,6 @@
                 });
             };
 
-            // Filtrar data del mapa basado en cátedras ocultas y el año seleccionado (lógica de vigencia)
             const dataForMap = useMemo(() => {
                 let filtered = validData.filter(row => !mapHiddenCatedras.has(row['Catedra']));
 
@@ -741,7 +727,6 @@
                     const yearNum = parseInt(mapSelectedYear);
                     const latestYearPerCatedra = {};
                     
-                    // Identificar el programa más reciente (<= año seleccionado) para cada cátedra
                     filtered.forEach(row => {
                         const c = row['Catedra'];
                         const y = parseInt(row['Año del programa']);
@@ -752,7 +737,6 @@
                         }
                     });
                     
-                    // Filtrar los registros para mantener solo los que correspondan al programa vigente
                     filtered = filtered.filter(row => {
                         const c = row['Catedra'];
                         const y = parseInt(row['Año del programa']);
@@ -763,12 +747,10 @@
                 return filtered;
             }, [validData, mapHiddenCatedras, mapSelectedYear]);
 
-            // Conjunto de datos filtrados ESPECÍFICAMENTE para la vista temporal con selector múltiple
             const filteredForTemporal = useMemo(() => {
                 return validData.filter(row => evolutionSelectedCatedras.has(row['Catedra']));
             }, [validData, evolutionSelectedCatedras]);
 
-            // Lista de autores únicos disponibles en el contexto temporal filtrado (para la barra de búsqueda)
             const availableAuthorsForSearch = useMemo(() => {
                 const authors = new Set();
                 filteredForTemporal.forEach(row => {
@@ -778,27 +760,24 @@
                 return Array.from(authors).sort();
             }, [filteredForTemporal]);
 
-            // Autores filtrados en vivo mientras se tipea
             const filteredSearchAuthors = useMemo(() => {
                 if (!authorSearchQuery) return [];
                 const lowerQuery = authorSearchQuery.toLowerCase();
                 return availableAuthorsForSearch
                     .filter(a => a.toLowerCase().includes(lowerQuery) && !selectedEvolutionAuthors.includes(a))
-                    .slice(0, 8); // Limitamos resultados visuales a 8
+                    .slice(0, 8);
             }, [authorSearchQuery, availableAuthorsForSearch, selectedEvolutionAuthors]);
 
-            // Manejo de la selección de autores para la cotización
             const toggleEvolutionAuthor = (author) => {
                 setSelectedEvolutionAuthors(prev => {
                     if (prev.includes(author)) return prev.filter(a => a !== author);
-                    if (prev.length >= 6) return prev; // Limitamos a 6 líneas máximo para no saturar
+                    if (prev.length >= 6) return prev;
                     return [...prev, author];
                 });
                 setAuthorSearchQuery('');
                 setShowAuthorDropdown(false);
             };
 
-            // Lógica de arrastre temporal (Carry-over) para programas vigentes usando el data filtrada
             const temporalAnalysis = useMemo(() => {
                 if (filteredForTemporal.length === 0) return { evolution: [], yearlyAuthors: {}, yearlyEditorials: {}, yearlyMaxEditorials: {}, yearlyActiveAuthorsMap: {}, maxTexts: 1, latestYear: null };
 
@@ -831,7 +810,7 @@
                 const yearlyAuthors = {};
                 const yearlyEditorials = {};
                 const yearlyMaxEditorials = {};
-                const yearlyActiveAuthorsMap = {}; // Mapa para alimentar el gráfico de cotización
+                const yearlyActiveAuthorsMap = {}; 
                 let maxTexts = 1;
 
                 for (let y = minYear; y <= maxYear; y++) {
@@ -884,7 +863,7 @@
                             
                         const topEditorials = Object.values(activeEditorialsForYear)
                             .sort((a, b) => b.count - a.count)
-                            .slice(0, 10); // Mantener top 10 para editoriales
+                            .slice(0, 10); 
                             
                         yearlyEditorials[yearStr] = topEditorials;
                         yearlyMaxEditorials[yearStr] = topEditorials.length > 0 ? topEditorials[0].count : 1;
@@ -901,7 +880,6 @@
                 }
             }, [temporalAnalysis.latestYear]);
 
-            // Métricas Globales
             const stats = useMemo(() => {
                 const authorsCount = {};
                 const genderCount = { 'Masculino': 0, 'Femenino': 0, 'Otro/No especificado': 0 };
@@ -964,20 +942,18 @@
                     }));
             };
 
-            // Pantalla de carga inicial
             if (isLoading && rawData.length === 0) {
                 return (
                     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
                         <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 flex flex-col items-center max-w-md w-full text-center">
                             <Activity className="h-12 w-12 text-primary mb-6 animate-spin-slow" />
-                            <h2 className="text-xl font-bold text-dark mb-2">Sincronizando Información</h2>
+                            <h2 className="text-xl font-bold text-dark mb-2 font-segoe">Sincronizando Información</h2>
                             <p className="text-slate-500 text-sm">Descargando y procesando los datos bibliográficos directamente desde tu documento de Google Sheets. Esto tomará solo un momento.</p>
                         </div>
                     </div>
                 );
             }
 
-            // Pantalla de error de conexión
             if (error && rawData.length === 0) {
                 return (
                     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
@@ -985,7 +961,7 @@
                             <div className="bg-red-50 p-4 rounded-full mb-6 text-red-500">
                                 <AlertCircle className="h-10 w-10" />
                             </div>
-                            <h2 className="text-xl font-bold text-dark mb-2">Problema de Conexión</h2>
+                            <h2 className="text-xl font-bold text-dark mb-2 font-segoe">Problema de Conexión</h2>
                             <p className="text-slate-500 text-sm mb-8">{error}</p>
                             <button 
                                 onClick={fetchSheetData}
@@ -1001,6 +977,84 @@
 
             return (
                 <div>
+                    {/* Modal General de Información */}
+                    {showInfoModal && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-dark/60 backdrop-blur-sm">
+                            <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden animate-[fadeIn_0.2s_ease-out]">
+                                <div className="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+                                    <div className="flex items-center space-x-3">
+                                        <div className="p-2 bg-primaryLight text-primary rounded-lg">
+                                            <Info className="h-5 w-5" />
+                                        </div>
+                                        <h3 className="text-lg font-bold text-dark font-segoe">Sobre el Proyecto</h3>
+                                    </div>
+                                    <button 
+                                        onClick={() => setShowInfoModal(false)}
+                                        className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-full transition-colors"
+                                    >
+                                        <XIcon className="h-5 w-5" />
+                                    </button>
+                                </div>
+                                <div className="p-6 overflow-y-auto bg-white flex-1 custom-scrollbar">
+                                    <p className="text-slate-700 text-sm leading-relaxed mb-4">
+                                        El monitor sociológico es una visualización de datos en colaboración con el Observatorio Pedagógico impulsado por la <strong>Lista 22, Sentido en Fuga</strong>. Fueron codificados los programas de 33 cátedras de las materias obligatorias, utilizando en cada caso los últimos disponibles en la página de la carrera de sociología mientras que otros fueron compartidos por compañeros que cursaron estas materias en la actualidad.
+                                    </p>
+                                    <p className="text-slate-700 text-sm leading-relaxed mb-4">
+                                        Aún quedan por recoger todas las materias optativas, los programas anteriores de las ya existentes cátedras, y muchas cosas más; si querés colaborar podés sumarte a este proyecto escribiendo a:
+                                    </p>
+                                    <div className="bg-primaryLight/50 p-4 rounded-xl border border-primaryMuted text-center mt-6">
+                                        <a href="mailto:listaindependiente22@gmail.com" className="text-primaryDark font-bold hover:underline font-segoe text-sm sm:text-base break-all">
+                                            listaindependiente22@gmail.com
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Modal de Información del Mapa */}
+                    {showMapInfoModal && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-dark/60 backdrop-blur-sm">
+                            <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl max-h-[85vh] flex flex-col overflow-hidden animate-[fadeIn_0.2s_ease-out]">
+                                <div className="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+                                    <div className="flex items-center space-x-3">
+                                        <div className="p-2 bg-primaryLight text-primary rounded-lg">
+                                            <HelpCircle className="h-5 w-5" />
+                                        </div>
+                                        <h3 className="text-lg font-bold text-dark font-segoe">Comprendiendo el Mapa</h3>
+                                    </div>
+                                    <button 
+                                        onClick={() => setShowMapInfoModal(false)}
+                                        className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-full transition-colors"
+                                    >
+                                        <XIcon className="h-5 w-5" />
+                                    </button>
+                                </div>
+                                <div className="p-6 overflow-y-auto bg-white flex-1 custom-scrollbar space-y-6">
+                                    <div>
+                                        <h4 className="font-bold text-dark text-base border-b border-slate-100 pb-2 mb-3 font-segoe">Lógica de Vigencia de Programas</h4>
+                                        <div className="bg-primaryLight/50 border border-primaryMuted p-4 rounded-xl text-primaryDark text-sm">
+                                            <p>Al utilizar el filtro de <strong>"Año de Análisis"</strong> en la Configuración, el mapa evalúa los datos bajo un sistema de arrastre continuo (carry-over):</p>
+                                            <p className="mt-2 font-medium">Los programas son tomados con vigencia en los años posteriores a su dictado hasta que un nuevo programa de la misma cátedra y materia los sobreescribe de forma oficial.</p>
+                                            <p className="mt-2 text-primaryDark/80">Por ejemplo, si seleccionas visualizar el año 2023, el sistema incluirá los programas publicados en 2023, y para las cátedras que no publicaron en ese ciclo, buscará y arrastrará su programa más reciente (ej. 2021 o 2022) asumiendo que su estructura continuó vigente.</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div>
+                                        <h4 className="font-bold text-dark text-base border-b border-slate-100 pb-2 mb-3 font-segoe">Físicas de la Red</h4>
+                                        <p className="text-sm text-slate-700 leading-relaxed">El mapa simula un ecosistema con físicas de atracción y repulsión. Las cátedras y materias tienden a repelerse entre sí para mantener el espacio ordenado, a menos que compartan autores. A mayor cantidad de autores compartidos (conectores) entre dos áreas, más fuerte será la atracción que las una, acercándolas en el espacio visual.</p>
+                                    </div>
+
+                                    <div>
+                                        <h4 className="font-bold text-dark text-base border-b border-slate-100 pb-2 mb-3 font-segoe">Interacción</h4>
+                                        <p className="text-sm text-slate-700 leading-relaxed">Puedes mantener presionado el clic para <strong>arrastrar los nodos</strong> y reorganizar la red temporalmente, usar la rueda del ratón para <strong>acercar o alejar</strong> la vista, y hacer <strong>clic en cualquier autor</strong> para inspeccionar sus citas bibliográficas.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Modal de Citas de Autores */}
                     {selectedAuthor && (
                         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-dark/60 backdrop-blur-sm">
                             <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[85vh] flex flex-col overflow-hidden animate-[fadeIn_0.2s_ease-out]">
@@ -1010,7 +1064,7 @@
                                             <FileText className="h-5 w-5" />
                                         </div>
                                         <div>
-                                            <h3 className="text-lg font-bold text-dark leading-tight">Citas Registradas</h3>
+                                            <h3 className="text-lg font-bold text-dark leading-tight font-segoe">Citas Registradas</h3>
                                             <p className="text-sm text-slate-500 font-medium">{selectedAuthor}</p>
                                         </div>
                                     </div>
@@ -1045,26 +1099,24 @@
                         </div>
                     )}
 
-                    {}
-                    <header className="bg-primary text-white shadow-lg sticky top-0 z-40 border-b border-primaryDark">
+                    <header className="bg-primary text-white shadow-lg sticky top-0 z-40">
                         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row justify-between items-center">
                             <div className="flex items-center space-x-3 mb-4 sm:mb-0">
                                 <Activity className="h-8 w-8 text-white" />
                                 <div>
-                                    <h1 className="text-2xl font-bold leading-tight drop-shadow-sm">Monitor Sociológico</h1>
-                                    <p className="text-xs text-primaryLight font-medium tracking-wide uppercase drop-shadow-sm">El programa de programas</p>
+                                    <h1 className="text-2xl font-bold leading-tight font-segoe">Monitor Sociológico</h1>
+                                    <p className="text-xs text-white/80 font-medium tracking-wide">El programa de programas</p>
                                 </div>
                             </div>
                             
-                            <div className="flex items-center bg-primaryDark rounded-lg p-2 shadow-inner">
+                            <div className="flex items-center">
                                 <button
-                                    onClick={fetchSheetData}
-                                    disabled={isLoading}
-                                    className="flex items-center space-x-2 text-sm text-white hover:text-primaryLight transition-colors px-3 py-1 disabled:opacity-50 font-medium"
-                                    title="Sincronizar cambios desde Google Sheets"
+                                    onClick={() => setShowInfoModal(true)}
+                                    className="flex items-center space-x-2 bg-white/10 hover:bg-white/20 text-white font-medium py-2 px-4 rounded-lg transition-colors border border-white/20 text-sm shadow-sm backdrop-blur-sm"
+                                    title="Más información sobre el proyecto"
                                 >
-                                    <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-                                    <span>{isLoading ? 'Sincronizando...' : 'Actualizar Datos'}</span>
+                                    <Info className="h-4 w-4" />
+                                    <span>Información</span>
                                 </button>
                             </div>
                         </div>
@@ -1076,7 +1128,7 @@
                                 <div className="bg-primaryLight p-6 rounded-full mb-6">
                                     <AlertCircle className="h-12 w-12 text-primary" />
                                 </div>
-                                <h2 className="text-2xl font-bold text-dark mb-3">La hoja de cálculo está vacía</h2>
+                                <h2 className="text-2xl font-bold text-dark mb-3 font-segoe">La hoja de cálculo está vacía</h2>
                                 <p className="text-slate-500 max-w-md mb-8">El documento de Google Sheets está conectado correctamente, pero no logramos identificar registros de autores válidos. Asegúrate de que el formato de las columnas coincida con el esperado.</p>
                                 <button 
                                     onClick={fetchSheetData}
@@ -1088,12 +1140,11 @@
                             </div>
                         ) : (
                             <>
-                                {}
                                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8">
                                     <div className="flex items-center mb-8 border-b border-slate-100 pb-4">
                                         <BarChart3 className="h-6 w-6 text-primary mr-3" />
                                         <div>
-                                            <h2 className="text-xl font-bold text-dark">Resumen Histórico Global</h2>
+                                            <h2 className="text-xl font-bold text-dark font-segoe">Resumen Histórico Global</h2>
                                             <p className="text-sm text-slate-500 mt-1">Los siguientes datos reflejan el total de la base de datos sincronizada desde la nube, representando el acumulado histórico sin distinción ni filtros anuales.</p>
                                         </div>
                                     </div>
@@ -1106,7 +1157,7 @@
                                                 </div>
                                                 <div>
                                                     <p className="text-sm font-medium text-slate-500">Textos Globales</p>
-                                                    <p className="text-3xl font-bold text-dark">{stats.totalTexts}</p>
+                                                    <p className="text-3xl font-bold text-dark font-segoe">{stats.totalTexts}</p>
                                                 </div>
                                             </div>
                                             
@@ -1116,7 +1167,7 @@
                                                 </div>
                                                 <div>
                                                     <p className="text-sm font-medium text-slate-500">Autores Únicos</p>
-                                                    <p className="text-3xl font-bold text-dark">{stats.uniqueAuthors}</p>
+                                                    <p className="text-3xl font-bold text-dark font-segoe">{stats.uniqueAuthors}</p>
                                                 </div>
                                             </div>
 
@@ -1126,7 +1177,7 @@
                                                 </div>
                                                 <div>
                                                     <p className="text-sm font-medium text-slate-500">Cantidad de Materias</p>
-                                                    <p className="text-3xl font-bold text-dark">{stats.uniqueMaterias}</p>
+                                                    <p className="text-3xl font-bold text-dark font-segoe">{stats.uniqueMaterias}</p>
                                                 </div>
                                             </div>
 
@@ -1136,14 +1187,14 @@
                                                 </div>
                                                 <div>
                                                     <p className="text-sm font-medium text-slate-500">Cantidad de Cátedras</p>
-                                                    <p className="text-3xl font-bold text-dark">{stats.uniqueCatedras}</p>
+                                                    <p className="text-3xl font-bold text-dark font-segoe">{stats.uniqueCatedras}</p>
                                                 </div>
                                             </div>
                                         </div>
 
                                         <div className="bg-slate-50 rounded-xl border border-slate-100 p-6 flex flex-col justify-center lg:col-span-1">
                                             <div className="mb-4 text-center">
-                                                <h3 className="text-sm font-bold text-dark flex items-center justify-center">
+                                                <h3 className="text-sm font-bold text-dark flex items-center justify-center font-segoe">
                                                     <PieChartIcon className="h-4 w-4 text-emerald-500 mr-2" />
                                                     Distribución de Género
                                                 </h3>
@@ -1155,24 +1206,32 @@
                                     </div>
                                 </div>
 
-                                {}
                                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8 flex flex-col">
-                                    <div className="flex items-center justify-between mb-4">
+                                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-4">
                                         <div className="flex items-center">
                                             <Network className="h-6 w-6 text-primary mr-3" />
                                             <div>
-                                                <h2 className="text-xl font-bold text-dark">Mapa Epistemológico Institucional</h2>
+                                                <h2 className="text-xl font-bold text-dark font-segoe">Mapa Epistemológico Institucional</h2>
                                                 <p className="text-sm text-slate-500 mt-1">Visualización de áreas temáticas estructuradas, materias, cátedras y los autores que funcionan como puentes teóricos.</p>
                                             </div>
                                         </div>
                                         
-                                        <button 
-                                            onClick={() => setShowMapConfig(!showMapConfig)}
-                                            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm transition-colors border shadow-sm ${showMapConfig ? 'bg-primaryLight border-primaryMuted text-primary' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
-                                        >
-                                            <Settings className="h-4 w-4" />
-                                            <span>Configuración</span>
-                                        </button>
+                                        <div className="flex items-center gap-2 self-end sm:self-auto">
+                                            <button 
+                                                onClick={() => setShowMapInfoModal(true)}
+                                                className="flex items-center justify-center p-2 rounded-lg font-bold text-sm transition-colors border shadow-sm bg-white border-slate-200 text-slate-400 hover:text-primary hover:bg-slate-50"
+                                                title="Información sobre el mapa"
+                                            >
+                                                <HelpCircle className="h-5 w-5" />
+                                            </button>
+                                            <button 
+                                                onClick={() => setShowMapConfig(!showMapConfig)}
+                                                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm transition-colors border shadow-sm ${showMapConfig ? 'bg-primaryLight border-primaryMuted text-primary' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                                            >
+                                                <Settings className="h-4 w-4" />
+                                                <span>Configuración</span>
+                                            </button>
+                                        </div>
                                     </div>
                                     
                                     <div className="relative">
@@ -1246,7 +1305,7 @@
                                     <div className="mt-8 pt-6 border-t border-slate-100">
                                         <div className="flex items-center mb-6">
                                             <Network className="h-5 w-5 text-slate-400 mr-2" />
-                                            <h2 className="text-lg font-bold text-dark">Autores con más conexiones</h2>
+                                            <h2 className="text-lg font-bold text-dark font-segoe">Autores con más conexiones</h2>
                                             <span className="ml-auto text-xs font-medium bg-slate-100 text-slate-500 px-2 py-1 rounded-full">
                                                 Transversales
                                             </span>
@@ -1255,13 +1314,13 @@
                                             {stats.connectors.length > 0 ? stats.connectors.map((conn, idx) => (
                                                 <div 
                                                     key={idx} 
-                                                    className="p-4 rounded-lg bg-slate-50 border border-slate-100 cursor-pointer hover:border-primary/50 hover:shadow-sm transition-all flex flex-col justify-start"
+                                                    className="p-4 rounded-lg bg-slate-50 border border-slate-100 cursor-pointer hover:border-primary/50 hover:shadow-sm transition-all flex flex-col"
                                                     onClick={() => setSelectedAuthor(conn.author)}
                                                     title="Clic para ver citas originales"
                                                 >
-                                                    <div className="flex justify-between items-start mb-3 gap-2">
-                                                        <span className="font-bold text-dark hover:text-primary leading-snug">{conn.author}</span>
-                                                        <span className="text-[10px] sm:text-xs font-bold bg-primaryMuted text-primaryDark px-2 py-1 rounded-md whitespace-nowrap mt-0.5">
+                                                    <div className="flex justify-between items-start mb-3">
+                                                        <span className="font-bold text-dark hover:text-primary leading-tight">{conn.author}</span>
+                                                        <span className="text-xs font-bold bg-primaryMuted text-primaryDark px-2 py-1 rounded-md whitespace-nowrap ml-2">
                                                             {conn.count} Instancias
                                                         </span>
                                                     </div>
@@ -1282,13 +1341,12 @@
                                     </div>
                                 </div>
 
-                                {}
                                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
                                     <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 border-b border-slate-100 pb-4 gap-4">
                                         <div className="flex items-center">
                                             <Calendar className="h-6 w-6 text-primary mr-3" />
                                             <div>
-                                                <h2 className="text-xl font-bold text-dark">Mutaciones del Programa y Composición Anual</h2>
+                                                <h2 className="text-xl font-bold text-dark font-segoe">Mutaciones del Programa y Composición Anual</h2>
                                                 <p className="text-sm text-slate-500 mt-1">
                                                     Analiza el volumen de textos vigentes por año cruzando múltiples cátedras simultáneamente.
                                                 </p>
@@ -1362,11 +1420,11 @@
                                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                                         <div className="lg:col-span-2 flex flex-col">
                                             <div className="flex justify-between items-end mb-4">
-                                                <h3 className="text-sm font-bold text-slate-700">Línea de tiempo de vigencia</h3>
+                                                <h3 className="text-sm font-bold text-slate-700 font-segoe">Línea de tiempo de vigencia</h3>
                                                 <span className="text-xs text-slate-400 bg-slate-50 px-2 py-1 rounded">Haz clic en una barra para inspeccionar el año</span>
                                             </div>
                                             
-                                            <div className="h-80 flex space-x-0 sm:space-x-0 pt-6 pb-4 border-b border-slate-200 overflow-x-auto custom-scrollbar">
+                                            <div className="h-80 flex space-x-0.5 pt-6 pb-4 border-b border-slate-200 overflow-x-auto custom-scrollbar">
                                                 {temporalAnalysis.evolution.length > 0 ? temporalAnalysis.evolution.map((point, idx) => {
                                                     const isSelected = selectedEvolutionYear === point.year;
                                                     
@@ -1384,7 +1442,7 @@
                                                             
                                                             <div className="w-full flex-1 flex items-end justify-center">
                                                                 <div 
-                                                                    className={`w-full max-w-[32px] relative rounded-t-md transition-all duration-300 ${isSelected ? 'bg-primary/40 shadow-sm' : 'bg-slate-100 group-hover:bg-slate-200'}`}
+                                                                    className={`w-full max-w-[48px] relative rounded-t-md transition-all duration-300 ${isSelected ? 'bg-primary/40 shadow-sm' : 'bg-slate-100 group-hover:bg-slate-200'}`}
                                                                     style={{ height: `${barHeightPct}%` }}
                                                                 >
                                                                     <div 
@@ -1417,7 +1475,7 @@
                                                 <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
                                                     <div className="flex items-center">
                                                         <TrendingUp className="h-5 w-5 text-primary mr-2" />
-                                                        <h3 className="text-lg font-bold text-dark">Cotización de Autores</h3>
+                                                        <h3 className="text-lg font-bold text-dark font-segoe">Cotización de Autores</h3>
                                                         <span className="ml-3 text-xs font-medium bg-slate-50 border border-slate-200 text-slate-500 px-2 py-1 rounded-md hidden sm:inline-block">
                                                             Evolución de citas vigentes
                                                         </span>
@@ -1497,7 +1555,7 @@
                                         <div className="lg:col-span-1 flex flex-col gap-6">
                                             <div className="bg-slate-50 rounded-xl p-5 border border-slate-100 flex flex-col">
                                                 <div className="mb-4 text-center">
-                                                    <h3 className="text-sm font-bold text-dark">Composición del Programa</h3>
+                                                    <h3 className="text-sm font-bold text-dark font-segoe">Composición del Programa</h3>
                                                     <span className="text-xs font-bold text-primary bg-primaryLight px-3 py-1 rounded-full mt-1 inline-block">Año {selectedEvolutionYear || '---'}</span>
                                                 </div>
                                                 <div className="overflow-hidden">
@@ -1514,7 +1572,7 @@
 
                                             <div className="bg-slate-50 rounded-xl p-5 border border-slate-100 flex flex-col">
                                                 <div className="mb-4 text-center">
-                                                    <h3 className="text-sm font-bold text-dark flex items-center justify-center">
+                                                    <h3 className="text-sm font-bold text-dark flex items-center justify-center font-segoe">
                                                         <Bookmark className="h-4 w-4 text-slate-400 mr-2" />
                                                         Editoriales Más Leídas
                                                     </h3>
