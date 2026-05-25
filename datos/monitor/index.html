@@ -1366,7 +1366,7 @@
                                                 <span className="text-xs text-slate-400 bg-slate-50 px-2 py-1 rounded">Haz clic en una barra para inspeccionar el año</span>
                                             </div>
                                             
-                                            <div className="h-80 flex space-x-2 sm:space-x-3 pt-6 pb-4 border-b border-slate-200 overflow-x-auto custom-scrollbar">
+                                            <div className="h-80 flex space-x-1 sm:space-x-1.5 pt-6 pb-4 border-b border-slate-200 overflow-x-auto custom-scrollbar">
                                                 {temporalAnalysis.evolution.length > 0 ? temporalAnalysis.evolution.map((point, idx) => {
                                                     const isSelected = selectedEvolutionYear === point.year;
                                                     
@@ -1375,7 +1375,7 @@
                                                     return (
                                                         <div 
                                                             key={idx} 
-                                                            className="flex flex-col justify-end items-center flex-1 min-w-[36px] h-full group cursor-pointer relative"
+                                                            className="flex flex-col justify-end items-center flex-1 min-w-[20px] h-full group cursor-pointer relative"
                                                             onClick={() => setSelectedEvolutionYear(point.year)}
                                                         >
                                                             <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute top-0 -mt-4 bg-dark text-white text-[11px] leading-tight rounded py-1.5 px-2 pointer-events-none whitespace-nowrap z-10 text-center shadow-lg">
