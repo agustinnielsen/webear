@@ -253,19 +253,11 @@
             document.getElementById('profileAvatar').textContent = initial;
         }
 
-        // Cargar Trayectoria (Cursadas y Deseadas) con código robusto y fallbacks
+        // Cargar Trayectoria (Cursadas y Deseadas) 
         async function fetchTrayectoria(uid) {
             try {
-                // Intentamos buscar primero en la colección en minúsculas (según la captura de pantalla)
-                let snapshot = await db.collection('usuarios').doc(uid).collection('trayectoria').get();
-                
-                // Fallback de seguridad: Si está vacía, quizás se guardó en la colección 'Usuarios' (mayúscula)
-                if (snapshot.empty) {
-                    const altSnapshot = await db.collection('Usuarios').doc(uid).collection('trayectoria').get();
-                    if (!altSnapshot.empty) {
-                        snapshot = altSnapshot;
-                    }
-                }
+                // Buscamos directamente en la colección en minúsculas de acuerdo a las Reglas de Firebase
+                const snapshot = await db.collection('usuarios').doc(uid).collection('trayectoria').get();
                 
                 let cursadas = [];
                 let deseadas = [];
@@ -290,10 +282,10 @@
             } catch (error) {
                 console.error("Error al cargar trayectoria:", error);
                 
-                // Capturar el error visualmente si faltan reglas de Firestore
+                // Capturar el error visualmente
                 let errorVisual = "No se pudieron obtener los datos.";
                 if(error.message.includes("Missing or insufficient permissions")) {
-                    errorVisual = "Acceso denegado: Las reglas de Firestore no permiten leer la subcolección 'trayectoria'.";
+                    errorVisual = "Acceso denegado: Tus reglas de Firestore no permiten leer la información.";
                 }
 
                 document.getElementById('gridCursadas').innerHTML = `<p class="text-red-500 col-span-full font-bold bg-red-50 p-4 rounded-xl border border-red-200">⚠️ ${errorVisual}</p>`;
@@ -426,12 +418,6 @@
             try {
                 await db.collection('usuarios').doc(currentUser.uid).collection('trayectoria').doc(pendingDeleteId).delete();
                 
-                // Fallback al borrar
-                const altCheck = await db.collection('Usuarios').doc(currentUser.uid).collection('trayectoria').doc(pendingDeleteId).get();
-                if(altCheck.exists) {
-                    await db.collection('Usuarios').doc(currentUser.uid).collection('trayectoria').doc(pendingDeleteId).delete();
-                }
-
                 showToast('Materia quitada de tu perfil.');
                 closeModal('deleteTrayectoriaModal');
                 fetchTrayectoria(currentUser.uid); // Recargar
