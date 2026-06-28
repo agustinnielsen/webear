@@ -307,7 +307,8 @@
                 return names[catCode] || "Materia";
             };
 
-            container.innerHTML = items.map(item => `
+            // Función auxiliar para generar la tarjeta de materia
+            const generateCard = (item) => `
                 <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-md transition-shadow relative group">
                     <button onclick="promptDeleteTrayectoria('${item.id}')" class="absolute top-2 right-2 w-8 h-8 bg-gray-100 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all" title="Quitar">
                         <span class="material-symbols-outlined text-lg">close</span>
@@ -322,7 +323,38 @@
                         </a>
                     </div>
                 </div>
-            `).join('');
+            `;
+
+            if (tipo === 'deseada') {
+                // Agrupar materias deseadas por categoría
+                const groups = {
+                    materias: { title: "Obligatorias", items: [] },
+                    teorias: { title: "Teorías sociológicas", items: [] },
+                    especiales: { title: "Sociologías especiales", items: [] },
+                    horasdeinv: { title: "Seminarios y talleres", items: [] },
+                    idiomas: { title: "Idiomas", items: [] }
+                };
+
+                items.forEach(item => {
+                    const tipoKey = item.materiaTipo || 'materias';
+                    if (groups[tipoKey]) groups[tipoKey].items.push(item);
+                    else groups.materias.items.push(item); // Fallback
+                });
+
+                let html = '';
+                Object.values(groups).forEach(group => {
+                    if (group.items.length > 0) {
+                        // Título de la sección que ocupa toda la fila
+                        html += `<div class="col-span-full mt-2 border-b-2 border-gray-100 pb-1"><h3 class="text-xl font-black text-gray-600">${group.title}</h3></div>`;
+                        // Tarjetas de esa categoría
+                        html += group.items.map(generateCard).join('');
+                    }
+                });
+                container.innerHTML = html;
+            } else {
+                // Renderizado normal para materias cursadas (sin subtítulos)
+                container.innerHTML = items.map(generateCard).join('');
+            }
         }
 
         // Cargar Reseñas del Usuario
