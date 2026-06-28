@@ -108,8 +108,8 @@
                         <span class="material-symbols-outlined text-green-500">check_circle</span> Materias Cursadas
                         <span id="countCursadas" class="bg-gray-100 text-gray-600 text-sm py-1 px-3 rounded-full ml-auto">0</span>
                     </h2>
-                    <div id="gridCursadas" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <p class="text-gray-400 col-span-full">Cargando materias cursadas...</p>
+                    <div id="gridCursadas" class="space-y-8">
+                        <p class="text-gray-400">Cargando materias cursadas...</p>
                     </div>
                 </div>
 
@@ -119,8 +119,8 @@
                         <span class="material-symbols-outlined text-red-500">favorite</span> Materias por Cursar
                         <span id="countDeseadas" class="bg-gray-100 text-gray-600 text-sm py-1 px-3 rounded-full ml-auto">0</span>
                     </h2>
-                    <div id="gridDeseadas" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <p class="text-gray-400 col-span-full">Cargando wishlist...</p>
+                    <div id="gridDeseadas" class="space-y-8">
+                        <p class="text-gray-400">Cargando wishlist...</p>
                     </div>
                 </div>
             </div>
@@ -325,73 +325,97 @@
         // Renderizar los grids de Trayectoria
         function renderTrayectoriaGrid(containerId, items, tipo) {
             const container = document.getElementById(containerId);
+            
+            // Aseguramos que el contenedor principal use un layout vertical para apilar los subtítulos
+            container.className = "space-y-6";
+
             if (!items || items.length === 0) {
                 const msg = tipo === 'cursada' ? 'No has marcado ninguna materia como cursada.' : 'No tienes materias en tu wishlist.';
-                container.innerHTML = `<div class="col-span-full bg-gray-50 border border-gray-100 rounded-xl p-6 text-center text-gray-500 font-semibold">${msg}</div>`;
+                container.innerHTML = `<div class="bg-gray-50 border border-gray-100 rounded-xl p-6 text-center text-gray-500 font-semibold">${msg}</div>`;
                 return;
             }
 
-            const getCategoryTag = (catCode) => {
-                const names = { materias: "Obligatoria", especiales: "Especial", teorias: "Teoría", horasdeinv: "Taller", idiomas: "Idioma" };
-                return names[catCode] || "Materia";
+            // Agrupar materias por categoría
+            const groups = {
+                materias: { title: "Obligatorias", items: [] },
+                teorias: { title: "Teorías sociológicas", items: [] },
+                especiales: { title: "Sociologías especiales", items: [] },
+                horasdeinv: { title: "Seminarios y talleres", items: [] },
+                idiomas: { title: "Idiomas", items: [] }
             };
 
-            const generateCard = (item) => `
-                <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-md transition-shadow relative group">
-                    <button onclick="promptDeleteTrayectoria('${item.id}')" class="absolute top-2 right-2 w-8 h-8 bg-gray-100 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10" title="Quitar">
-                        <span class="material-symbols-outlined text-lg">close</span>
-                    </button>
-                    <div>
-                        <div class="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1">${getCategoryTag(item.materiaTipo)}</div>
-                        <h3 class="font-bold text-dark text-base leading-tight pr-6">${item.materiaNombre || 'Sin Título'}</h3>
-                    </div>
-                    <div class="mt-4 pt-3 border-t border-gray-50 flex items-center justify-between">
-                        ${tipo === 'cursada' ? `
-                        <div class="flex items-center gap-2">
-                            <label class="text-xs font-bold text-gray-400 uppercase tracking-wider">Nota</label>
-                            <input type="number" min="1" max="10" placeholder="-" value="${item.nota || ''}" 
-                                onchange="actualizarNotaMateria('${item.id}', this.value)"
-                                class="w-14 p-1 text-sm border border-gray-200 rounded-md focus:border-primary focus:ring-1 focus:ring-primary outline-none text-center font-black text-dark bg-gray-50 hover:bg-white transition-colors">
-                        </div>
-                        ` : '<div></div>'}
-                        <a href="../#/materia/${item.materiaTipo || 'materias'}/${item.id}" class="text-primary text-xs font-bold hover:underline inline-flex items-center gap-1">
-                            Ver <span class="material-symbols-outlined text-[12px]">open_in_new</span>
-                        </a>
-                    </div>
-                </div>
-            `;
+            items.forEach(item => {
+                const tipoKey = item.materiaTipo || 'materias';
+                if (groups[tipoKey]) groups[tipoKey].items.push(item);
+                else groups.materias.items.push(item); // Fallback
+            });
 
-            if (tipo === 'deseada') {
-                // Agrupar materias deseadas por categoría
-                const groups = {
-                    materias: { title: "Obligatorias", items: [] },
-                    teorias: { title: "Teorías sociológicas", items: [] },
-                    especiales: { title: "Sociologías especiales", items: [] },
-                    horasdeinv: { title: "Seminarios y talleres", items: [] },
-                    idiomas: { title: "Idiomas", items: [] }
-                };
-
-                items.forEach(item => {
-                    const tipoKey = item.materiaTipo || 'materias';
-                    if (groups[tipoKey]) groups[tipoKey].items.push(item);
-                    else groups.materias.items.push(item); // Fallback
-                });
-
-                let html = '';
-                Object.values(groups).forEach(group => {
-                    if (group.items.length > 0) {
-                        // Título de la sección
-                        html += `<div class="col-span-full mt-4 border-b-2 border-gray-100 pb-2 mb-2 flex items-center gap-2">
-                                    <h3 class="text-lg font-black text-gray-600">${group.title}</h3>
-                                    <span class="bg-gray-100 text-gray-500 text-xs px-2 py-0.5 rounded-full font-bold">${group.items.length}</span>
-                                 </div>`;
-                        html += group.items.map(generateCard).join('');
+            let html = '';
+            Object.values(groups).forEach(group => {
+                if (group.items.length > 0) {
+                    // Título de la sección
+                    html += `<div class="mt-4 border-b-2 border-gray-100 pb-2 mb-3 flex items-center gap-2">
+                                <h3 class="text-lg font-black text-gray-600">${group.title}</h3>
+                                <span class="bg-gray-100 text-gray-500 text-xs px-2 py-0.5 rounded-full font-bold">${group.items.length}</span>
+                             </div>`;
+                             
+                    if (tipo === 'cursada') {
+                        // Renderizado en formato LISTA para materias Cursadas
+                        html += `<div class="flex flex-col gap-3">`;
+                        html += group.items.map(item => `
+                            <div class="bg-white rounded-xl p-3 md:p-4 shadow-sm border border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:shadow-md transition-shadow relative group">
+                                <div class="flex-1 pr-4">
+                                    <h3 class="font-bold text-dark text-base leading-tight">${item.materiaNombre || 'Sin Título'}</h3>
+                                    <a href="../#/materia/${item.materiaTipo || 'materias'}/${item.id}" class="text-primary text-xs font-bold hover:underline inline-flex items-center gap-1 mt-1">
+                                        Ir a la materia <span class="material-symbols-outlined text-[12px]">open_in_new</span>
+                                    </a>
+                                </div>
+                                <div class="flex flex-wrap items-center gap-3 md:gap-4 shrink-0">
+                                    <div class="flex items-center gap-2">
+                                        <label class="text-xs font-bold text-gray-400 uppercase tracking-wider hidden md:block">Cátedra</label>
+                                        <input type="text" placeholder="Ej: Alcántara" value="${item.catedra || ''}" 
+                                            onchange="actualizarCampoMateria('${item.id}', 'catedra', this.value)"
+                                            class="w-32 md:w-40 p-2 text-sm border border-gray-200 rounded-lg focus:border-primary focus:ring-1 focus:ring-primary outline-none text-dark bg-gray-50 hover:bg-white transition-colors">
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <label class="text-xs font-bold text-gray-400 uppercase tracking-wider hidden md:block">Nota</label>
+                                        <select onchange="actualizarCampoMateria('${item.id}', 'nota', this.value)"
+                                            class="w-16 md:w-20 p-2 text-sm border border-gray-200 rounded-lg focus:border-primary focus:ring-1 focus:ring-primary outline-none text-center font-black text-dark bg-gray-50 hover:bg-white transition-colors cursor-pointer">
+                                            <option value="">-</option>
+                                            ${[10,9,8,7,6,5,4,3,2,1].map(n => `<option value="${n}" ${item.nota == n ? 'selected' : ''}>${n}</option>`).join('')}
+                                        </select>
+                                    </div>
+                                    <button onclick="promptDeleteTrayectoria('${item.id}')" class="w-8 h-8 bg-gray-50 text-gray-400 hover:text-red-500 hover:bg-red-50 border border-gray-200 hover:border-red-200 rounded-full flex items-center justify-center transition-all" title="Quitar de trayectoria">
+                                        <span class="material-symbols-outlined text-lg">close</span>
+                                    </button>
+                                </div>
+                            </div>
+                        `).join('');
+                        html += `</div>`;
+                    } else {
+                        // Renderizado en formato TARJETAS para materias Deseadas
+                        html += `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">`;
+                        html += group.items.map(item => `
+                            <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-md transition-shadow relative group">
+                                <button onclick="promptDeleteTrayectoria('${item.id}')" class="absolute top-2 right-2 w-8 h-8 bg-gray-100 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10" title="Quitar">
+                                    <span class="material-symbols-outlined text-lg">close</span>
+                                </button>
+                                <div>
+                                    <h3 class="font-bold text-dark text-base leading-tight pr-6">${item.materiaNombre || 'Sin Título'}</h3>
+                                </div>
+                                <div class="mt-4 pt-3 border-t border-gray-50 flex items-center justify-between">
+                                    <div></div>
+                                    <a href="../#/materia/${item.materiaTipo || 'materias'}/${item.id}" class="text-primary text-xs font-bold hover:underline inline-flex items-center gap-1">
+                                        Ver materia <span class="material-symbols-outlined text-[12px]">open_in_new</span>
+                                    </a>
+                                </div>
+                            </div>
+                        `).join('');
+                        html += `</div>`;
                     }
-                });
-                container.innerHTML = html;
-            } else {
-                container.innerHTML = items.map(generateCard).join('');
-            }
+                }
+            });
+            container.innerHTML = html;
         }
 
         // Cargar Reseñas del Usuario
@@ -523,31 +547,35 @@
             }
         });
 
-        // Actualizar Nota de Materia Cursada
-        async function actualizarNotaMateria(materiaId, valorStr) {
+        // Actualizar Cátedra y Nota de Materia Cursada
+        async function actualizarCampoMateria(materiaId, campo, valorStr) {
             if (!currentUser) return;
             
-            const nota = parseFloat(valorStr);
-            const notaValida = !isNaN(nota) && nota >= 1 && nota <= 10;
+            let actualizacion = {};
             
-            // Si el input está vacío o es inválido, borramos el campo de la base de datos
-            const actualizacion = notaValida ? { nota: nota } : { nota: firebase.firestore.FieldValue.delete() };
+            if (campo === 'nota') {
+                const nota = parseFloat(valorStr);
+                const notaValida = !isNaN(nota) && nota >= 1 && nota <= 10;
+                actualizacion = notaValida ? { nota: nota } : { nota: firebase.firestore.FieldValue.delete() };
+            } else if (campo === 'catedra') {
+                const catedraStr = valorStr.trim();
+                actualizacion = catedraStr !== '' ? { catedra: catedraStr } : { catedra: firebase.firestore.FieldValue.delete() };
+            }
 
             try {
-                // Intentamos actualizar en ambas colecciones (minúscula y mayúscula) para evitar errores por el fallback
+                // Intentamos actualizar en ambas colecciones (minúscula y mayúscula)
                 const docRefMin = db.collection('usuarios').doc(currentUser.uid).collection('trayectoria').doc(materiaId);
                 const docRefMay = db.collection('Usuarios').doc(currentUser.uid).collection('trayectoria').doc(materiaId);
                 
                 await docRefMin.update(actualizacion).catch(e => {
-                    // Si falla en usuarios, intentamos en Usuarios
                     return docRefMay.update(actualizacion);
                 });
 
-                showToast(notaValida ? 'Nota guardada exitosamente.' : 'Nota removida.', 'success');
-                fetchTrayectoria(currentUser.uid); // Recargar para actualizar el promedio
+                showToast(campo === 'nota' ? 'Nota guardada.' : 'Cátedra guardada.', 'success');
+                if (campo === 'nota') fetchTrayectoria(currentUser.uid); // Recargar para actualizar el promedio
             } catch (error) {
-                console.error("Error al actualizar la nota:", error);
-                showToast('Hubo un error al guardar la nota.', 'error');
+                console.error("Error al actualizar:", error);
+                showToast('Hubo un error al guardar.', 'error');
             }
         }
 
