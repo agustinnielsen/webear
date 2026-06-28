@@ -165,7 +165,7 @@
     <div id="toast" class="fixed top-6 right-6 px-6 py-4 rounded-xl text-white font-bold shadow-2xl z-[10000] transition-transform transform translate-x-full duration-300"></div>
 
     <script>
-        // Configuración de Firebase (Idéntica a la página principal)
+        // Configuración de Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyBnpshX3I7ZY3EUoraDZPdb2W6B6HZOYR0",
             authDomain: "social-sociales.firebaseapp.com",
@@ -253,10 +253,19 @@
             document.getElementById('profileAvatar').textContent = initial;
         }
 
-        // Cargar Trayectoria (Cursadas y Deseadas)
+        // Cargar Trayectoria (Cursadas y Deseadas) con código robusto y fallbacks
         async function fetchTrayectoria(uid) {
             try {
-                const snapshot = await db.collection('usuarios').doc(uid).collection('trayectoria').get();
+                // Intentamos buscar primero en la colección en minúsculas (según la captura de pantalla)
+                let snapshot = await db.collection('usuarios').doc(uid).collection('trayectoria').get();
+                
+                // Fallback de seguridad: Si está vacía, quizás se guardó en la colección 'Usuarios' (mayúscula)
+                if (snapshot.empty) {
+                    const altSnapshot = await db.collection('Usuarios').doc(uid).collection('trayectoria').get();
+                    if (!altSnapshot.empty) {
+                        snapshot = altSnapshot;
+                    }
+                }
                 
                 let cursadas = [];
                 let deseadas = [];
@@ -264,8 +273,12 @@
                 snapshot.forEach(doc => {
                     const data = doc.data();
                     const item = { id: doc.id, ...data };
-                    if (data.estado === 'cursada') cursadas.push(item);
-                    else if (data.estado === 'deseada') deseadas.push(item);
+                    
+                    // Normalización robusta para evitar errores de tipeo en Firestore o espacios
+                    const estadoString = (data.estado || '').toString().toLowerCase().trim();
+                    
+                    if (estadoString === 'cursada') cursadas.push(item);
+                    else if (estadoString === 'deseada') deseadas.push(item);
                 });
 
                 document.getElementById('countCursadas').textContent = cursadas.length;
@@ -276,15 +289,22 @@
 
             } catch (error) {
                 console.error("Error al cargar trayectoria:", error);
-                document.getElementById('gridCursadas').innerHTML = '<p class="text-red-500 col-span-full">Error al cargar materias.</p>';
-                document.getElementById('gridDeseadas').innerHTML = '<p class="text-red-500 col-span-full">Error al cargar materias.</p>';
+                
+                // Capturar el error visualmente si faltan reglas de Firestore
+                let errorVisual = "No se pudieron obtener los datos.";
+                if(error.message.includes("Missing or insufficient permissions")) {
+                    errorVisual = "Acceso denegado: Las reglas de Firestore no permiten leer la subcolección 'trayectoria'.";
+                }
+
+                document.getElementById('gridCursadas').innerHTML = `<p class="text-red-500 col-span-full font-bold bg-red-50 p-4 rounded-xl border border-red-200">⚠️ ${errorVisual}</p>`;
+                document.getElementById('gridDeseadas').innerHTML = `<p class="text-red-500 col-span-full font-bold bg-red-50 p-4 rounded-xl border border-red-200">⚠️ ${errorVisual}</p>`;
             }
         }
 
         // Renderizar los grids de Trayectoria
         function renderTrayectoriaGrid(containerId, items, tipo) {
             const container = document.getElementById(containerId);
-            if (items.length === 0) {
+            if (!items || items.length === 0) {
                 const msg = tipo === 'cursada' ? 'No has marcado ninguna materia como cursada.' : 'No tienes materias en tu wishlist.';
                 container.innerHTML = `<div class="col-span-full bg-gray-50 border border-gray-100 rounded-xl p-6 text-center text-gray-500 font-semibold">${msg}</div>`;
                 return;
@@ -302,10 +322,10 @@
                     </button>
                     <div>
                         <div class="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1">${getCategoryTag(item.materiaTipo)}</div>
-                        <h3 class="font-bold text-dark text-base leading-tight pr-6">${item.materiaNombre}</h3>
+                        <h3 class="font-bold text-dark text-base leading-tight pr-6">${item.materiaNombre || 'Sin Título'}</h3>
                     </div>
                     <div class="mt-4 pt-3 border-t border-gray-50 text-right">
-                        <a href="../#/materia/${item.materiaTipo}/${item.id}" class="text-primary text-xs font-bold hover:underline inline-flex items-center gap-1">
+                        <a href="../#/materia/${item.materiaTipo || 'materias'}/${item.id}" class="text-primary text-xs font-bold hover:underline inline-flex items-center gap-1">
                             Ver materia <span class="material-symbols-outlined text-[12px]">open_in_new</span>
                         </a>
                     </div>
@@ -405,6 +425,13 @@
 
             try {
                 await db.collection('usuarios').doc(currentUser.uid).collection('trayectoria').doc(pendingDeleteId).delete();
+                
+                // Fallback al borrar
+                const altCheck = await db.collection('Usuarios').doc(currentUser.uid).collection('trayectoria').doc(pendingDeleteId).get();
+                if(altCheck.exists) {
+                    await db.collection('Usuarios').doc(currentUser.uid).collection('trayectoria').doc(pendingDeleteId).delete();
+                }
+
                 showToast('Materia quitada de tu perfil.');
                 closeModal('deleteTrayectoriaModal');
                 fetchTrayectoria(currentUser.uid); // Recargar
@@ -429,7 +456,6 @@
             btn.textContent = 'Borrando...';
 
             try {
-                // Borra la reseña (Nota: idealmente aquí también se debe descontar numresenas de la colección general de la materia)
                 await db.collection('resenas').doc(pendingDeleteId).delete();
                 showToast('Reseña eliminada.');
                 closeModal('deleteResenaModal');
