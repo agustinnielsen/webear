@@ -353,8 +353,8 @@
             let html = '';
             Object.values(groups).forEach(group => {
                 if (group.items.length > 0) {
-                    // Título de la sección
-                    html += `<div class="mt-4 border-b-2 border-gray-100 pb-2 mb-3 flex items-center gap-2">
+                    // Título de la sección sin la línea inferior
+                    html += `<div class="mt-4 mb-3 flex items-center gap-2">
                                 <h3 class="text-lg font-black text-gray-600">${group.title}</h3>
                                 <span class="bg-gray-100 text-gray-500 text-xs px-2 py-0.5 rounded-full font-bold">${group.items.length}</span>
                              </div>`;
