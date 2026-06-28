@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <link rel="shortcut icon" href="../GinoLogo.ico.png">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Perfil - Gino Social</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#ff7d29',
+                        primaryDark: '#e66b1d',
+                        dark: '#2c3e50',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Firebase Libraries -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    
+    <style>
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .tab-content { display: none; animation: fadeIn 0.4s ease-out; }
+        .tab-content.active { display: block; }
+        
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #ff7d29; }
+    </style>
+</head>
+<body class="bg-slate-50 text-dark flex flex-col min-h-screen font-sans">
+
+    <!-- Navbar Minimalista -->
+    <nav class="navbar w-full p-4 md:px-8 flex justify-between items-center z-[1000] bg-primary shadow-md">
+        <a href="../" class="flex items-center gap-2 text-white hover:text-gray-200 transition-colors">
+            <span class="material-symbols-outlined text-2xl md:text-3xl">arrow_back</span>
+            <span class="text-xl md:text-2xl font-black tracking-tighter drop-shadow-sm">Gino Social</span>
+        </a>
+        <div id="navUserActions" class="hidden flex items-center gap-4">
+            <button id="logoutBtn" class="px-4 py-2 bg-white/20 hover:bg-white/30 text-white font-bold rounded-full shadow-sm text-sm transition-colors border border-white/50 flex items-center gap-2">
+                <span class="material-symbols-outlined text-sm">logout</span> Cerrar sesión
+            </button>
+        </div>
+    </nav>
+
+    <main class="flex-grow flex flex-col items-center">
+        <!-- Loader Inicial -->
+        <div id="pageLoader" class="flex flex-col items-center justify-center mt-32">
+            <div class="w-12 h-12 border-4 border-gray-200 border-t-primary rounded-full animate-spin mb-4"></div>
+            <p class="text-gray-500 font-bold">Cargando tu perfil...</p>
+        </div>
+
+        <!-- Mensaje de No Autenticado -->
+        <div id="unauthMessage" class="hidden flex-col items-center justify-center mt-32 text-center px-4">
+            <span class="material-symbols-outlined text-6xl text-gray-300 mb-4">lock</span>
+            <h2 class="text-3xl font-black text-dark mb-2">Acceso Denegado</h2>
+            <p class="text-gray-500 mb-6">Debes iniciar sesión para ver tu perfil.</p>
+            <a href="../#/" class="px-6 py-3 bg-primary text-white font-bold rounded-full shadow-md hover:bg-primaryDark transition-colors">Volver al inicio</a>
+        </div>
+
+        <!-- Contenido del Perfil -->
+        <div id="profileContent" class="hidden w-full max-w-5xl mx-auto px-4 md:px-8 py-8">
+            
+            <!-- Cabecera del Perfil -->
+            <div class="bg-white rounded-3xl p-6 md:p-10 shadow-sm border border-gray-100 flex flex-col md:flex-row items-center gap-6 mb-8">
+                <div id="profileAvatar" class="w-24 h-24 md:w-32 md:h-32 bg-orange-100 text-primary rounded-full flex items-center justify-center font-black text-4xl md:text-6xl shadow-inner border-4 border-white shrink-0">
+                    U
+                </div>
+                <div class="text-center md:text-left">
+                    <h1 id="profileName" class="text-3xl md:text-4xl font-black text-dark mb-2">Usuario</h1>
+                    <p id="profileEmail" class="text-gray-500 font-semibold flex items-center justify-center md:justify-start gap-2">
+                        <span class="material-symbols-outlined text-[18px]">mail</span> usuario@email.com
+                    </p>
+                </div>
+            </div>
+
+            <!-- Navegación de Pestañas -->
+            <div class="flex gap-2 border-b border-gray-200 mb-8 overflow-x-auto">
+                <button onclick="switchTab('trayectoria')" id="tabTrayectoria" class="py-3 px-6 border-b-2 border-primary text-primary font-bold text-base md:text-lg transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <span class="material-symbols-outlined">school</span> Mi Trayectoria
+                </button>
+                <button onclick="switchTab('resenas')" id="tabResenas" class="py-3 px-6 border-b-2 border-transparent text-gray-500 font-semibold hover:text-gray-700 text-base md:text-lg transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <span class="material-symbols-outlined">forum</span> Mis Reseñas
+                </button>
+            </div>
+
+            <!-- Pestaña: Mi Trayectoria -->
+            <div id="trayectoriaTab" class="tab-content active space-y-10">
+                
+                <!-- Materias Cursadas -->
+                <div>
+                    <h2 class="text-2xl font-black text-dark mb-4 flex items-center gap-2 border-b pb-2">
+                        <span class="material-symbols-outlined text-green-500">check_circle</span> Materias Cursadas
+                        <span id="countCursadas" class="bg-gray-100 text-gray-600 text-sm py-1 px-3 rounded-full ml-auto">0</span>
+                    </h2>
+                    <div id="gridCursadas" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <p class="text-gray-400 col-span-full">Cargando materias cursadas...</p>
+                    </div>
+                </div>
+
+                <!-- Materias Deseadas -->
+                <div>
+                    <h2 class="text-2xl font-black text-dark mb-4 flex items-center gap-2 border-b pb-2">
+                        <span class="material-symbols-outlined text-red-500">favorite</span> Materias por Cursar
+                        <span id="countDeseadas" class="bg-gray-100 text-gray-600 text-sm py-1 px-3 rounded-full ml-auto">0</span>
+                    </h2>
+                    <div id="gridDeseadas" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <p class="text-gray-400 col-span-full">Cargando wishlist...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pestaña: Mis Reseñas -->
+            <div id="resenasTab" class="tab-content">
+                <div class="flex items-center justify-between mb-6 border-b pb-2">
+                    <h2 class="text-2xl font-black text-dark flex items-center gap-2">
+                        <span class="material-symbols-outlined text-primary">edit_square</span> Mis Aportes
+                    </h2>
+                    <span id="countResenas" class="bg-gray-100 text-gray-600 text-sm py-1 px-3 rounded-full font-bold">0</span>
+                </div>
+                <div id="listResenas" class="space-y-4">
+                    <p class="text-gray-400">Cargando reseñas...</p>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Modal Borrar Trayectoria -->
+    <div class="fixed inset-0 bg-black/60 z-[2000] hidden items-center justify-center p-4 backdrop-blur-sm" id="deleteTrayectoriaModal">
+        <div class="bg-white p-8 rounded-3xl w-full max-w-sm shadow-2xl text-center relative animate-[fadeIn_0.2s_ease-out]">
+            <h2 class="text-2xl font-black text-red-500 mb-2">⚠️ Quitar Materia</h2>
+            <p class="text-gray-600 mb-6">¿Seguro que deseas quitar esta materia de tu trayectoria?</p>
+            <div class="flex gap-3">
+                <button type="button" class="flex-1 py-3 border text-gray-500 font-bold rounded-xl hover:bg-gray-50" onclick="closeModal('deleteTrayectoriaModal')">Cancelar</button>
+                <button type="button" id="confirmDeleteTrayectoriaBtn" class="flex-1 py-3 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl transition-colors">Quitar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Borrar Reseña -->
+    <div class="fixed inset-0 bg-black/60 z-[2000] hidden items-center justify-center p-4 backdrop-blur-sm" id="deleteResenaModal">
+        <div class="bg-white p-8 rounded-3xl w-full max-w-sm shadow-2xl text-center relative animate-[fadeIn_0.2s_ease-out]">
+            <h2 class="text-2xl font-black text-red-500 mb-2">⚠️ Borrar Reseña</h2>
+            <p class="text-gray-600 mb-6">¿Seguro? Esta acción no se puede deshacer.</p>
+            <div class="flex gap-3">
+                <button type="button" class="flex-1 py-3 border text-gray-500 font-bold rounded-xl hover:bg-gray-50" onclick="closeModal('deleteResenaModal')">Cancelar</button>
+                <button type="button" id="confirmDeleteResenaBtn" class="flex-1 py-3 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl transition-colors">Borrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notificaciones flotantes -->
+    <div id="toast" class="fixed top-6 right-6 px-6 py-4 rounded-xl text-white font-bold shadow-2xl z-[10000] transition-transform transform translate-x-full duration-300"></div>
+
+    <script>
+        // Configuración de Firebase (Idéntica a la página principal)
+        const firebaseConfig = {
+            apiKey: "AIzaSyBnpshX3I7ZY3EUoraDZPdb2W6B6HZOYR0",
+            authDomain: "social-sociales.firebaseapp.com",
+            projectId: "social-sociales",
+            storageBucket: "social-sociales.firebasestorage.app",
+            messagingSenderId: "18764420760",
+            appId: "1:18764420760:web:92e33662d4e0b050cfa2ed",
+            measurementId: "G-8BZFCJBMY6"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        let currentUser = null;
+        let pendingDeleteId = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Escuchar el estado de autenticación
+            auth.onAuthStateChanged(user => {
+                const loader = document.getElementById('pageLoader');
+                const unauthMsg = document.getElementById('unauthMessage');
+                const profileContent = document.getElementById('profileContent');
+                const navActions = document.getElementById('navUserActions');
+
+                loader.classList.add('hidden');
+
+                if (user) {
+                    currentUser = user;
+                    unauthMsg.classList.add('hidden');
+                    profileContent.classList.remove('hidden');
+                    navActions.classList.remove('hidden');
+                    navActions.classList.add('flex');
+                    
+                    renderUserData(user);
+                    fetchTrayectoria(user.uid);
+                    fetchResenas(user.uid);
+                } else {
+                    currentUser = null;
+                    unauthMsg.classList.remove('hidden');
+                    unauthMsg.classList.add('flex');
+                    profileContent.classList.add('hidden');
+                    navActions.classList.add('hidden');
+                    navActions.classList.remove('flex');
+                }
+            });
+
+            // Manejador del botón de cerrar sesión
+            document.getElementById('logoutBtn').addEventListener('click', () => {
+                auth.signOut().then(() => {
+                    window.location.href = '../#/';
+                });
+            });
+        });
+
+        // Utilidades de Pestañas
+        function switchTab(tabId) {
+            const tabs = {
+                'trayectoria': document.getElementById('tabTrayectoria'),
+                'resenas': document.getElementById('tabResenas')
+            };
+            const contents = {
+                'trayectoria': document.getElementById('trayectoriaTab'),
+                'resenas': document.getElementById('resenasTab')
+            };
+
+            // Resetear estilos
+            Object.values(tabs).forEach(t => {
+                t.className = "py-3 px-6 border-b-2 border-transparent text-gray-500 font-semibold hover:text-gray-700 text-base md:text-lg transition-colors flex items-center gap-2 whitespace-nowrap";
+            });
+            Object.values(contents).forEach(c => c.classList.remove('active'));
+
+            // Activar seleccionada
+            tabs[tabId].className = "py-3 px-6 border-b-2 border-primary text-primary font-bold text-base md:text-lg transition-colors flex items-center gap-2 whitespace-nowrap";
+            contents[tabId].classList.add('active');
+        }
+
+        // Renderizar Info del Usuario Header
+        function renderUserData(user) {
+            const name = user.displayName || user.email.split('@')[0];
+            const initial = name.charAt(0).toUpperCase();
+            
+            document.getElementById('profileName').textContent = name;
+            document.getElementById('profileEmail').innerHTML = `<span class="material-symbols-outlined text-[18px]">mail</span> ${user.email}`;
+            document.getElementById('profileAvatar').textContent = initial;
+        }
+
+        // Cargar Trayectoria (Cursadas y Deseadas)
+        async function fetchTrayectoria(uid) {
+            try {
+                const snapshot = await db.collection('usuarios').doc(uid).collection('trayectoria').get();
+                
+                let cursadas = [];
+                let deseadas = [];
+
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const item = { id: doc.id, ...data };
+                    if (data.estado === 'cursada') cursadas.push(item);
+                    else if (data.estado === 'deseada') deseadas.push(item);
+                });
+
+                document.getElementById('countCursadas').textContent = cursadas.length;
+                document.getElementById('countDeseadas').textContent = deseadas.length;
+
+                renderTrayectoriaGrid('gridCursadas', cursadas, 'cursada');
+                renderTrayectoriaGrid('gridDeseadas', deseadas, 'deseada');
+
+            } catch (error) {
+                console.error("Error al cargar trayectoria:", error);
+                document.getElementById('gridCursadas').innerHTML = '<p class="text-red-500 col-span-full">Error al cargar materias.</p>';
+                document.getElementById('gridDeseadas').innerHTML = '<p class="text-red-500 col-span-full">Error al cargar materias.</p>';
+            }
+        }
+
+        // Renderizar los grids de Trayectoria
+        function renderTrayectoriaGrid(containerId, items, tipo) {
+            const container = document.getElementById(containerId);
+            if (items.length === 0) {
+                const msg = tipo === 'cursada' ? 'No has marcado ninguna materia como cursada.' : 'No tienes materias en tu wishlist.';
+                container.innerHTML = `<div class="col-span-full bg-gray-50 border border-gray-100 rounded-xl p-6 text-center text-gray-500 font-semibold">${msg}</div>`;
+                return;
+            }
+
+            const getCategoryTag = (catCode) => {
+                const names = { materias: "Obligatoria", especiales: "Especial", teorias: "Teoría", horasdeinv: "Taller", idiomas: "Idioma" };
+                return names[catCode] || "Materia";
+            };
+
+            container.innerHTML = items.map(item => `
+                <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-md transition-shadow relative group">
+                    <button onclick="promptDeleteTrayectoria('${item.id}')" class="absolute top-2 right-2 w-8 h-8 bg-gray-100 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all" title="Quitar">
+                        <span class="material-symbols-outlined text-lg">close</span>
+                    </button>
+                    <div>
+                        <div class="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1">${getCategoryTag(item.materiaTipo)}</div>
+                        <h3 class="font-bold text-dark text-base leading-tight pr-6">${item.materiaNombre}</h3>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-gray-50 text-right">
+                        <a href="../#/materia/${item.materiaTipo}/${item.id}" class="text-primary text-xs font-bold hover:underline inline-flex items-center gap-1">
+                            Ver materia <span class="material-symbols-outlined text-[12px]">open_in_new</span>
+                        </a>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Cargar Reseñas del Usuario
+        async function fetchResenas(uid) {
+            try {
+                const snapshot = await db.collection('resenas').where('usuarioId', '==', uid).get();
+                const resenas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                // Ordenar por fecha descendente
+                resenas.sort((a, b) => (b.fecha?.toMillis() || 0) - (a.fecha?.toMillis() || 0));
+                
+                document.getElementById('countResenas').textContent = resenas.length;
+
+                const listContainer = document.getElementById('listResenas');
+                
+                if (resenas.length === 0) {
+                    listContainer.innerHTML = `<div class="bg-gray-50 border border-gray-100 rounded-xl p-8 text-center text-gray-500 font-semibold flex flex-col items-center">
+                        <span class="material-symbols-outlined text-4xl mb-2 text-gray-300">chat_bubble</span>
+                        Aún no has escrito ninguna reseña. ¡Ayuda a la comunidad compartiendo tu experiencia!
+                    </div>`;
+                    return;
+                }
+
+                listContainer.innerHTML = resenas.map(r => {
+                    const stars = '★'.repeat(r.calificacionGeneral) + '☆'.repeat(5 - r.calificacionGeneral);
+                    const fechaTxt = r.fecha ? r.fecha.toDate().toLocaleDateString() : 'Reciente';
+                    return `
+                        <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-all relative">
+                            <button onclick="promptDeleteResena('${r.id}')" class="absolute top-4 right-4 text-gray-300 hover:text-red-500 transition-colors" title="Borrar reseña">
+                                <span class="material-symbols-outlined">delete</span>
+                            </button>
+                            <div class="mb-3">
+                                <h3 class="font-black text-lg text-dark pr-8">${r.materiaNombre}</h3>
+                                <div class="text-xs text-gray-500 mt-1 flex flex-wrap gap-2 items-center">
+                                    <span class="bg-orange-50 text-primary px-2 py-0.5 rounded font-bold">${r.catedra} - ${r.practico}</span>
+                                    <span>${fechaTxt} | Cursada: ${r.anioCursada}</span>
+                                </div>
+                            </div>
+                            <div class="text-2xl tracking-widest text-yellow-500 mb-2">${stars}</div>
+                            <p class="text-gray-700 text-sm italic mb-3">"${r.texto}"</p>
+                            
+                            <!-- Estadísticas internas de la reseña -->
+                            <div class="flex gap-4 text-xs font-semibold text-gray-400 mt-4 pt-3 border-t border-gray-50">
+                                <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">thumb_up</span> ${r.likes_count || 0}</span>
+                                <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">thumb_down</span> ${r.dislikes_count || 0}</span>
+                                <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">comment</span> ${r.replies_count || 0}</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (error) {
+                console.error("Error al cargar reseñas:", error);
+                document.getElementById('listResenas').innerHTML = '<p class="text-red-500">Error al cargar tus reseñas.</p>';
+            }
+        }
+
+        // Utilidades de UI (Modales y Alertas)
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.remove('hidden');
+            document.getElementById(modalId).classList.add('flex');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+            document.getElementById(modalId).classList.remove('flex');
+            pendingDeleteId = null;
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `fixed top-6 right-6 px-6 py-4 rounded-xl text-white font-bold shadow-2xl z-[10000] transition-transform transform duration-300 ${type === 'success' ? 'bg-green-500' : 'bg-red-500'}`;
+            toast.classList.remove('translate-x-full');
+            
+            setTimeout(() => {
+                toast.classList.add('translate-x-full');
+            }, 3000);
+        }
+
+        // Acciones de Borrado (Trayectoria)
+        function promptDeleteTrayectoria(materiaId) {
+            pendingDeleteId = materiaId;
+            openModal('deleteTrayectoriaModal');
+        }
+
+        document.getElementById('confirmDeleteTrayectoriaBtn').addEventListener('click', async () => {
+            if (!pendingDeleteId || !currentUser) return;
+            const btn = document.getElementById('confirmDeleteTrayectoriaBtn');
+            btn.disabled = true;
+            btn.textContent = 'Quitando...';
+
+            try {
+                await db.collection('usuarios').doc(currentUser.uid).collection('trayectoria').doc(pendingDeleteId).delete();
+                showToast('Materia quitada de tu perfil.');
+                closeModal('deleteTrayectoriaModal');
+                fetchTrayectoria(currentUser.uid); // Recargar
+            } catch (error) {
+                showToast('Error al quitar la materia.', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Quitar';
+            }
+        });
+
+        // Acciones de Borrado (Reseñas)
+        function promptDeleteResena(resenaId) {
+            pendingDeleteId = resenaId;
+            openModal('deleteResenaModal');
+        }
+
+        document.getElementById('confirmDeleteResenaBtn').addEventListener('click', async () => {
+            if (!pendingDeleteId || !currentUser) return;
+            const btn = document.getElementById('confirmDeleteResenaBtn');
+            btn.disabled = true;
+            btn.textContent = 'Borrando...';
+
+            try {
+                // Borra la reseña (Nota: idealmente aquí también se debe descontar numresenas de la colección general de la materia)
+                await db.collection('resenas').doc(pendingDeleteId).delete();
+                showToast('Reseña eliminada.');
+                closeModal('deleteResenaModal');
+                fetchResenas(currentUser.uid); // Recargar
+            } catch (error) {
+                showToast('Error al borrar la reseña.', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Borrar';
+            }
+        });
+
+    </script>
+</body>
+</html>
