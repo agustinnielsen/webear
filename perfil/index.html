@@ -225,6 +225,16 @@
             });
         });
 
+        // Renderizar Info del Usuario Header
+        function renderUserData(user) {
+            const name = user.displayName || user.email.split('@')[0];
+            const initial = name.charAt(0).toUpperCase();
+            
+            document.getElementById('profileName').textContent = name;
+            document.getElementById('profileEmail').innerHTML = `<span class="material-symbols-outlined text-[18px]">mail</span> ${user.email}`;
+            document.getElementById('profileAvatar').textContent = initial;
+        }
+
         // Utilidades de Pestañas
         function switchTab(tabId) {
             const tabs = {
@@ -232,6 +242,21 @@
                 'resenas': document.getElementById('tabResenas')
             };
             const contents = {
+                'trayectoria': document.getElementById('trayectoriaTab'),
+                'resenas': document.getElementById('resenasTab')
+            };
+
+            // Resetear estilos
+            Object.values(tabs).forEach(t => {
+                t.className = "py-3 px-6 border-b-2 border-transparent text-gray-500 font-semibold hover:text-gray-700 text-base md:text-lg transition-colors flex items-center gap-2 whitespace-nowrap";
+            });
+            Object.values(contents).forEach(c => c.classList.remove('active'));
+
+            // Activar seleccionada
+            tabs[tabId].className = "py-3 px-6 border-b-2 border-primary text-primary font-bold text-base md:text-lg transition-colors flex items-center gap-2 whitespace-nowrap";
+            contents[tabId].classList.add('active');
+        }
+
         // Cargar Trayectoria (Cursadas y Deseadas) con código robusto y fallbacks
         async function fetchTrayectoria(uid) {
             try {
