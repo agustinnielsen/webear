@@ -1,578 +1,1266 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <link rel="shortcut icon" href="../GinoLogo.ico.png">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mi Perfil - Gino Social</title>
-    
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#ff7d29',
-                        primaryDark: '#e66b1d',
-                        dark: '#2c3e50',
-                    }
-                }
-            }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Perfil · Gino Social</title>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#ff7d29',
+            primaryDark: '#e66b1d',
+            dark: '#2c3e50'
+          }
         }
-    </script>
-
-    <!-- Firebase Libraries -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+      }
+    };
+  </script>
+  <style>
+    html { scroll-behavior: smooth; }
+    body { min-height: 100vh; overflow-x: hidden; }
+    button, select, input, textarea { touch-action: manipulation; }
+    @media (max-width: 639px) {
+      input, select, textarea { font-size: 16px !important; }
+      button, select, input { min-height: 44px; }
+      .modal { align-items: flex-end !important; padding: 0 !important; }
+      .modal .modal-card {
+        width: 100% !important;
+        max-width: none !important;
+        max-height: 92svh !important;
+        overflow-y: auto;
+        border-radius: 1.5rem 1.5rem 0 0 !important;
+        padding: 1.25rem !important;
+        overscroll-behavior: contain;
+      }
+      .mobile-safe-bottom { padding-bottom: max(1.25rem, env(safe-area-inset-bottom)); }
+    }
+    .modal { display: none; }
+    .modal.active { display: flex; animation: fadeIn .18s ease-out; }
+    .modal-card { animation: popIn .2s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes popIn { from { opacity: 0; transform: translateY(8px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    .progress-ring { transition: background .35s ease; }
+    .progress-bar { transition: width .4s ease; }
     
-    <style>
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        .tab-content { display: none; animation: fadeIn 0.4s ease-out; }
-        .tab-content.active { display: block; }
-        
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #ff7d29; }
-    </style>
+    /* Smooth height transitions for accordions could go here, but block/hidden works efficiently for simple lists */
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #f1f1f1; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #ff7d29; }
+  </style>
 </head>
-<body class="bg-slate-50 text-dark flex flex-col min-h-screen font-sans">
+<body class="bg-slate-50 text-dark font-sans">
+  <nav class="sticky top-0 z-40 bg-primary/95 backdrop-blur-md text-white shadow-lg">
+    <div class="max-w-7xl mx-auto px-4 md:px-8 h-14 sm:h-16 flex items-center justify-between gap-3 sm:gap-4">
+      <a href="../" class="flex items-center gap-2 font-black hover:opacity-90">
+        <span class="material-symbols-outlined">arrow_back</span>
+        <span class="hidden sm:inline">Gino Social</span>
+      </a>
+      <div class="text-center min-w-0">
+        <p class="font-black leading-none">Mi perfil</p>
+        <p class="text-[10px] uppercase tracking-[.16em] text-white/70 mt-1">Prototipo local</p>
+      </div>
+      <button id="resetBtn" class="w-10 h-10 rounded-full hover:bg-white/15 flex items-center justify-center" title="Reiniciar demo">
+        <span class="material-symbols-outlined">restart_alt</span>
+      </button>
+    </div>
+  </nav>
 
-    <!-- Navbar Minimalista -->
-    <nav class="navbar w-full p-4 md:px-8 flex justify-between items-center z-[1000] bg-primary shadow-md">
-        <a href="../" class="flex items-center gap-2 text-white hover:text-gray-200 transition-colors">
-            <span class="material-symbols-outlined text-2xl md:text-3xl">arrow_back</span>
-            <span class="text-xl md:text-2xl font-black tracking-tighter drop-shadow-sm">Gino Social</span>
-        </a>
-        <div id="navUserActions" class="hidden flex items-center gap-4">
-            <button id="logoutBtn" class="px-4 py-2 bg-white/20 hover:bg-white/30 text-white font-bold rounded-full shadow-sm text-sm transition-colors border border-white/50 flex items-center gap-2">
-                <span class="material-symbols-outlined text-sm">logout</span> Cerrar sesión
+  <header class="bg-gradient-to-br from-[#ff7d29] via-[#ff8a3d] to-[#ffad70] text-white px-4 md:px-8 pt-6 sm:pt-8 pb-8 sm:pb-12">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-6">
+      <div class="flex items-center gap-4 min-w-0">
+        <div id="profileAvatar" class="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-2xl sm:rounded-3xl bg-white text-primary flex items-center justify-center text-2xl sm:text-3xl md:text-4xl font-black shadow-xl border-4 border-white/30 shrink-0">G</div>
+        <div class="min-w-0">
+          <div class="flex flex-wrap items-center gap-2 mb-1">
+            <span class="text-[11px] font-black uppercase tracking-[.14em] bg-white/20 border border-white/30 px-2.5 py-1 rounded-full">Perfil académico</span>
+            <span id="syncStatusBadge" class="text-[11px] font-bold bg-white/20 border border-white/20 px-2.5 py-1 rounded-full">Modo local</span>
+          </div>
+          <h1 id="profileName" class="text-2xl sm:text-3xl md:text-5xl font-black tracking-tight truncate">Gino Demo</h1>
+          <p id="profileMeta" class="text-white/80 mt-1">Sociología · UBA</p>
+        </div>
+      </div>
+      <button id="editProfileBtn" class="w-full md:w-auto bg-white text-primary font-black px-4 py-2.5 rounded-xl shadow-md hover:-translate-y-0.5 transition-transform flex items-center justify-center gap-2">
+        <span class="material-symbols-outlined text-lg">edit</span> Editar perfil
+      </button>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-3.5 sm:px-4 md:px-8 py-5 sm:py-7 md:py-10">
+    <div class="mb-5 md:mb-6 bg-amber-50 border border-amber-200 rounded-2xl px-3.5 sm:px-4 py-3 flex gap-2.5 sm:gap-3 items-start text-xs sm:text-sm text-amber-900">
+      <span class="material-symbols-outlined text-amber-600">science</span>
+      <div id="profileStorageNotice"><strong>Modo local.</strong> El catálogo de materias se consulta desde Firebase. Iniciá sesión en Gino Social para guardar también tu perfil académico.</div>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-6 md:gap-8 items-start">
+      <div class="order-2 xl:order-1 space-y-5 md:space-y-7">
+        
+        <!-- 1. Quiero cursar -->
+        <section id="wantedSection" class="bg-white rounded-2xl md:rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+          <div class="p-4 sm:p-5 md:p-7 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary">bookmark_heart</span>
+                <h2 class="text-xl md:text-2xl font-black text-dark">Quiero cursar</h2>
+              </div>
+              <p class="text-sm text-gray-500 mt-1">Una lista corta para preparar tu próximo cuatrimestre.</p>
+            </div>
+            <button id="addWantedBtn" class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-primary text-white font-bold shadow-sm hover:bg-primaryDark transition-colors flex items-center justify-center gap-2">
+              <span class="material-symbols-outlined text-lg">add</span> Agregar materia
             </button>
-        </div>
-    </nav>
+          </div>
+          <div id="wantedCoursesList" class="p-4 sm:p-5 md:p-7 grid grid-cols-1 md:grid-cols-2 gap-2.5 sm:gap-3"></div>
+        </section>
 
-    <main class="flex-grow flex flex-col items-center">
-        <!-- Loader Inicial -->
-        <div id="pageLoader" class="flex flex-col items-center justify-center mt-32">
-            <div class="w-12 h-12 border-4 border-gray-200 border-t-primary rounded-full animate-spin mb-4"></div>
-            <p class="text-gray-500 font-bold">Cargando tu perfil...</p>
-        </div>
-
-        <!-- Mensaje de No Autenticado -->
-        <div id="unauthMessage" class="hidden flex-col items-center justify-center mt-32 text-center px-4">
-            <span class="material-symbols-outlined text-6xl text-gray-300 mb-4">lock</span>
-            <h2 class="text-3xl font-black text-dark mb-2">Acceso Denegado</h2>
-            <p class="text-gray-500 mb-6">Debes iniciar sesión para ver tu perfil.</p>
-            <a href="../#/" class="px-6 py-3 bg-primary text-white font-bold rounded-full shadow-md hover:bg-primaryDark transition-colors">Volver al inicio</a>
-        </div>
-
-        <!-- Contenido del Perfil -->
-        <div id="profileContent" class="hidden w-full max-w-5xl mx-auto px-4 md:px-8 py-8">
-            
-            <!-- Cabecera del Perfil -->
-            <div class="bg-white rounded-3xl p-6 md:p-10 shadow-sm border border-gray-100 flex flex-col md:flex-row items-center gap-6 mb-8">
-                <div id="profileAvatar" class="w-24 h-24 md:w-32 md:h-32 bg-orange-100 text-primary rounded-full flex items-center justify-center font-black text-4xl md:text-6xl shadow-inner border-4 border-white shrink-0">
-                    U
-                </div>
-                <div class="text-center md:text-left">
-                    <h1 id="profileName" class="text-3xl md:text-4xl font-black text-dark mb-2">Usuario</h1>
-                    <p id="profileEmail" class="text-gray-500 font-semibold flex items-center justify-center md:justify-start gap-2 mb-4">
-                        <span class="material-symbols-outlined text-[18px]">mail</span> usuario@email.com
-                    </p>
-                    <div class="inline-flex bg-primary/10 border border-primary/20 text-primary px-4 py-2 rounded-xl font-black items-center gap-2 shadow-sm">
-                        <span class="material-symbols-outlined text-[20px]">school</span> 
-                        Promedio Histórico: <span id="promedioGeneral" class="text-xl">--</span>
-                    </div>
-                </div>
+        <!-- 2. Materias realizadas -->
+        <section id="completedSection" class="bg-white rounded-2xl md:rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+          <div class="p-4 sm:p-5 md:p-7 border-b border-gray-100 flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-slate-50/50">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary">task_alt</span>
+                <h2 class="text-xl md:text-2xl font-black text-dark">Materias realizadas</h2>
+              </div>
+              <p class="text-sm text-gray-500 mt-1"><span id="completedCountLabel">0</span> registros · las notas alimentan automáticamente tus promedios.</p>
             </div>
-
-            <!-- Navegación de Pestañas -->
-            <div class="flex gap-2 border-b border-gray-200 mb-8 overflow-x-auto">
-                <button onclick="switchTab('trayectoria')" id="tabTrayectoria" class="py-3 px-6 border-b-2 border-primary text-primary font-bold text-base md:text-lg transition-colors flex items-center gap-2 whitespace-nowrap">
-                    <span class="material-symbols-outlined">school</span> Mi Trayectoria
-                </button>
-                <button onclick="switchTab('resenas')" id="tabResenas" class="py-3 px-6 border-b-2 border-transparent text-gray-500 font-semibold hover:text-gray-700 text-base md:text-lg transition-colors flex items-center gap-2 whitespace-nowrap">
-                    <span class="material-symbols-outlined">forum</span> Mis Reseñas
-                </button>
+            <!-- Eliminado el select de filtro, ahora solo queda el botón para agregar -->
+            <div class="w-full lg:w-auto">
+              <button id="addCompletedBtn" class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-primary text-white font-bold shadow-sm hover:bg-primaryDark transition-colors flex items-center justify-center gap-2">
+                <span class="material-symbols-outlined text-lg">add</span> Agregar realizada
+              </button>
             </div>
+          </div>
+          <div id="completedCoursesList" class="divide-y divide-gray-100">
+            <!-- Los acordeones de materias se inyectan dinámicamente aquí -->
+          </div>
+        </section>
 
-            <!-- Pestaña: Mi Trayectoria -->
-            <div id="trayectoriaTab" class="tab-content active space-y-10">
-                
-                <!-- Materias Cursadas -->
-                <div>
-                    <h2 class="text-2xl font-black text-dark mb-4 flex items-center gap-2 border-b pb-2">
-                        <span class="material-symbols-outlined text-green-500">check_circle</span> Materias Cursadas
-                        <span id="countCursadas" class="bg-gray-100 text-gray-600 text-sm py-1 px-3 rounded-full ml-auto">0</span>
-                    </h2>
-                    <div id="gridCursadas" class="space-y-8">
-                        <p class="text-gray-400">Cargando materias cursadas...</p>
-                    </div>
-                </div>
-
-                <!-- Materias Deseadas -->
-                <div>
-                    <h2 class="text-2xl font-black text-dark mb-4 flex items-center gap-2 border-b pb-2">
-                        <span class="material-symbols-outlined text-red-500">favorite</span> Materias por Cursar
-                        <span id="countDeseadas" class="bg-gray-100 text-gray-600 text-sm py-1 px-3 rounded-full ml-auto">0</span>
-                    </h2>
-                    <div id="gridDeseadas" class="space-y-8">
-                        <p class="text-gray-400">Cargando wishlist...</p>
-                    </div>
-                </div>
+        <!-- 3. Reseñas -->
+        <section class="bg-white rounded-2xl md:rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+          <div class="p-4 sm:p-5 md:p-7 border-b border-gray-100">
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-primary">rate_review</span>
+              <h2 class="text-xl md:text-2xl font-black text-dark">Mis reseñas</h2>
             </div>
+            <p class="text-sm text-gray-500 mt-1">Tu actividad pública, después de la planificación y el historial académico.</p>
+          </div>
+          <div id="reviewsList" class="p-4 sm:p-5 md:p-7 space-y-3"></div>
+        </section>
+      </div>
 
-            <!-- Pestaña: Mis Reseñas -->
-            <div id="resenasTab" class="tab-content">
-                <div class="flex items-center justify-between mb-6 border-b pb-2">
-                    <h2 class="text-2xl font-black text-dark flex items-center gap-2">
-                        <span class="material-symbols-outlined text-primary">edit_square</span> Mis Aportes
-                    </h2>
-                    <span id="countResenas" class="bg-gray-100 text-gray-600 text-sm py-1 px-3 rounded-full font-bold">0</span>
-                </div>
-                <div id="listResenas" class="space-y-4">
-                    <p class="text-gray-400">Cargando reseñas...</p>
-                </div>
+      <!-- Panel lateral -->
+      <aside class="order-1 xl:order-2 space-y-3 sm:space-y-4">
+        <section class="bg-white rounded-2xl md:rounded-3xl shadow-sm border border-gray-100 p-4 sm:p-5 md:p-6">
+          <h2 class="font-black text-base sm:text-lg text-dark mb-4 sm:mb-5">Resumen académico</h2>
+          <div class="flex items-center justify-between gap-4">
+            <div>
+              <p class="text-xs font-black uppercase tracking-wider text-gray-400">Avance total</p>
+              <div class="flex items-end gap-1 mt-1">
+                <span id="progressPercent" class="text-3xl sm:text-4xl font-black text-dark">0</span>
+                <span class="text-xl font-bold text-gray-400 mb-1">%</span>
+              </div>
             </div>
-
-        </div>
-    </main>
-
-    <!-- Modal Borrar Trayectoria -->
-    <div class="fixed inset-0 bg-black/60 z-[2000] hidden items-center justify-center p-4 backdrop-blur-sm" id="deleteTrayectoriaModal">
-        <div class="bg-white p-8 rounded-3xl w-full max-w-sm shadow-2xl text-center relative animate-[fadeIn_0.2s_ease-out]">
-            <h2 class="text-2xl font-black text-red-500 mb-2">⚠️ Quitar Materia</h2>
-            <p class="text-gray-600 mb-6">¿Seguro que deseas quitar esta materia de tu trayectoria?</p>
-            <div class="flex gap-3">
-                <button type="button" class="flex-1 py-3 border text-gray-500 font-bold rounded-xl hover:bg-gray-50" onclick="closeModal('deleteTrayectoriaModal')">Cancelar</button>
-                <button type="button" id="confirmDeleteTrayectoriaBtn" class="flex-1 py-3 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl transition-colors">Quitar</button>
+            <div id="progressRing" class="progress-ring w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center shrink-0" style="background:conic-gradient(#ff7d29 0deg,#f1f5f9 0deg)">
+              <div class="w-[62px] h-[62px] sm:w-[74px] sm:h-[74px] bg-white rounded-full flex items-center justify-center">
+                <span class="material-symbols-outlined text-3xl text-primary">school</span>
+              </div>
             </div>
-        </div>
+          </div>
+          <div class="border-t border-gray-100 mt-4 sm:mt-5 pt-4 sm:pt-5 grid grid-cols-2 gap-2.5 sm:gap-3">
+            <div class="rounded-xl sm:rounded-2xl bg-slate-50 border border-slate-100 p-3 sm:p-4">
+              <p class="text-[10px] font-black uppercase tracking-wider text-gray-400">Promedio UBA</p>
+              <p id="averageUBA" class="text-2xl sm:text-3xl font-black text-dark mt-1">—</p>
+            </div>
+            <div class="rounded-xl sm:rounded-2xl bg-slate-50 border border-slate-100 p-3 sm:p-4">
+              <p class="text-[10px] font-black uppercase tracking-wider text-gray-400">GPA estimado</p>
+              <p class="text-2xl sm:text-3xl font-black text-dark mt-1"><span id="averageGPA">—</span><span class="text-sm text-gray-400">/4</span></p>
+            </div>
+          </div>
+        </section>
+
+        <section class="bg-white rounded-2xl md:rounded-3xl shadow-sm border border-gray-100 p-4 sm:p-5 md:p-6">
+          <div class="flex items-center gap-2 mb-5">
+            <span class="material-symbols-outlined text-primary">route</span>
+            <h2 class="font-black text-lg text-dark">Progreso en la carrera</h2>
+          </div>
+          <div id="requirementsGrid" class="space-y-3 sm:space-y-4"></div>
+          
+          <button id="openPlanBtn" class="mt-5 w-full px-4 py-3 rounded-xl bg-dark text-white font-black shadow-md hover:bg-slate-800 hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2">
+            <span class="material-symbols-outlined text-lg">account_tree</span> Ver plan de correlatividades
+          </button>
+
+          <p class="text-[11px] text-gray-400 leading-relaxed mt-5 pt-4 border-t border-gray-100">16 obligatorias + 3 especiales + 3 teorías + 3 adicionales entre especiales/teorías + 200 h de investigación. Taller: 100 h · Seminario: 50 h.</p>
+        </section>
+
+      </aside>
     </div>
+  </main>
 
-    <!-- Modal Borrar Reseña -->
-    <div class="fixed inset-0 bg-black/60 z-[2000] hidden items-center justify-center p-4 backdrop-blur-sm" id="deleteResenaModal">
-        <div class="bg-white p-8 rounded-3xl w-full max-w-sm shadow-2xl text-center relative animate-[fadeIn_0.2s_ease-out]">
-            <h2 class="text-2xl font-black text-red-500 mb-2">⚠️ Borrar Reseña</h2>
-            <p class="text-gray-600 mb-6">¿Seguro? Esta acción no se puede deshacer.</p>
-            <div class="flex gap-3">
-                <button type="button" class="flex-1 py-3 border text-gray-500 font-bold rounded-xl hover:bg-gray-50" onclick="closeModal('deleteResenaModal')">Cancelar</button>
-                <button type="button" id="confirmDeleteResenaBtn" class="flex-1 py-3 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl transition-colors">Borrar</button>
-            </div>
+  <!-- Modal perfil -->
+  <div id="profileModal" class="modal fixed inset-0 bg-black/60 z-50 items-center justify-center p-4 backdrop-blur-sm">
+    <div class="modal-card mobile-safe-bottom bg-white rounded-3xl w-full max-w-md shadow-2xl p-6 md:p-8">
+      <div class="flex items-start justify-between gap-4 mb-5">
+        <div>
+          <h2 class="text-xl md:text-2xl font-black text-dark">Editar perfil</h2>
+          <p class="text-sm text-gray-500 mt-1">Sólo identidad básica en esta prueba.</p>
         </div>
+        <button data-close-modal class="text-gray-400 hover:text-gray-700 text-2xl">✕</button>
+      </div>
+      <form id="profileForm" class="space-y-4">
+        <label class="block space-y-1">
+          <span class="text-sm font-bold text-gray-600">Nombre visible</span>
+          <input id="profileNameInput" required class="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-primary">
+        </label>
+        <label class="block space-y-1">
+          <span class="text-sm font-bold text-gray-600">Año de ingreso</span>
+          <input id="entryYearInput" type="number" min="1990" max="2035" class="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-primary">
+        </label>
+        <div class="flex gap-3 pt-2">
+          <button type="button" data-close-modal class="flex-1 py-3 border border-gray-200 text-gray-600 font-bold rounded-xl hover:bg-gray-50">Cancelar</button>
+          <button type="submit" class="flex-1 py-3 bg-primary text-white font-black rounded-xl hover:bg-primaryDark">Guardar</button>
+        </div>
+      </form>
     </div>
+  </div>
 
-    <!-- Notificaciones flotantes -->
-    <div id="toast" class="fixed top-6 right-6 px-6 py-4 rounded-xl text-white font-bold shadow-2xl z-[10000] transition-transform transform translate-x-full duration-300"></div>
+  <!-- Modal quiero cursar -->
+  <div id="wantedModal" class="modal fixed inset-0 bg-black/60 z-50 items-center justify-center p-4 backdrop-blur-sm">
+    <div class="modal-card mobile-safe-bottom bg-white rounded-3xl w-full max-w-md shadow-2xl p-6 md:p-8">
+      <div class="flex items-start justify-between gap-4 mb-5">
+        <div>
+          <h2 class="text-xl md:text-2xl font-black text-dark">Agregar a “Quiero cursar”</h2>
+          <p class="text-sm text-gray-500 mt-1">Planificación local del próximo cuatrimestre.</p>
+        </div>
+        <button data-close-modal class="text-gray-400 hover:text-gray-700 text-2xl">✕</button>
+      </div>
+      <form id="wantedForm" class="space-y-4">
+        <label class="block space-y-1">
+          <span class="text-sm font-bold text-gray-600">Materia</span>
+          <input id="wantedName" list="wantedCourseOptions" autocomplete="off" required class="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-primary" placeholder="Buscá una materia…">
+          <datalist id="wantedCourseOptions"></datalist>
+          <p id="wantedCourseHelp" class="text-xs text-gray-400">Elegí primero el tipo de materia.</p>
+        </label>
+        <label class="block space-y-1">
+          <span class="text-sm font-bold text-gray-600">Tipo</span>
+          <select id="wantedType" class="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-primary bg-white">
+            <option value="obligatoria">Obligatoria</option>
+            <option value="especial">Sociología especial</option>
+            <option value="teoria">Teoría sociológica</option>
+            <option value="investigacion">Investigación</option>
+          </select>
+        </label>
+        <label class="block space-y-1">
+          <span class="text-sm font-bold text-gray-600">Nota personal <span class="font-normal text-gray-400">(opcional)</span></span>
+          <textarea id="wantedNote" rows="3" class="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-primary resize-none" placeholder="Ej. Prioridad alta, buscar turno noche…"></textarea>
+        </label>
+        <div class="flex gap-3 pt-2">
+          <button type="button" data-close-modal class="flex-1 py-3 border border-gray-200 text-gray-600 font-bold rounded-xl hover:bg-gray-50">Cancelar</button>
+          <button type="submit" class="flex-1 py-3 bg-primary text-white font-black rounded-xl hover:bg-primaryDark">Agregar</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
-    <script>
-        // Configuración de Firebase
-        const firebaseConfig = {
-            apiKey: "AIzaSyBnpshX3I7ZY3EUoraDZPdb2W6B6HZOYR0",
-            authDomain: "social-sociales.firebaseapp.com",
-            projectId: "social-sociales",
-            storageBucket: "social-sociales.firebasestorage.app",
-            messagingSenderId: "18764420760",
-            appId: "1:18764420760:web:92e33662d4e0b050cfa2ed",
-            measurementId: "G-8BZFCJBMY6"
-        };
+  <!-- Modal materia realizada: alta y edición -->
+  <div id="completedModal" class="modal fixed inset-0 bg-black/60 z-50 items-center justify-center p-4 backdrop-blur-sm">
+    <div class="modal-card mobile-safe-bottom bg-white rounded-3xl w-full max-w-lg max-h-[92vh] overflow-y-auto shadow-2xl p-6 md:p-8">
+      <div class="flex items-start justify-between gap-4 mb-5">
+        <div>
+          <h2 id="completedModalTitle" class="text-xl md:text-2xl font-black text-dark">Agregar materia realizada</h2>
+          <p class="text-sm text-gray-500 mt-1">El historial actualiza automáticamente avance y promedios.</p>
+        </div>
+        <button data-close-modal class="text-gray-400 hover:text-gray-700 text-2xl">✕</button>
+      </div>
+      <form id="completedForm" class="space-y-4">
+        <input id="completedEditId" type="hidden">
+        <label class="block space-y-1">
+          <span class="text-sm font-bold text-gray-600">Materia / actividad</span>
+          <input id="completedName" list="completedCourseOptions" autocomplete="off" required class="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-primary" placeholder="Buscá una materia o actividad…">
+          <datalist id="completedCourseOptions"></datalist>
+          <p id="completedCourseHelp" class="text-xs text-gray-400">Elegí primero el tipo de materia.</p>
+        </label>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <label class="block space-y-1">
+            <span class="text-sm font-bold text-gray-600">Tipo</span>
+            <select id="completedType" class="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-primary bg-white">
+              <option value="obligatoria">Obligatoria</option>
+              <option value="especial">Sociología especial</option>
+              <option value="teoria">Teoría sociológica</option>
+              <option value="taller">Taller de investigación · 100 h</option>
+              <option value="seminario">Seminario de investigación · 50 h</option>
+            </select>
+          </label>
+          <label class="block space-y-1">
+            <span class="text-sm font-bold text-gray-600">Año</span>
+            <input id="completedYear" type="number" min="1990" max="2035" required class="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-primary">
+          </label>
+        </div>
+        <div id="gradeField">
+          <label class="block space-y-1">
+            <span class="text-sm font-bold text-gray-600">Nota</span>
+            <input id="completedGrade" type="number" min="0" max="10" step="0.01" required class="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-primary" placeholder="0–10">
+          </label>
+          <p class="text-xs text-gray-400 mt-1">Modificar esta nota actualiza el promedio UBA y el GPA del panel lateral.</p>
+        </div>
+        <div id="researchInfo" class="hidden rounded-2xl bg-emerald-50 border border-emerald-100 p-4 text-sm text-emerald-800">
+          <strong id="researchHoursLabel">100 horas</strong> se sumarán al requisito de investigación. La nota de esta actividad también se incluye en el promedio UBA y el GPA.
+        </div>
+        <div class="flex gap-3 pt-2">
+          <button id="deleteCompletedBtn" type="button" class="hidden px-4 py-3 border border-red-200 text-red-600 font-bold rounded-xl hover:bg-red-50" title="Eliminar registro"><span class="material-symbols-outlined align-middle">delete</span></button>
+          <button type="button" data-close-modal class="flex-1 py-3 border border-gray-200 text-gray-600 font-bold rounded-xl hover:bg-gray-50">Cancelar</button>
+          <button type="submit" class="flex-1 py-3 bg-primary text-white font-black rounded-xl hover:bg-primaryDark">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
+  <!-- Modal Plan de Estudios (Correlatividades) -->
+  <div id="planModal" class="modal fixed inset-0 bg-black/60 z-50 items-center justify-center p-2 sm:p-4 backdrop-blur-sm">
+    <div class="modal-card bg-slate-50 w-full h-[95vh] max-w-7xl rounded-3xl shadow-2xl flex flex-col overflow-hidden">
+      <div class="p-5 md:p-6 border-b border-gray-200 bg-white flex items-center justify-between shrink-0">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary">account_tree</span>
+            <h2 class="text-xl md:text-2xl font-black text-dark">Plan de Estudios</h2>
+          </div>
+          <p class="text-sm text-gray-500 mt-1">Mapa de correlatividades (Res. CD 2024-186). Las materias completadas desbloquean nuevos niveles.</p>
+        </div>
+        <button data-close-modal class="text-gray-400 hover:text-gray-700 text-3xl h-10 w-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">✕</button>
+      </div>
+      <div class="flex-1 overflow-x-auto overflow-y-auto p-5 md:p-8 bg-slate-100/50">
+        <div id="planTree" class="flex gap-6 md:gap-8 min-w-max pb-8">
+          <!-- Las columnas y tarjetas se generan dinámicamente vía JS -->
+        </div>
+      </div>
+    </div>
+  </div>
 
-        let currentUser = null;
-        let pendingDeleteId = null;
+  <div id="toast" class="fixed top-16 sm:top-20 left-4 right-4 sm:left-auto sm:right-4 md:right-8 sm:max-w-sm z-[60] translate-x-[120%] opacity-0 transition-all duration-300 px-4 py-3 rounded-xl bg-dark text-white font-bold shadow-2xl text-sm"></div>
 
-        document.addEventListener('DOMContentLoaded', () => {
-            // Escuchar el estado de autenticación
-            auth.onAuthStateChanged(user => {
-                const loader = document.getElementById('pageLoader');
-                const unauthMsg = document.getElementById('unauthMessage');
-                const profileContent = document.getElementById('profileContent');
-                const navActions = document.getElementById('navUserActions');
+  <script>
+    // Solo lectura del catálogo público de Gino Social. El perfil continúa siendo local en esta etapa.
+    // Catálogo público + perfil académico del usuario autenticado en Gino Social.
+    const FIREBASE_CONFIG = {
+      apiKey: 'AIzaSyBnpshX3I7ZY3EUoraDZPdb2W6B6HZOYR0',
+      authDomain: 'social-sociales.firebaseapp.com',
+      projectId: 'social-sociales',
+      storageBucket: 'social-sociales.firebasestorage.app',
+      messagingSenderId: '18764420760',
+      appId: '1:18764420760:web:92e33662d4e0b050cfa2ed',
+      measurementId: 'G-8BZFCJBMY6'
+    };
 
-                loader.classList.add('hidden');
+    let courseCatalogDb = null;
+    let profileAuth = null;
+    try {
+      if (window.firebase) {
+        if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+        courseCatalogDb = firebase.firestore();
+        profileAuth = firebase.auth();
+      }
+    } catch (error) {
+      console.warn('No se pudo inicializar el catálogo de Firebase.', error);
+    }
 
-                if (user) {
-                    currentUser = user;
-                    unauthMsg.classList.add('hidden');
-                    profileContent.classList.remove('hidden');
-                    navActions.classList.remove('hidden');
-                    navActions.classList.add('flex');
-                    
-                    renderUserData(user);
-                    fetchTrayectoria(user.uid);
-                    fetchResenas(user.uid);
-                } else {
-                    currentUser = null;
-                    unauthMsg.classList.remove('hidden');
-                    unauthMsg.classList.add('flex');
-                    profileContent.classList.add('hidden');
-                    navActions.classList.add('hidden');
-                    navActions.classList.remove('flex');
-                }
-            });
+    const COURSE_COLLECTIONS = {
+      obligatoria: 'Materias',
+      especial: 'Especiales',
+      teoria: 'Teorias',
+      investigacion: 'Horasinv',
+      taller: 'Horasinv',
+      seminario: 'Horasinv'
+      obligatoria: 'materias',
+      especial: 'especiales',
+      teoria: 'teorias',
+      investigacion: 'horasdeinv',
+      taller: 'horasdeinv',
+      seminario: 'horasdeinv'
+    };
 
-            // Manejador del botón de cerrar sesión
-            document.getElementById('logoutBtn').addEventListener('click', () => {
-                auth.signOut().then(() => {
-                    window.location.href = '../#/';
-                });
-            });
+    const COURSE_COLLECTION_LABELS = {
+      Materias: 'materias obligatorias',
+      Especiales: 'sociologías especiales',
+      Teorias: 'teorías sociológicas',
+      Horasinv: 'talleres y seminarios de investigación'
+      materias: 'materias obligatorias',
+      especiales: 'sociologías especiales',
+      teorias: 'teorías sociológicas',
+      horasdeinv: 'talleres y seminarios de investigación'
+    };
+
+    const courseCatalogCache = {};
+    const courseCatalogRequests = {};
+
+    const DEFAULT_STATE = {
+      name: 'Gino Demo',
+      entryYear: 2022,
+      wanted: [
+        { id: 'w1', name: 'Metodología 3', type: 'obligatoria', note: 'Prioridad alta · buscar turno tarde/noche' },
+        { id: 'w2', name: 'Sociología de la Cultura (demo)', type: 'especial', note: 'Comparar cátedras antes de inscribirme' },
+        { id: 'w3', name: 'Teoría Sociológica Contemporánea (demo)', type: 'teoria', note: 'Completar bloque de teorías' }
+      ],
+      completed: [
+        { id: 'c1', name: 'Sociología General', type: 'obligatoria', year: 2022, grade: 8 },
+        { id: 'c2', name: 'Filosofía', type: 'obligatoria', year: 2022, grade: 7 },
+        { id: 'c3', name: 'Economía 2', type: 'obligatoria', year: 2023, grade: 9 },
+        { id: 'c4', name: 'Historia Social Moderna y Contemporánea', type: 'obligatoria', year: 2023, grade: 10 },
+        { id: 'c5', name: 'Metodología 1', type: 'obligatoria', year: 2023, grade: 6 },
+        { id: 'c6', name: 'Historia Social Argentina', type: 'obligatoria', year: 2024, grade: 8 },
+        { id: 'c7', name: 'Metodología 2', type: 'obligatoria', year: 2024, grade: 9 },
+        { id: 'c8', name: 'Sociología Política', type: 'obligatoria', year: 2025, grade: 7 },
+        { id: 'c9', name: 'Historia del Conocimiento Sociológico 1', type: 'obligatoria', year: 2025, grade: 8 },
+        { id: 'c10', name: 'Epistemología de las Ciencias Sociales', type: 'obligatoria', year: 2025, grade: 8 },
+        { id: 'c11', name: 'Sociología de la Cultura (demo)', type: 'especial', year: 2024, grade: 8 },
+        { id: 'c12', name: 'Sociología de la Educación (demo)', type: 'especial', year: 2025, grade: 9 },
+        { id: 'c13', name: 'Sociología del Trabajo (demo)', type: 'especial', year: 2025, grade: 7 },
+        { id: 'c14', name: 'Sociología Urbana (demo)', type: 'especial', year: 2026, grade: 9 },
+        { id: 'c15', name: 'Teoría Social Clásica (demo)', type: 'teoria', year: 2024, grade: 10 },
+        { id: 'c16', name: 'Teoría Sociológica II (demo)', type: 'teoria', year: 2025, grade: 8 },
+        { id: 'c17', name: 'Teoría Sociológica III (demo)', type: 'teoria', year: 2026, grade: 9 },
+        { id: 'c18', name: 'Taller de Investigación (demo)', type: 'investigacion', subtype: 'taller', hours: 100, year: 2026, grade: 8 }
+      ],
+      reviews: [
+        { materia: 'Historia Social Argentina', catedra: 'Cátedra de prueba', rating: 5, date: 'Jun 2026', text: 'Muy buen recorrido bibliográfico y clases claras. La carga de lectura es alta pero consistente con la propuesta.' },
+        { materia: 'Metodología 2', catedra: 'Cátedra de prueba', rating: 4, date: 'Dic 2025', text: 'El práctico fue clave para seguir la cursada. Recomendaría llegar con los ejercicios hechos para aprovechar mejor la clase.' }
+      ]
+    };
+
+    const STORAGE_KEY = 'ginoPerfilDirectorio_v3_demo';
+    let state = loadState();
+    let activeProfileUser = null;
+    let profileCloudReady = false;
+    let profileWriteChain = Promise.resolve();
+    let authStateRevision = 0;
+    
+    // Estado de los acordeones: todos empiezan abiertos
+    let expandedGroups = new Set(['obligatoria', 'especial', 'teoria', 'investigacion']);
+
+    // Mapeo estructural del plan de correlatividades (Res. CD 2024-186)
+    const PLAN_ESTUDIOS = [
+      // Nivel 1 (Sin correlativas)
+      { id: '251', name: 'Sociología General', req: [], tier: 1 },
+      { id: '252', name: 'Filosofía', req: [], tier: 1 },
+      { id: '253', name: 'Historia Social Moderna y Contemporánea', req: [], tier: 1 },
+      { id: '256', name: 'Economía 2', req: [], tier: 1 }, // El PDF dice Economía II, se matchea con el default.
+      
+      // Nivel 2
+      { id: '254', name: 'Historia del Conocimiento Sociológico 1', req: ['251', '252'], tier: 2 },
+      { id: '255', name: 'Epistemología de las Ciencias Sociales', req: ['252'], tier: 2 },
+      { id: '259', name: 'Historia Social Latinoamericana', req: ['253', '256'], tier: 2 },
+      { id: '263', name: 'Sociología Política', req: ['253', '256'], tier: 2 },
+      
+      // Nivel 3
+      { id: '257', name: 'Historia del Conocimiento Sociológico 2', req: ['254'], tier: 3 },
+      { id: '262', name: 'Historia Social Argentina', req: ['259'], tier: 3 },
+      { id: '258', name: 'Metodología 1', req: ['251', '255', '256'], tier: 3 },
+      
+      // Nivel 4
+      { id: '260', name: 'Sociología Sistemática', req: ['257'], tier: 4 },
+      { id: '261', name: 'Metodología 2', req: ['258'], tier: 4 },
+      
+      // Nivel 5
+      { id: '264', name: 'Metodología 3', req: ['261'], tier: 5 },
+      { id: '266', name: 'Psicología Social', req: ['260'], tier: 5 },
+      { id: '265', name: 'Análisis de la Sociedad Argentina', req: ['262', '254', '260'], tier: 5 },
+      
+      // Nivel 6
+      { id: 'opt_esp', name: '6 Sociologías Especiales', req: ['257', '258'], tier: 6, isGroup: true },
+      { id: 'opt_teo', name: '3 Teorías sociológicas', req: ['260', '258'], tier: 6, isGroup: true },
+      { id: 'opt_inv', name: '200 h de investigación', req: ['260', '258'], tier: 6, isGroup: true }
+    ];
+
+    function $(id) { return document.getElementById(id); }
+    function cloneDefault() { return JSON.parse(JSON.stringify(DEFAULT_STATE)); }
+
+    function normalizeCompleted(items) {
+      return (Array.isArray(items) ? items : []).map((item, i) => {
+        const c = { ...item, id: item.id || `c-${Date.now()}-${i}` };
+        if (c.type === 'investigacion') {
+          if (!c.subtype) c.subtype = Number(c.hours) === 50 ? 'seminario' : 'taller';
+          c.hours = c.subtype === 'seminario' ? 50 : 100;
+        }
+        return c;
+      });
+    }
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          return { ...cloneDefault(), ...parsed, completed: normalizeCompleted(parsed.completed) };
+        }
+        const v2Raw = localStorage.getItem('ginoPerfilDirectorio_v2_demo');
+        if (v2Raw) {
+          const old = JSON.parse(v2Raw);
+          const migrated = {
+            ...cloneDefault(),
+            ...old,
+            completed: normalizeCompleted(Array.isArray(old.completed) ? old.completed : DEFAULT_STATE.completed)
+          };
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
+          return migrated;
+        }
+        const oldRaw = localStorage.getItem('ginoProfilePrototype_v1_demo');
+        if (oldRaw) {
+          const old = JSON.parse(oldRaw);
+          const migrated = {
+            ...cloneDefault(),
+            name: old.name || DEFAULT_STATE.name,
+            entryYear: old.entryYear || DEFAULT_STATE.entryYear,
+            wanted: Array.isArray(old.wanted) ? old.wanted : DEFAULT_STATE.wanted,
+            completed: normalizeCompleted(Array.isArray(old.completed) ? old.completed : DEFAULT_STATE.completed),
+            reviews: Array.isArray(old.reviews) ? old.reviews : DEFAULT_STATE.reviews
+          };
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
+          return migrated;
+        }
+      } catch (e) {
+        console.warn('No se pudo cargar el estado local', e);
+      }
+      return cloneDefault();
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      syncProfileToCloud();
+    }
+
+    function persistLocalState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function displayNameForUser(user) {
+      if (user?.displayName) return user.displayName;
+      if (user?.email) return user.email.split('@')[0];
+      return 'Usuario';
+    }
+
+    function setSyncStatus(label, message) {
+      const badge = $('syncStatusBadge');
+      const notice = $('profileStorageNotice');
+      if (badge) badge.textContent = label;
+      if (notice) notice.innerHTML = message;
+    }
+
+    function createCloudProfileState(user, profile = {}) {
+      return {
+        name: profile.name || displayNameForUser(user),
+        entryYear: Number(profile.entryYear) || '',
+        wanted: Array.isArray(profile.wanted) ? profile.wanted : [],
+        completed: normalizeCompleted(profile.completed),
+        // Las reseñas públicas se leen de la colección central `resenas`.
+        reviews: []
+      };
+    }
+
+    function cloudProfilePayload() {
+      const completed = state.completed.map(course => {
+        const item = { ...course };
+        if (item.grade === '' || item.grade === null || item.grade === undefined || !Number.isFinite(Number(item.grade))) delete item.grade;
+        else item.grade = Number(item.grade);
+        return item;
+      });
+      return JSON.parse(JSON.stringify({
+        version: 1,
+        name: state.name,
+        entryYear: state.entryYear,
+        wanted: state.wanted,
+        completed
+      }));
+    }
+
+    function syncProfileToCloud() {
+      const user = activeProfileUser;
+      if (!user || !profileCloudReady || !courseCatalogDb) return;
+
+      const uid = user.uid;
+      const payload = cloudProfilePayload();
+      setSyncStatus('Guardando…', '<strong>Guardando perfil académico.</strong> Tus cambios se están sincronizando con Firebase.');
+      profileWriteChain = profileWriteChain
+        .catch(() => undefined)
+        .then(async () => {
+          await courseCatalogDb.collection('usuarios').doc(uid).set({
+            perfilAcademico: payload,
+            perfilAcademicoActualizadoEn: firebase.firestore.FieldValue.serverTimestamp()
+          }, { merge: true });
+          if (activeProfileUser?.uid === uid) {
+            setSyncStatus('Sincronizado', '<strong>Perfil sincronizado.</strong> Tu avance académico se guarda en tu cuenta de Gino Social.');
+          }
         });
-
-        // Renderizar Info del Usuario Header
-        function renderUserData(user) {
-            const name = user.displayName || user.email.split('@')[0];
-            const initial = name.charAt(0).toUpperCase();
-            
-            document.getElementById('profileName').textContent = name;
-            document.getElementById('profileEmail').innerHTML = `<span class="material-symbols-outlined text-[18px]">mail</span> ${user.email}`;
-            document.getElementById('profileAvatar').textContent = initial;
+      profileWriteChain.catch(error => {
+        console.warn('No se pudo guardar el perfil académico en Firebase.', error);
+        if (activeProfileUser?.uid === uid) {
+          setSyncStatus('Sin conexión', '<strong>Guardado local activo.</strong> No se pudo sincronizar Firebase en este momento.');
         }
+      });
+    }
 
-        // Utilidades de Pestañas
-        function switchTab(tabId) {
-            const tabs = {
-                'trayectoria': document.getElementById('tabTrayectoria'),
-                'resenas': document.getElementById('tabResenas')
-            };
-            const contents = {
-                'trayectoria': document.getElementById('trayectoriaTab'),
-                'resenas': document.getElementById('resenasTab')
-            };
+    function reviewDateLabel(timestamp, year) {
+      const date = timestamp?.toDate?.();
+      if (date) return new Intl.DateTimeFormat('es-AR', { month: 'short', year: 'numeric' }).format(date);
+      return year ? String(year) : 'Sin fecha';
+    }
 
-            // Resetear estilos
-            Object.values(tabs).forEach(t => {
-                t.className = "py-3 px-6 border-b-2 border-transparent text-gray-500 font-semibold hover:text-gray-700 text-base md:text-lg transition-colors flex items-center gap-2 whitespace-nowrap";
-            });
-            Object.values(contents).forEach(c => c.classList.remove('active'));
+    async function loadUserReviews(user, revision) {
+      try {
+        const snapshot = await courseCatalogDb.collection('resenas').where('usuarioId', '==', user.uid).get();
+        if (revision !== authStateRevision || activeProfileUser?.uid !== user.uid) return;
+        state.reviews = snapshot.docs
+          .map(doc => ({ id: doc.id, ...doc.data() }))
+          .sort((a, b) => (b.fecha?.toMillis?.() || 0) - (a.fecha?.toMillis?.() || 0))
+          .map(review => ({
+            materia: review.materiaNombre || 'Materia sin nombre',
+            catedra: review.catedra || 'Cátedra única',
+            rating: Number(review.calificacionGeneral) || 0,
+            date: reviewDateLabel(review.fecha, review.anioCursada),
+            text: review.texto || ''
+          }));
+        persistLocalState();
+        render();
+      } catch (error) {
+        console.warn('No se pudieron cargar las reseñas del usuario.', error);
+      }
+    }
 
-            // Activar seleccionada
-            tabs[tabId].className = "py-3 px-6 border-b-2 border-primary text-primary font-bold text-base md:text-lg transition-colors flex items-center gap-2 whitespace-nowrap";
-            contents[tabId].classList.add('active');
+    async function handleProfileAuthState(user) {
+      const revision = ++authStateRevision;
+      activeProfileUser = user || null;
+      profileCloudReady = false;
+
+      if (!user || !courseCatalogDb) {
+        setSyncStatus('Modo local', '<strong>Modo local.</strong> El catálogo de materias se consulta desde Firebase. Iniciá sesión en Gino Social para guardar también tu perfil académico.');
+        return;
+      }
+
+      setSyncStatus('Cargando…', '<strong>Cargando tu perfil.</strong> Estamos recuperando tu avance académico desde Firebase.');
+      try {
+        const userDoc = await courseCatalogDb.collection('usuarios').doc(user.uid).get();
+        if (revision !== authStateRevision || activeProfileUser?.uid !== user.uid) return;
+
+        const remoteProfile = userDoc.data()?.perfilAcademico;
+        state = createCloudProfileState(user, remoteProfile || {});
+        persistLocalState();
+        render();
+        profileCloudReady = true;
+
+        if (remoteProfile) {
+          setSyncStatus('Sincronizado', '<strong>Perfil sincronizado.</strong> Tu avance académico se guarda en tu cuenta de Gino Social.');
+        } else {
+          syncProfileToCloud();
         }
-
-        // Cargar Trayectoria (Cursadas y Deseadas) con código robusto y fallbacks
-        async function fetchTrayectoria(uid) {
-            try {
-                // Intentamos buscar primero en la colección en minúsculas (según la captura de pantalla)
-                let snapshot = await db.collection('usuarios').doc(uid).collection('trayectoria').get();
-                
-                // Fallback de seguridad: Si está vacía, quizás se guardó en la colección 'Usuarios' (mayúscula)
-                if (snapshot.empty) {
-                    const altSnapshot = await db.collection('Usuarios').doc(uid).collection('trayectoria').get();
-                    if (!altSnapshot.empty) {
-                        snapshot = altSnapshot;
-                    }
-                }
-                
-                let cursadas = [];
-                let deseadas = [];
-                let sumaNotas = 0;
-                let cantNotas = 0;
-
-                snapshot.forEach(doc => {
-                    const data = doc.data();
-                    const item = { id: doc.id, ...data };
-                    
-                    // Normalización robusta para evitar errores de tipeo en Firestore o espacios
-                    const estadoString = (data.estado || '').toString().toLowerCase().trim();
-                    
-                    if (estadoString === 'cursada') {
-                        cursadas.push(item);
-                        if (item.nota && !isNaN(item.nota)) {
-                            sumaNotas += parseFloat(item.nota);
-                            cantNotas++;
-                        }
-                    }
-                    else if (estadoString === 'deseada') deseadas.push(item);
-                });
-
-                // Calcular y mostrar promedio
-                const promedioDisplay = document.getElementById('promedioGeneral');
-                if (cantNotas > 0) {
-                    const promedio = (sumaNotas / cantNotas).toFixed(2);
-                    promedioDisplay.textContent = promedio;
-                } else {
-                    promedioDisplay.textContent = '--';
-                }
-
-                document.getElementById('countCursadas').textContent = cursadas.length;
-                document.getElementById('countDeseadas').textContent = deseadas.length;
-
-                renderTrayectoriaGrid('gridCursadas', cursadas, 'cursada');
-                renderTrayectoriaGrid('gridDeseadas', deseadas, 'deseada');
-
-            } catch (error) {
-                console.error("Error al cargar trayectoria:", error);
-                
-                // Capturar el error visualmente
-                let errorVisual = "No se pudieron obtener los datos.";
-                if(error.message.includes("Missing or insufficient permissions")) {
-                    errorVisual = "Acceso denegado: Tus reglas de Firestore no permiten leer la información.";
-                }
-
-                document.getElementById('gridCursadas').innerHTML = `<p class="text-red-500 col-span-full font-bold bg-red-50 p-4 rounded-xl border border-red-200">⚠️ ${errorVisual}</p>`;
-                document.getElementById('gridDeseadas').innerHTML = `<p class="text-red-500 col-span-full font-bold bg-red-50 p-4 rounded-xl border border-red-200">⚠️ ${errorVisual}</p>`;
-            }
+        loadUserReviews(user, revision);
+      } catch (error) {
+        console.warn('No se pudo cargar el perfil académico desde Firebase.', error);
+        if (revision === authStateRevision) {
+          setSyncStatus('Guardado local', '<strong>Guardado local activo.</strong> No se pudo acceder a tu perfil de Firebase en este momento.');
         }
+      }
+    }
 
-        // Renderizar los grids de Trayectoria
-        function renderTrayectoriaGrid(containerId, items, tipo) {
-            const container = document.getElementById(containerId);
-            
-            // Aseguramos que el contenedor principal use un layout vertical para apilar los subtítulos
-            container.className = "space-y-6";
+    function showToast(message) {
+      const el = $('toast');
+      el.textContent = message;
+      el.classList.remove('translate-x-[120%]', 'opacity-0');
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => el.classList.add('translate-x-[120%]', 'opacity-0'), 2300);
+    }
 
-            if (!items || items.length === 0) {
-                const msg = tipo === 'cursada' ? 'No has marcado ninguna materia como cursada.' : 'No tienes materias en tu wishlist.';
-                container.innerHTML = `<div class="bg-gray-50 border border-gray-100 rounded-xl p-6 text-center text-gray-500 font-semibold">${msg}</div>`;
-                return;
-            }
+    function openModal(id) { $(id).classList.add('active'); }
+    function closeModal(id) { $(id).classList.remove('active'); }
+    function closeAllModals() { document.querySelectorAll('.modal.active').forEach(m => m.classList.remove('active')); }
 
-            // Agrupar materias por categoría
-            const groups = {
-                materias: { title: "Obligatorias", items: [] },
-                teorias: { title: "Teorías sociológicas", items: [] },
-                especiales: { title: "Sociologías especiales", items: [] },
-                horasdeinv: { title: "Seminarios y talleres", items: [] },
-                idiomas: { title: "Idiomas", items: [] }
-            };
+    function typeLabel(type, subtype) {
+      if (type === 'investigacion') return subtype === 'seminario' ? 'Seminario de investigación' : 'Taller de investigación';
+      return ({ obligatoria: 'Obligatoria', especial: 'Sociología especial', teoria: 'Teoría sociológica' })[type] || type;
+    }
 
-            items.forEach(item => {
-                const tipoKey = item.materiaTipo || 'materias';
-                if (groups[tipoKey]) groups[tipoKey].items.push(item);
-                else groups.materias.items.push(item); // Fallback
-            });
+    function typeClasses(type) {
+      return ({
+        obligatoria: 'bg-slate-100 text-slate-700',
+        especial: 'bg-purple-100 text-purple-700',
+        teoria: 'bg-blue-100 text-blue-700',
+        investigacion: 'bg-emerald-100 text-emerald-700'
+      })[type] || 'bg-gray-100 text-gray-600';
+    }
 
-            let html = '';
-            Object.values(groups).forEach(group => {
-                if (group.items.length > 0) {
-                    // Título de la sección sin la línea inferior
-                    html += `<div class="mt-4 mb-3 flex items-center gap-2">
-                                <h3 class="text-lg font-black text-gray-600">${group.title}</h3>
-                                <span class="bg-gray-100 text-gray-500 text-xs px-2 py-0.5 rounded-full font-bold">${group.items.length}</span>
-                             </div>`;
-                             
-                    if (tipo === 'cursada') {
-                        // Renderizado en formato LISTA para materias Cursadas
-                        html += `<div class="flex flex-col gap-3">`;
-                        html += group.items.map(item => `
-                            <div class="bg-white rounded-xl p-3 md:p-4 shadow-sm border border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:shadow-md transition-shadow relative group">
-                                <div class="flex-1 pr-4">
-                                    <h3 class="font-bold text-dark text-base leading-tight">${item.materiaNombre || 'Sin Título'}</h3>
-                                    <a href="../#/materia/${item.materiaTipo || 'materias'}/${item.id}" class="text-primary text-xs font-bold hover:underline inline-flex items-center gap-1 mt-1">
-                                        Ir a la materia <span class="material-symbols-outlined text-[12px]">open_in_new</span>
-                                    </a>
-                                </div>
-                                <div class="flex flex-wrap items-center gap-3 md:gap-4 shrink-0">
-                                    <div class="flex items-center gap-2">
-                                        <label class="text-xs font-bold text-gray-400 uppercase tracking-wider hidden md:block">Nota</label>
-                                        <select onchange="actualizarCampoMateria('${item.id}', 'nota', this.value)"
-                                            class="w-16 md:w-20 p-2 text-sm border border-gray-200 rounded-lg focus:border-primary focus:ring-1 focus:ring-primary outline-none text-center font-black text-dark bg-gray-50 hover:bg-white transition-colors cursor-pointer">
-                                            <option value="">-</option>
-                                            ${[10,9,8,7,6,5,4,3,2,1].map(n => `<option value="${n}" ${item.nota == n ? 'selected' : ''}>${n}</option>`).join('')}
-                                        </select>
-                                    </div>
-                                    <button onclick="promptDeleteTrayectoria('${item.id}')" class="w-8 h-8 bg-gray-50 text-gray-400 hover:text-red-500 hover:bg-red-50 border border-gray-200 hover:border-red-200 rounded-full flex items-center justify-center transition-all" title="Quitar de trayectoria">
-                                        <span class="material-symbols-outlined text-lg">close</span>
-                                    </button>
-                                </div>
-                            </div>
-                        `).join('');
-                        html += `</div>`;
-                    } else {
-                        // Renderizado en formato TARJETAS para materias Deseadas
-                        html += `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">`;
-                        html += group.items.map(item => `
-                            <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-md transition-shadow relative group">
-                                <button onclick="promptDeleteTrayectoria('${item.id}')" class="absolute top-2 right-2 w-8 h-8 bg-gray-100 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10" title="Quitar">
-                                    <span class="material-symbols-outlined text-lg">close</span>
-                                </button>
-                                <div>
-                                    <h3 class="font-bold text-dark text-base leading-tight pr-6">${item.materiaNombre || 'Sin Título'}</h3>
-                                </div>
-                                <div class="mt-4 pt-3 border-t border-gray-50 flex items-center justify-between">
-                                    <div></div>
-                                    <a href="../#/materia/${item.materiaTipo || 'materias'}/${item.id}" class="text-primary text-xs font-bold hover:underline inline-flex items-center gap-1">
-                                        Ver materia <span class="material-symbols-outlined text-[12px]">open_in_new</span>
-                                    </a>
-                                </div>
-                            </div>
-                        `).join('');
-                        html += `</div>`;
-                    }
-                }
-            });
-            container.innerHTML = html;
+    function typeIcon(type) {
+      return ({
+        obligatoria: 'school',
+        especial: 'interests',
+        teoria: 'psychology',
+        investigacion: 'biotech'
+      })[type] || 'menu_book';
+    }
+
+    function escapeHTML(value) {
+      return String(value ?? '').replace(/[&<>'"]/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' }[ch]));
+    }
+
+    function collectionForCourseType(type) {
+      return COURSE_COLLECTIONS[type] || COURSE_COLLECTIONS.obligatoria;
+    }
+
+    async function loadCourseCatalog(collection) {
+      if (courseCatalogCache[collection]) return courseCatalogCache[collection];
+      if (courseCatalogRequests[collection]) return courseCatalogRequests[collection];
+      if (!courseCatalogDb) throw new Error('Firebase no está disponible');
+
+      courseCatalogRequests[collection] = courseCatalogDb.collection(collection).get()
+        .then(snapshot => {
+          const names = [...new Set(snapshot.docs
+            .map(doc => {
+              const data = doc.data();
+              return data.nombre || data.name || data.titulo || '';
+            })
+            .map(name => String(name).trim())
+            .filter(Boolean))]
+            .sort((a, b) => a.localeCompare(b, 'es'));
+          courseCatalogCache[collection] = names;
+          return names;
+        })
+        .finally(() => { delete courseCatalogRequests[collection]; });
+
+      return courseCatalogRequests[collection];
+    }
+
+    function populateCourseOptions(optionsId, names) {
+      const options = $(optionsId);
+      options.replaceChildren(...names.map(name => {
+        const option = document.createElement('option');
+        option.value = name;
+        return option;
+      }));
+    }
+
+    async function refreshCourseSearch(form, clearValue = false) {
+      const isWanted = form === 'wanted';
+      const input = $(isWanted ? 'wantedName' : 'completedName');
+      const type = $(isWanted ? 'wantedType' : 'completedType').value;
+      const optionsId = isWanted ? 'wantedCourseOptions' : 'completedCourseOptions';
+      const help = $(isWanted ? 'wantedCourseHelp' : 'completedCourseHelp');
+      const collection = collectionForCourseType(type);
+
+      if (clearValue) input.value = '';
+      input.dataset.courseCollection = collection;
+      populateCourseOptions(optionsId, []);
+      input.placeholder = 'Cargando catálogo…';
+      input.setAttribute('aria-busy', 'true');
+      help.textContent = `Cargando ${COURSE_COLLECTION_LABELS[collection]}…`;
+
+      try {
+        const names = await loadCourseCatalog(collection);
+        if (input.dataset.courseCollection !== collection) return;
+        populateCourseOptions(optionsId, names);
+        input.placeholder = `Buscá en ${COURSE_COLLECTION_LABELS[collection]}…`;
+        help.textContent = `${names.length} opciones disponibles. Empezá a escribir para buscar.`;
+      } catch (error) {
+        if (input.dataset.courseCollection !== collection) return;
+        populateCourseOptions(optionsId, []);
+        input.placeholder = 'Escribí el nombre de la materia…';
+        help.textContent = 'No se pudo cargar el catálogo. Podés escribir el nombre manualmente.';
+        console.warn(`No se pudo cargar la colección ${collection}.`, error);
+      } finally {
+        if (input.dataset.courseCollection === collection) input.removeAttribute('aria-busy');
+      }
+    }
+
+    function normalizedCourseName(name) {
+      return String(name || '').trim().toLocaleLowerCase();
+    }
+
+    // El mapa y “Materias realizadas” usan el mismo registro como fuente de verdad.
+    function getCompletedCourseByPlanSubject(subject) {
+      return state.completed.find(course => normalizedCourseName(course.name) === normalizedCourseName(subject.name));
+    }
+
+    function setPlanSubjectCompleted(subjectId, completed) {
+      const subject = PLAN_ESTUDIOS.find(item => item.id === subjectId && !item.isGroup);
+      if (!subject) return;
+
+      const existingCourse = getCompletedCourseByPlanSubject(subject);
+      if (completed && existingCourse) return;
+
+      if (!completed) {
+        if (!existingCourse) return;
+        state.completed = state.completed.filter(course => normalizedCourseName(course.name) !== normalizedCourseName(subject.name));
+        saveState();
+        render();
+        showToast(`“${subject.name}” volvió a estar pendiente.`);
+        return;
+      }
+
+      state.completed.unshift({
+        id: `c-${Date.now()}`,
+        name: subject.name,
+        type: 'obligatoria',
+        year: new Date().getFullYear()
+      });
+      expandedGroups.add('obligatoria');
+      saveState();
+      render();
+      showToast(`“${subject.name}” fue marcada como hecha.`);
+    }
+
+    function updatePlanSubjectGrade(subjectId, gradeValue) {
+      const subject = PLAN_ESTUDIOS.find(item => item.id === subjectId && !item.isGroup);
+      const course = subject && getCompletedCourseByPlanSubject(subject);
+      if (!course) return;
+
+      const value = gradeValue.trim();
+      if (!value) {
+        delete course.grade;
+      } else {
+        const grade = Number(value);
+        if (!Number.isFinite(grade) || grade < 0 || grade > 10) {
+          showToast('La nota debe estar entre 0 y 10.');
+          renderPlan();
+          return;
         }
+        course.grade = grade;
+      }
+      saveState();
+      render();
+      showToast(value ? 'Nota guardada.' : 'Nota eliminada.');
+    }
 
-        // Cargar Reseñas del Usuario
-        async function fetchResenas(uid) {
-            try {
-                const snapshot = await db.collection('resenas').where('usuarioId', '==', uid).get();
-                const resenas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                
-                // Ordenar por fecha descendente
-                resenas.sort((a, b) => (b.fecha?.toMillis() || 0) - (a.fecha?.toMillis() || 0));
-                
-                document.getElementById('countResenas').textContent = resenas.length;
+    function gradeToGPA(g) {
+      if (g >= 9) return 4.0;
+      if (g >= 8) return 3.7;
+      if (g >= 7) return 3.3;
+      if (g >= 6) return 3.0;
+      if (g >= 5) return 2.3;
+      if (g >= 4) return 2.0;
+      return 0.0;
+    }
 
-                const listContainer = document.getElementById('listResenas');
-                
-                if (resenas.length === 0) {
-                    listContainer.innerHTML = `<div class="bg-gray-50 border border-gray-100 rounded-xl p-8 text-center text-gray-500 font-semibold flex flex-col items-center">
-                        <span class="material-symbols-outlined text-4xl mb-2 text-gray-300">chat_bubble</span>
-                        Aún no has escrito ninguna reseña. ¡Ayuda a la comunidad compartiendo tu experiencia!
-                    </div>`;
-                    return;
-                }
+    function calcAverages() {
+      const grades = state.completed
+        .map(c => Number(c.grade))
+        .filter(n => Number.isFinite(n) && n >= 0 && n <= 10);
+      if (!grades.length) return { uba: '—', gpa: '—' };
+      const mean = arr => arr.reduce((a,b) => a+b, 0) / arr.length;
+      return {
+        uba: mean(grades).toFixed(2),
+        gpa: mean(grades.map(gradeToGPA)).toFixed(2)
+      };
+    }
 
-                listContainer.innerHTML = resenas.map(r => {
-                    const stars = '★'.repeat(r.calificacionGeneral) + '☆'.repeat(5 - r.calificacionGeneral);
-                    const fechaTxt = r.fecha ? r.fecha.toDate().toLocaleDateString() : 'Reciente';
-                    return `
-                        <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-all relative">
-                            <button onclick="promptDeleteResena('${r.id}')" class="absolute top-4 right-4 text-gray-300 hover:text-red-500 transition-colors" title="Borrar reseña">
-                                <span class="material-symbols-outlined">delete</span>
-                            </button>
-                            <div class="mb-3">
-                                <h3 class="font-black text-lg text-dark pr-8">${r.materiaNombre}</h3>
-                                <div class="text-xs text-gray-500 mt-1 flex flex-wrap gap-2 items-center">
-                                    <span class="bg-orange-50 text-primary px-2 py-0.5 rounded font-bold">${r.catedra} - ${r.practico}</span>
-                                    <span>${fechaTxt} | Cursada: ${r.anioCursada}</span>
-                                </div>
-                            </div>
-                            <div class="text-2xl tracking-widest text-yellow-500 mb-2">${stars}</div>
-                            <p class="text-gray-700 text-sm italic mb-3">"${r.texto}"</p>
-                            
-                            <!-- Estadísticas internas de la reseña -->
-                            <div class="flex gap-4 text-xs font-semibold text-gray-400 mt-4 pt-3 border-t border-gray-50">
-                                <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">thumb_up</span> ${r.likes_count || 0}</span>
-                                <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">thumb_down</span> ${r.dislikes_count || 0}</span>
-                                <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">comment</span> ${r.replies_count || 0}</span>
-                            </div>
+    function calcProgress() {
+      const mandatory = state.completed.filter(c => c.type === 'obligatoria').length;
+      const special = state.completed.filter(c => c.type === 'especial').length;
+      const theory = state.completed.filter(c => c.type === 'teoria').length;
+      const researchHoursRaw = state.completed.filter(c => c.type === 'investigacion').reduce((sum, c) => sum + (Number(c.hours) || 0), 0);
+      const specialBase = Math.min(special, 3);
+      const theoryBase = Math.min(theory, 3);
+      const extra = Math.min(Math.max(special - 3, 0) + Math.max(theory - 3, 0), 3);
+      const researchHours = Math.min(researchHoursRaw, 200);
+      const researchUnits = researchHours / 100;
+      const earned = Math.min(mandatory, 16) + specialBase + theoryBase + extra + researchUnits;
+      const total = 27;
+      return {
+        percent: Math.min(100, Math.round((earned / total) * 100)),
+        earned,
+        total,
+        mandatory: Math.min(mandatory, 16),
+        specialBase,
+        theoryBase,
+        extra,
+        researchHours,
+        rawSpecial: special,
+        rawTheory: theory
+      };
+    }
+
+    function requirementCard(icon, title, value, target, suffix='') {
+      const pct = Math.round(Math.min(1, target ? value / target : 0) * 100);
+      return `
+        <div>
+          <div class="flex items-center justify-between gap-3 mb-2">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="material-symbols-outlined text-primary text-[20px] shrink-0">${icon}</span>
+              <span class="text-sm font-bold text-dark truncate">${title}</span>
+            </div>
+            <span class="text-xs font-black text-gray-500 shrink-0">${value}${suffix} / ${target}${suffix}</span>
+          </div>
+          <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
+            <div class="h-full bg-primary rounded-full transition-all duration-300" style="width:${pct}%"></div>
+          </div>
+          <div class="text-right text-[10px] font-black text-gray-400 mt-1">${pct}%</div>
+        </div>`;
+    }
+
+    function render() {
+      $('profileName').textContent = state.name || 'Usuario';
+      $('profileAvatar').textContent = (state.name || 'U').trim().charAt(0).toUpperCase() || 'U';
+      $('profileMeta').textContent = `Sociología · UBA · Ingreso ${state.entryYear || '—'} · ${state.completed.length} registros académicos`;
+
+      const progress = calcProgress();
+      $('requirementsGrid').innerHTML = [
+        requirementCard('school', 'Obligatorias', progress.mandatory, 16),
+        requirementCard('interests', 'Sociologías especiales', progress.specialBase, 3),
+        requirementCard('psychology', 'Teorías sociológicas', progress.theoryBase, 3),
+        requirementCard('add_circle', 'Adicionales esp./teoría', progress.extra, 3),
+        requirementCard('biotech', 'Investigación', progress.researchHours, 200, ' h')
+      ].join('');
+
+      $('progressPercent').textContent = progress.percent;
+      $('progressRing').style.background = `conic-gradient(#ff7d29 ${progress.percent * 3.6}deg, #f1f5f9 0deg)`;
+
+      const av = calcAverages();
+      $('averageUBA').textContent = av.uba;
+      $('averageGPA').textContent = av.gpa;
+
+      $('wantedCoursesList').innerHTML = state.wanted.length ? state.wanted.map(c => `
+        <article class="group rounded-2xl border border-gray-200 p-4 hover:border-primary/40 hover:shadow-md transition-all bg-white">
+          <div class="flex justify-between gap-3">
+            <div class="min-w-0">
+              <span class="inline-flex px-2.5 py-1 rounded-full text-[11px] font-black ${typeClasses(c.type)}">${escapeHTML(typeLabel(c.type, c.subtype))}</span>
+              <h3 class="font-bold text-dark mt-2 leading-tight">${escapeHTML(c.name)}</h3>
+              <p class="text-sm text-gray-500 mt-1">${escapeHTML(c.note || 'Sin nota personal')}</p>
+            </div>
+            <button type="button" data-remove-wanted="${escapeHTML(c.id)}" title="Quitar de la lista" class="w-9 h-9 shrink-0 rounded-xl text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors">
+              <span class="material-symbols-outlined text-lg">close</span>
+            </button>
+          </div>
+        </article>`).join('') : `
+          <div class="md:col-span-2 rounded-2xl border border-dashed border-gray-300 p-8 text-center text-gray-500">
+            <span class="material-symbols-outlined text-4xl text-gray-300">bookmark_add</span>
+            <p class="font-bold mt-2">Todavía no agregaste materias.</p>
+          </div>`;
+
+      $('completedCountLabel').textContent = state.completed.length;
+
+      // Generación de acordeones para materias realizadas
+      const groupsConfig = [
+        { id: 'obligatoria', title: 'Obligatorias', icon: 'school' },
+        { id: 'especial', title: 'Especiales', icon: 'interests' },
+        { id: 'teoria', title: 'Teorías', icon: 'psychology' },
+        { id: 'investigacion', title: 'Horas de investigación', icon: 'biotech' }
+      ];
+
+      $('completedCoursesList').innerHTML = groupsConfig.map(g => {
+        const items = state.completed.filter(c => c.type === g.id);
+        const isExpanded = expandedGroups.has(g.id);
+        
+        let itemsHTML = '';
+        if (items.length) {
+            itemsHTML = items.map(c => `
+                <div class="px-4 sm:px-5 md:px-7 py-3 md:py-4 hover:bg-slate-50 transition-colors bg-white">
+                  <div class="flex items-center gap-3 md:gap-4 min-w-0">
+                    <div class="w-10 h-10 rounded-xl ${typeClasses(c.type)} flex items-center justify-center shrink-0">
+                      <span class="material-symbols-outlined text-lg">${typeIcon(c.type)}</span>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                      <p class="font-bold text-dark leading-tight sm:truncate">${escapeHTML(c.name)}</p>
+                      <p class="text-xs text-gray-400 mt-1">${escapeHTML(typeLabel(c.type, c.subtype))} · ${escapeHTML(c.year || '—')}</p>
+                    </div>
+                    <button type="button" data-edit-completed="${escapeHTML(c.id)}" class="hidden sm:flex group/edit items-center gap-2 rounded-xl px-2 py-1.5 hover:bg-orange-50 transition-colors" title="Editar registro y nota">
+                      <div class="text-right shrink-0">
+                        <div class="flex items-baseline justify-end gap-1">
+                          <span class="text-2xl font-black text-dark group-hover/edit:text-primary transition-colors">${Number.isFinite(Number(c.grade)) ? escapeHTML(c.grade) : '—'}</span><span class="text-xs text-gray-400">/10</span>
                         </div>
-                    `;
-                }).join('');
-
-            } catch (error) {
-                console.error("Error al cargar reseñas:", error);
-                document.getElementById('listResenas').innerHTML = '<p class="text-red-500">Error al cargar tus reseñas.</p>';
-            }
+                        ${c.type === 'investigacion' ? `<div class="text-[11px] font-bold text-emerald-600 mt-0.5">${c.hours || 0} h investigación</div>` : ''}
+                      </div>
+                      <span class="material-symbols-outlined text-lg text-gray-300 group-hover/edit:text-primary transition-colors">edit</span>
+                    </button>
+                  </div>
+                  <button type="button" data-edit-completed="${escapeHTML(c.id)}" class="sm:hidden mt-3 w-full min-h-[44px] flex items-center justify-between gap-3 rounded-xl bg-slate-50 border border-slate-100 px-3 py-2 hover:bg-orange-50 hover:border-orange-100 transition-colors" title="Editar registro y nota">
+                    <span class="text-xs font-black uppercase tracking-wide text-gray-400">Nota${c.type === 'investigacion' ? ` · ${c.hours || 0} h` : ''}</span>
+                    <span class="flex items-center gap-1.5"><span class="text-xl font-black text-dark">${Number.isFinite(Number(c.grade)) ? escapeHTML(c.grade) : '—'}</span><span class="text-xs text-gray-400">/10</span><span class="material-symbols-outlined text-lg text-primary">edit</span></span>
+                  </button>
+                </div>`).join('');
+        } else {
+            itemsHTML = `<div class="px-4 sm:px-5 md:px-7 py-5 text-sm text-gray-400 text-center italic bg-white">No hay registros cargados en esta categoría.</div>`;
         }
 
-        // Utilidades de UI (Modales y Alertas)
-        function openModal(modalId) {
-            document.getElementById(modalId).classList.remove('hidden');
-            document.getElementById(modalId).classList.add('flex');
-        }
+        return `
+          <div class="border-b border-gray-100 last:border-0">
+            <button type="button" data-toggle-group="${g.id}" class="w-full flex items-center justify-between px-4 sm:px-5 md:px-7 py-4 hover:bg-white transition-colors outline-none focus-visible:bg-white">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${typeClasses(g.id)}">
+                  <span class="material-symbols-outlined text-[18px]">${g.icon}</span>
+                </div>
+                <h3 class="font-bold text-dark text-left">${g.title}</h3>
+                <span class="text-xs font-bold text-gray-500 bg-gray-200/60 px-2 py-0.5 rounded-full min-w-[24px] text-center">${items.length}</span>
+              </div>
+              <span class="material-symbols-outlined text-gray-400 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}">expand_more</span>
+            </button>
+            <div class="${isExpanded ? 'block' : 'hidden'} bg-slate-50 divide-y divide-gray-50 border-t border-gray-100 shadow-inner">
+              ${itemsHTML}
+            </div>
+          </div>
+        `;
+      }).join('');
 
-        function closeModal(modalId) {
-            document.getElementById(modalId).classList.add('hidden');
-            document.getElementById(modalId).classList.remove('flex');
-            pendingDeleteId = null;
-        }
+      $('reviewsList').innerHTML = state.reviews.length ? state.reviews.map(r => `
+        <article class="rounded-2xl border border-gray-100 bg-slate-50 p-4 md:p-5">
+          <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+            <div>
+              <h3 class="font-black text-dark">${escapeHTML(r.materia)}</h3>
+              <p class="text-xs text-gray-400 mt-0.5">${escapeHTML(r.catedra)} · ${escapeHTML(r.date)}</p>
+            </div>
+            <div class="text-amber-500 font-black tracking-tight">${'★'.repeat(Math.max(0, Math.min(5, r.rating || 0)))}<span class="text-gray-300">${'★'.repeat(5 - Math.max(0, Math.min(5, r.rating || 0)))}</span></div>
+          </div>
+          <p class="text-sm text-gray-700 mt-3 leading-relaxed">${escapeHTML(r.text)}</p>
+        </article>`).join('') : '<div class="text-center text-gray-500 py-8">Todavía no hiciste reseñas.</div>';
 
-        function showToast(message, type = 'success') {
-            const toast = document.getElementById('toast');
-            toast.textContent = message;
-            toast.className = `fixed top-6 right-6 px-6 py-4 rounded-xl text-white font-bold shadow-2xl z-[10000] transition-transform transform duration-300 ${type === 'success' ? 'bg-green-500' : 'bg-red-500'}`;
-            toast.classList.remove('translate-x-full');
+      renderPlan();
+    }
+
+    function renderPlan() {
+      // Set de materias aprobadas: se deriva de los mismos registros de “Materias realizadas”.
+      const completedNames = new Set(state.completed.map(c => normalizedCourseName(c.name)));
+      
+      const tiers = {};
+      PLAN_ESTUDIOS.forEach(subject => {
+        if (!tiers[subject.tier]) tiers[subject.tier] = [];
+        tiers[subject.tier].push(subject);
+      });
+
+      let html = '';
+      Object.keys(tiers).sort().forEach(tierNum => {
+        html += `
+          <div class="w-72 md:w-80 shrink-0 flex flex-col gap-4 relative">
+            <div class="flex items-center gap-2 mb-2 px-1">
+              <span class="w-6 h-6 rounded-full bg-slate-200 text-slate-700 font-black text-[11px] flex items-center justify-center">${tierNum}</span>
+              <h3 class="font-bold text-slate-400 uppercase tracking-[0.2em] text-[10px]">Nivel ${tierNum}</h3>
+            </div>`;
             
-            setTimeout(() => {
-                toast.classList.add('translate-x-full');
-            }, 3000);
-        }
+        tiers[tierNum].forEach(subj => {
+          const completedCourse = subj.isGroup ? null : getCompletedCourseByPlanSubject(subj);
+          const isPassed = Boolean(completedCourse);
+          
+          let reqsMet = true;
+          const reqDetails = subj.req.map(reqId => {
+            const reqSubj = PLAN_ESTUDIOS.find(p => p.id === reqId);
+            const reqPassed = completedNames.has(normalizedCourseName(reqSubj.name));
+            if (!reqPassed) reqsMet = false;
+            return { name: reqSubj.name, passed: reqPassed };
+          });
 
-        // Acciones de Borrado (Trayectoria)
-        function promptDeleteTrayectoria(materiaId) {
-            pendingDeleteId = materiaId;
-            openModal('deleteTrayectoriaModal');
-        }
+          let cardStyle = '';
+          let icon = '';
+          let statusText = '';
+          
+          if (isPassed) {
+            cardStyle = 'bg-emerald-50 border-emerald-200 shadow-sm';
+            icon = '<span class="material-symbols-outlined text-emerald-500 text-[22px]">check_circle</span>';
+            statusText = '<span class="text-emerald-700 font-bold text-xs uppercase tracking-wide">Aprobada</span>';
+          } else if (reqsMet) {
+            cardStyle = 'bg-white border-primary/40 shadow-md ring-2 ring-primary/10';
+            icon = '<span class="material-symbols-outlined text-primary text-[22px]">lock_open</span>';
+            statusText = '<span class="text-primary font-bold text-xs uppercase tracking-wide">Desbloqueada</span>';
+          } else {
+            cardStyle = 'bg-slate-50 border-slate-200 opacity-80';
+            icon = '<span class="material-symbols-outlined text-slate-300 text-[22px]">lock</span>';
+            statusText = '<span class="text-slate-400 font-bold text-xs uppercase tracking-wide">Bloqueada</span>';
+          }
 
-        document.getElementById('confirmDeleteTrayectoriaBtn').addEventListener('click', async () => {
-            if (!pendingDeleteId || !currentUser) return;
-            const btn = document.getElementById('confirmDeleteTrayectoriaBtn');
-            btn.disabled = true;
-            btn.textContent = 'Quitando...';
+          html += `
+            <div class="rounded-2xl border p-4 sm:p-5 ${cardStyle} transition-all relative overflow-hidden">
+              <div class="flex items-start gap-3 justify-between mb-3">
+                <h4 class="font-black text-dark leading-tight text-[15px] pr-2">${escapeHTML(subj.name)}</h4>
+                ${!subj.isGroup ? `
+                  <label class="shrink-0 mt-0.5 flex items-center justify-center" title="${isPassed ? 'Desmarcar como hecha' : reqsMet ? 'Marcar como hecha' : 'Materia bloqueada'}">
+                    <input data-plan-completed="${escapeHTML(subj.id)}" type="checkbox" aria-label="${isPassed ? 'Desmarcar como hecha' : 'Marcar como hecha'}" ${isPassed ? 'checked' : ''} ${!isPassed && !reqsMet ? 'disabled' : ''} class="size-5 rounded border-2 ${isPassed ? 'border-emerald-500 accent-emerald-600' : reqsMet ? 'border-primary accent-primary cursor-pointer' : 'border-slate-300 accent-slate-400 cursor-not-allowed'}">
+                  </label>
+                ` : ''}
+              </div>
+              <div class="flex items-center gap-1.5">${icon}${statusText}</div>
 
-            try {
-                await db.collection('usuarios').doc(currentUser.uid).collection('trayectoria').doc(pendingDeleteId).delete();
-                
-                showToast('Materia quitada de tu perfil.');
-                closeModal('deleteTrayectoriaModal');
-                fetchTrayectoria(currentUser.uid); // Recargar
-            } catch (error) {
-                showToast('Error al quitar la materia.', 'error');
-            } finally {
-                btn.disabled = false;
-                btn.textContent = 'Quitar';
-            }
+              ${!subj.isGroup && isPassed ? `
+                <label class="block mt-4 pt-3 border-t border-emerald-200/70">
+                  <span class="block text-[10px] font-black uppercase tracking-wider text-emerald-700 mb-1.5">Nota <span class="normal-case font-medium text-emerald-600/70">(opcional)</span></span>
+                  <div class="relative w-28">
+                    <input data-plan-grade="${escapeHTML(subj.id)}" type="number" min="0" max="10" step="0.01" value="${Number.isFinite(Number(completedCourse.grade)) ? escapeHTML(completedCourse.grade) : ''}" class="w-full rounded-xl border border-emerald-200 bg-white px-3 py-2 pr-10 text-sm font-bold text-dark outline-none focus:border-primary focus:ring-2 focus:ring-primary/10" placeholder="0–10">
+                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">/10</span>
+                  </div>
+                </label>
+              ` : ''}
+              
+              ${subj.req.length > 0 && !isPassed ? `
+                <div class="mt-4 pt-3 border-t border-slate-200/60 space-y-2">
+                  <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">Requiere aprobación de:</p>
+                  ${reqDetails.map(r => `
+                    <div class="flex items-center gap-2 text-[13px] leading-tight">
+                      <span class="material-symbols-outlined text-[16px] ${r.passed ? 'text-emerald-500' : 'text-rose-400'} shrink-0">${r.passed ? 'check_circle' : 'cancel'}</span>
+                      <span class="${r.passed ? 'text-slate-700 font-medium' : 'text-slate-500'} truncate" title="${escapeHTML(r.name)}">${escapeHTML(r.name)}</span>
+                    </div>
+                  `).join('')}
+                </div>
+              ` : ''}
+            </div>
+          `;
         });
+        html += `</div>`;
+      });
+      
+      const planTreeEl = $('planTree');
+      if (planTreeEl) planTreeEl.innerHTML = html;
+    }
 
-        // Acciones de Borrado (Reseñas)
-        function promptDeleteResena(resenaId) {
-            pendingDeleteId = resenaId;
-            openModal('deleteResenaModal');
-        }
+    function syncCompletedTypeFields() {
+      const val = $('completedType').value;
+      const research = val === 'taller' || val === 'seminario';
+      $('gradeField').classList.remove('hidden');
+      $('researchInfo').classList.toggle('hidden', !research);
+      $('completedGrade').required = true;
+      $('researchHoursLabel').textContent = val === 'seminario' ? '50 horas' : '100 horas';
+    }
 
-        document.getElementById('confirmDeleteResenaBtn').addEventListener('click', async () => {
-            if (!pendingDeleteId || !currentUser) return;
-            const btn = document.getElementById('confirmDeleteResenaBtn');
-            btn.disabled = true;
-            btn.textContent = 'Borrando...';
+    function openCompletedEditor(id = '') {
+      const course = id ? state.completed.find(c => c.id === id) : null;
+      $('completedEditId').value = course?.id || '';
+      $('completedModalTitle').textContent = course ? 'Editar materia realizada' : 'Agregar materia realizada';
+      $('completedName').value = course?.name || '';
+      $('completedYear').value = course?.year || new Date().getFullYear();
+      $('completedGrade').value = course?.grade ?? '';
+      if (!course) $('completedType').value = 'obligatoria';
+      else if (course.type === 'investigacion') $('completedType').value = course.subtype === 'seminario' ? 'seminario' : 'taller';
+      else $('completedType').value = course.type;
+      $('deleteCompletedBtn').classList.toggle('hidden', !course);
+      syncCompletedTypeFields();
+      refreshCourseSearch('completed');
+      openModal('completedModal');
+      setTimeout(() => $('completedName').focus(), 50);
+    }
 
-            try {
-                await db.collection('resenas').doc(pendingDeleteId).delete();
-                showToast('Reseña eliminada.');
-                closeModal('deleteResenaModal');
-                fetchResenas(currentUser.uid); // Recargar
-            } catch (error) {
-                showToast('Error al borrar la reseña.', 'error');
-            } finally {
-                btn.disabled = false;
-                btn.textContent = 'Borrar';
-            }
-        });
+    document.addEventListener('click', e => {
+      const closeBtn = e.target.closest('[data-close-modal]');
+      if (closeBtn) closeAllModals();
 
-        // Actualizar Cátedra y Nota de Materia Cursada
-        async function actualizarCampoMateria(materiaId, campo, valorStr) {
-            if (!currentUser) return;
-            
-            let actualizacion = {};
-            
-            if (campo === 'nota') {
-                const nota = parseFloat(valorStr);
-                const notaValida = !isNaN(nota) && nota >= 1 && nota <= 10;
-                actualizacion = notaValida ? { nota: nota } : { nota: firebase.firestore.FieldValue.delete() };
-            } else if (campo === 'catedra') {
-                const catedraStr = valorStr.trim();
-                actualizacion = catedraStr !== '' ? { catedra: catedraStr } : { catedra: firebase.firestore.FieldValue.delete() };
-            }
+      const modalBackdrop = e.target.classList?.contains('modal') ? e.target : null;
+      if (modalBackdrop) closeModal(modalBackdrop.id);
 
-            try {
-                // Intentamos actualizar en ambas colecciones (minúscula y mayúscula)
-                const docRefMin = db.collection('usuarios').doc(currentUser.uid).collection('trayectoria').doc(materiaId);
-                const docRefMay = db.collection('Usuarios').doc(currentUser.uid).collection('trayectoria').doc(materiaId);
-                
-                await docRefMin.update(actualizacion).catch(e => {
-                    return docRefMay.update(actualizacion);
-                });
+      const removeWanted = e.target.closest('[data-remove-wanted]');
+      if (removeWanted) {
+        state.wanted = state.wanted.filter(c => c.id !== removeWanted.dataset.removeWanted);
+        saveState(); render(); showToast('Materia quitada de la lista.');
+      }
 
-                showToast(campo === 'nota' ? 'Nota guardada.' : 'Cátedra guardada.', 'success');
-                if (campo === 'nota') fetchTrayectoria(currentUser.uid); // Recargar para actualizar el promedio
-            } catch (error) {
-                console.error("Error al actualizar:", error);
-                showToast('Hubo un error al guardar.', 'error');
-            }
-        }
+      const editCompleted = e.target.closest('[data-edit-completed]');
+      if (editCompleted) openCompletedEditor(editCompleted.dataset.editCompleted);
 
-    </script>
+      // Control de los acordeones
+      const toggleGroup = e.target.closest('[data-toggle-group]');
+      if (toggleGroup) {
+        const id = toggleGroup.dataset.toggleGroup;
+        if (expandedGroups.has(id)) expandedGroups.delete(id);
+        else expandedGroups.add(id);
+        render();
+      }
+    });
+
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAllModals(); });
+
+    document.addEventListener('change', e => {
+      const planCompleted = e.target.closest('[data-plan-completed]');
+      if (planCompleted) setPlanSubjectCompleted(planCompleted.dataset.planCompleted, planCompleted.checked);
+
+      const planGrade = e.target.closest('[data-plan-grade]');
+      if (planGrade) updatePlanSubjectGrade(planGrade.dataset.planGrade, planGrade.value);
+    });
+
+    $('openPlanBtn').addEventListener('click', () => openModal('planModal'));
+
+    $('editProfileBtn').addEventListener('click', () => {
+      $('profileNameInput').value = state.name || '';
+      $('entryYearInput').value = state.entryYear || '';
+      openModal('profileModal');
+    });
+
+    $('profileForm').addEventListener('submit', e => {
+      e.preventDefault();
+      state.name = $('profileNameInput').value.trim() || 'Usuario';
+      state.entryYear = Number($('entryYearInput').value) || '';
+      saveState(); closeModal('profileModal'); render(); showToast('Perfil actualizado localmente.');
+    });
+
+    $('addWantedBtn').addEventListener('click', () => {
+      $('wantedForm').reset();
+      refreshCourseSearch('wanted');
+      openModal('wantedModal');
+      setTimeout(() => $('wantedName').focus(), 50);
+    });
+
+    $('wantedForm').addEventListener('submit', e => {
+      e.preventDefault();
+      state.wanted.unshift({
+        id: `w-${Date.now()}`,
+        name: $('wantedName').value.trim(),
+        type: $('wantedType').value,
+        note: $('wantedNote').value.trim()
+      });
+      saveState(); closeModal('wantedModal'); render(); showToast('Materia agregada a “Quiero cursar”.');
+    });
+
+    $('addCompletedBtn').addEventListener('click', () => openCompletedEditor());
+    $('wantedType').addEventListener('change', () => refreshCourseSearch('wanted', true));
+    $('completedType').addEventListener('change', () => {
+      syncCompletedTypeFields();
+      refreshCourseSearch('completed', true);
+    });
+
+    $('completedForm').addEventListener('submit', e => {
+      e.preventDefault();
+      const editId = $('completedEditId').value;
+      const typeValue = $('completedType').value;
+      const research = typeValue === 'taller' || typeValue === 'seminario';
+      const item = {
+        id: editId || `c-${Date.now()}`,
+        name: $('completedName').value.trim(),
+        type: research ? 'investigacion' : typeValue,
+        year: Number($('completedYear').value) || new Date().getFullYear()
+      };
+      item.grade = Number($('completedGrade').value);
+      if (research) {
+        item.subtype = typeValue;
+        item.hours = typeValue === 'seminario' ? 50 : 100;
+      }
+      
+      // Auto-expandir la categoría donde se agregó la materia si estaba cerrada
+      expandedGroups.add(item.type);
+
+      if (editId) {
+        const idx = state.completed.findIndex(c => c.id === editId);
+        if (idx >= 0) state.completed[idx] = item;
+      } else {
+        state.completed.unshift(item);
+      }
+      saveState(); closeModal('completedModal'); render();
+      showToast(editId ? 'Materia realizada actualizada.' : 'Materia realizada agregada.');
+    });
+
+    $('deleteCompletedBtn').addEventListener('click', () => {
+      const id = $('completedEditId').value;
+      if (!id) return;
+      const course = state.completed.find(c => c.id === id);
+      if (!confirm(`¿Eliminar “${course?.name || 'este registro'}” de Materias realizadas?`)) return;
+      state.completed = state.completed.filter(c => c.id !== id);
+      saveState(); closeModal('completedModal'); render(); showToast('Registro eliminado.');
+    });
+
+    $('resetBtn').addEventListener('click', () => {
+      if (!confirm('¿Reiniciar todos los datos locales de este prototipo?')) return;
+      localStorage.removeItem(STORAGE_KEY);
+      state = cloneDefault();
+      expandedGroups = new Set(['obligatoria', 'especial', 'teoria', 'investigacion']);
+      render(); showToast('Demo reiniciada.');
+    });
+
+    if (profileAuth) {
+      profileAuth.onAuthStateChanged(handleProfileAuthState);
+    } else {
+      setSyncStatus('Guardado local', '<strong>Guardado local activo.</strong> Firebase no está disponible en este momento.');
+    }
+
+    render();
+  </script>
 </body>
 </html>
