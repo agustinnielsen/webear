@@ -1670,7 +1670,7 @@
         function configurarPerfil() {
             mod('myProfileBtn').onclick = () => {
                 if (appState.user) {
-                    window.location.href = '/perfil/' + appState.user.uid;
+                    window.location.href = '/perfil';
                 } else {
                     abrirModal('loginModal');
                 }
