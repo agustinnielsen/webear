@@ -9,7 +9,6 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-  
   <script>
     tailwind.config = {
       theme: {
@@ -23,7 +22,6 @@
       }
     };
   </script>
-  
   <style>
     html { scroll-behavior: smooth; }
     body { min-height: 100vh; overflow-x: hidden; }
@@ -43,7 +41,6 @@
       }
       .mobile-safe-bottom { padding-bottom: max(1.25rem, env(safe-area-inset-bottom)); }
     }
-    
     .modal { display: none; }
     .modal.active { display: flex; animation: fadeIn .18s ease-out; }
     .modal-card { animation: popIn .2s ease-out; }
@@ -67,11 +64,8 @@
       </a>
       <div class="text-center min-w-0">
         <p class="font-black leading-none">Mi perfil</p>
-        <p class="text-[10px] uppercase tracking-[.16em] text-white/70 mt-1">Gino Social</p>
       </div>
-      <button id="resetBtn" class="w-10 h-10 rounded-full hover:bg-white/15 flex items-center justify-center" title="Borrar datos locales">
-        <span class="material-symbols-outlined">restart_alt</span>
-      </button>
+      <div class="w-10"></div> <!-- Placeholder para balancear el flex -->
     </div>
   </nav>
 
@@ -82,9 +76,9 @@
         <div class="min-w-0">
           <div class="flex flex-wrap items-center gap-2 mb-1">
             <span class="text-[11px] font-black uppercase tracking-[.14em] bg-white/20 border border-white/30 px-2.5 py-1 rounded-full">Perfil académico</span>
-            <span id="syncStatusBadge" class="text-[11px] font-bold bg-white/20 border border-white/20 px-2.5 py-1 rounded-full">Conectando...</span>
+            <span id="syncStatusBadge" class="text-[11px] font-bold bg-white/20 border border-white/20 px-2.5 py-1 rounded-full">Modo local</span>
           </div>
-          <h1 id="profileName" class="text-2xl sm:text-3xl md:text-5xl font-black tracking-tight truncate">Usuario</h1>
+          <h1 id="profileName" class="text-2xl sm:text-3xl md:text-5xl font-black tracking-tight truncate">Cargando...</h1>
           <p id="profileMeta" class="text-white/80 mt-1">Sociología · UBA</p>
         </div>
       </div>
@@ -103,6 +97,7 @@
     <div class="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-6 md:gap-8 items-start">
       <div class="order-2 xl:order-1 space-y-5 md:space-y-7">
         
+        <!-- 1. Quiero cursar -->
         <section id="wantedSection" class="bg-white rounded-2xl md:rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
           <div class="p-4 sm:p-5 md:p-7 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100">
             <div>
@@ -119,6 +114,7 @@
           <div id="wantedCoursesList" class="p-4 sm:p-5 md:p-7 grid grid-cols-1 md:grid-cols-2 gap-2.5 sm:gap-3"></div>
         </section>
 
+        <!-- 2. Materias realizadas -->
         <section id="completedSection" class="bg-white rounded-2xl md:rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
           <div class="p-4 sm:p-5 md:p-7 border-b border-gray-100 flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-slate-50/50">
             <div>
@@ -139,6 +135,7 @@
           </div>
         </section>
 
+        <!-- 3. Reseñas -->
         <section class="bg-white rounded-2xl md:rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
           <div class="p-4 sm:p-5 md:p-7 border-b border-gray-100">
             <div class="flex items-center gap-2">
@@ -151,6 +148,7 @@
         </section>
       </div>
 
+      <!-- Panel lateral -->
       <aside class="order-1 xl:order-2 space-y-3 sm:space-y-4">
         <section class="bg-white rounded-2xl md:rounded-3xl shadow-sm border border-gray-100 p-4 sm:p-5 md:p-6">
           <h2 class="font-black text-base sm:text-lg text-dark mb-4 sm:mb-5">Resumen académico</h2>
@@ -193,10 +191,12 @@
 
           <p class="text-[11px] text-gray-400 leading-relaxed mt-5 pt-4 border-t border-gray-100">16 obligatorias + 3 especiales + 3 teorías + 3 adicionales entre especiales/teorías + 200 h de investigación. Taller: 100 h · Seminario: 50 h.</p>
         </section>
+
       </aside>
     </div>
   </main>
 
+  <!-- Modal perfil -->
   <div id="profileModal" class="modal fixed inset-0 bg-black/60 z-50 items-center justify-center p-4 backdrop-blur-sm">
     <div class="modal-card mobile-safe-bottom bg-white rounded-3xl w-full max-w-md shadow-2xl p-6 md:p-8">
       <div class="flex items-start justify-between gap-4 mb-5">
@@ -223,6 +223,7 @@
     </div>
   </div>
 
+  <!-- Modal quiero cursar -->
   <div id="wantedModal" class="modal fixed inset-0 bg-black/60 z-50 items-center justify-center p-4 backdrop-blur-sm">
     <div class="modal-card mobile-safe-bottom bg-white rounded-3xl w-full max-w-md shadow-2xl p-6 md:p-8">
       <div class="flex items-start justify-between gap-4 mb-5">
@@ -260,6 +261,7 @@
     </div>
   </div>
 
+  <!-- Modal materia realizada: alta y edición -->
   <div id="completedModal" class="modal fixed inset-0 bg-black/60 z-50 items-center justify-center p-4 backdrop-blur-sm">
     <div class="modal-card mobile-safe-bottom bg-white rounded-3xl w-full max-w-lg max-h-[92vh] overflow-y-auto shadow-2xl p-6 md:p-8">
       <div class="flex items-start justify-between gap-4 mb-5">
@@ -312,6 +314,7 @@
     </div>
   </div>
 
+  <!-- Modal Plan de Estudios (Correlatividades) -->
   <div id="planModal" class="modal fixed inset-0 bg-black/60 z-50 items-center justify-center p-2 sm:p-4 backdrop-blur-sm">
     <div class="modal-card bg-slate-50 w-full h-[95vh] max-w-7xl rounded-3xl shadow-2xl flex flex-col overflow-hidden">
       <div class="p-5 md:p-6 border-b border-gray-200 bg-white flex items-center justify-between shrink-0">
@@ -357,6 +360,7 @@
       console.warn('No se pudo inicializar el catálogo de Firebase.', error);
     }
 
+    // CORRECCIÓN 1: Arreglados los nombres repetidos y las comas faltantes.
     const COURSE_COLLECTIONS = {
       obligatoria: 'materias',
       especial: 'especiales',
@@ -376,9 +380,10 @@
     const courseCatalogCache = {};
     const courseCatalogRequests = {};
 
+    // CORRECCIÓN 2: Limpieza del estado por defecto (sin demo).
     const DEFAULT_STATE = {
-      name: '',
-      entryYear: '',
+      name: 'Usuario',
+      entryYear: new Date().getFullYear(),
       wanted: [],
       completed: [],
       reviews: []
@@ -390,30 +395,26 @@
     let profileCloudReady = false;
     let profileWriteChain = Promise.resolve();
     let authStateRevision = 0;
+    
     let expandedGroups = new Set(['obligatoria', 'especial', 'teoria', 'investigacion']);
 
     const PLAN_ESTUDIOS = [
       { id: '251', name: 'Sociología General', req: [], tier: 1 },
       { id: '252', name: 'Filosofía', req: [], tier: 1 },
       { id: '253', name: 'Historia Social Moderna y Contemporánea', req: [], tier: 1 },
-      { id: '256', name: 'Economía 2', req: [], tier: 1 },
-      
+      { id: '256', name: 'Economía 2', req: [], tier: 1 }, 
       { id: '254', name: 'Historia del Conocimiento Sociológico 1', req: ['251', '252'], tier: 2 },
       { id: '255', name: 'Epistemología de las Ciencias Sociales', req: ['252'], tier: 2 },
       { id: '259', name: 'Historia Social Latinoamericana', req: ['253', '256'], tier: 2 },
       { id: '263', name: 'Sociología Política', req: ['253', '256'], tier: 2 },
-      
       { id: '257', name: 'Historia del Conocimiento Sociológico 2', req: ['254'], tier: 3 },
       { id: '262', name: 'Historia Social Argentina', req: ['259'], tier: 3 },
       { id: '258', name: 'Metodología 1', req: ['251', '255', '256'], tier: 3 },
-      
       { id: '260', name: 'Sociología Sistemática', req: ['257'], tier: 4 },
       { id: '261', name: 'Metodología 2', req: ['258'], tier: 4 },
-      
       { id: '264', name: 'Metodología 3', req: ['261'], tier: 5 },
       { id: '266', name: 'Psicología Social', req: ['260'], tier: 5 },
       { id: '265', name: 'Análisis de la Sociedad Argentina', req: ['262', '254', '260'], tier: 5 },
-      
       { id: 'opt_esp', name: '6 Sociologías Especiales', req: ['257', '258'], tier: 6, isGroup: true },
       { id: 'opt_teo', name: '3 Teorías sociológicas', req: ['260', '258'], tier: 6, isGroup: true },
       { id: 'opt_inv', name: '200 h de investigación', req: ['260', '258'], tier: 6, isGroup: true }
@@ -471,7 +472,7 @@
     function createCloudProfileState(user, profile = {}) {
       return {
         name: profile.name || displayNameForUser(user),
-        entryYear: Number(profile.entryYear) || '',
+        entryYear: Number(profile.entryYear) || new Date().getFullYear(),
         wanted: Array.isArray(profile.wanted) ? profile.wanted : [],
         completed: normalizeCompleted(profile.completed),
         reviews: []
@@ -526,12 +527,16 @@
       return year ? String(year) : 'Sin fecha';
     }
 
+    // CORRECCIÓN 3: Función que importa reseñas automáticamente
     async function loadUserReviews(user, revision) {
       try {
         const snapshot = await courseCatalogDb.collection('resenas').where('usuarioId', '==', user.uid).get();
         if (revision !== authStateRevision || activeProfileUser?.uid !== user.uid) return;
-        state.reviews = snapshot.docs
-          .map(doc => ({ id: doc.id, ...doc.data() }))
+        
+        const rawReviews = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        let importedCount = 0;
+
+        state.reviews = rawReviews
           .sort((a, b) => (b.fecha?.toMillis?.() || 0) - (a.fecha?.toMillis?.() || 0))
           .map(review => ({
             materia: review.materiaNombre || 'Materia sin nombre',
@@ -540,7 +545,33 @@
             date: reviewDateLabel(review.fecha, review.anioCursada),
             text: review.texto || ''
           }));
-        persistLocalState();
+
+        // Migración automática: Agregar materias reseñadas al historial si no existen
+        rawReviews.forEach(review => {
+          const materiaNombre = review.materiaNombre;
+          if (!materiaNombre) return;
+          
+          const exists = state.completed.some(c => normalizedCourseName(c.name) === normalizedCourseName(materiaNombre));
+          if (!exists) {
+            const isObligatoria = PLAN_ESTUDIOS.some(p => !p.isGroup && normalizedCourseName(p.name) === normalizedCourseName(materiaNombre));
+            
+            state.completed.push({
+              id: `c-auto-${Date.now()}-${Math.floor(Math.random()*1000)}`,
+              name: materiaNombre,
+              type: isObligatoria ? 'obligatoria' : 'especial',
+              year: Number(review.anioCursada) || new Date().getFullYear()
+            });
+            importedCount++;
+          }
+        });
+
+        if (importedCount > 0) {
+          saveState(); // Guarda y sube a Firebase automáticamente
+          showToast(`✨ ¡Magia! Importamos ${importedCount} materias desde tus reseñas.`);
+        } else {
+          persistLocalState();
+        }
+
         render();
       } catch (error) {
         console.warn('No se pudieron cargar las reseñas del usuario.', error);
@@ -1158,14 +1189,6 @@
       if (!confirm(`¿Eliminar “${course?.name || 'este registro'}” de Materias realizadas?`)) return;
       state.completed = state.completed.filter(c => c.id !== id);
       saveState(); closeModal('completedModal'); render(); showToast('Registro eliminado.');
-    });
-
-    $('resetBtn').addEventListener('click', () => {
-      if (!confirm('¿Borrar todos los datos locales de tu perfil?')) return;
-      localStorage.removeItem(STORAGE_KEY);
-      state = cloneDefault();
-      expandedGroups = new Set(['obligatoria', 'especial', 'teoria', 'investigacion']);
-      render(); showToast('Datos locales borrados.');
     });
 
     if (profileAuth) {
