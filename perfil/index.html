@@ -139,7 +139,6 @@
         </section>
       </div>
 
-      <!-- Panel lateral -->
       <aside class="order-1 xl:order-2 space-y-3 sm:space-y-4">
         <section class="bg-white rounded-2xl md:rounded-3xl shadow-sm border border-gray-100 p-4 sm:p-5 md:p-6">
           <h2 class="font-black text-base sm:text-lg text-dark mb-4 sm:mb-5">Resumen académico</h2>
@@ -177,7 +176,7 @@
           <div id="requirementsGrid" class="space-y-3 sm:space-y-4"></div>
           
           <button id="openPlanBtn" class="mt-5 w-full px-4 py-3 rounded-xl bg-dark text-white font-black shadow-md hover:bg-slate-800 hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2">
-            <span class="material-symbols-outlined text-lg">account_tree</span> Ver plan de correlatividades
+            <span class="material-symbols-outlined text-lg">account_tree</span> Ver mapa de correlatividades
           </button>
 
           <p class="text-[11px] text-gray-400 leading-relaxed mt-5 pt-4 border-t border-gray-100">16 obligatorias + 3 especiales + 3 teorías + 3 adicionales entre especiales/teorías + 200 h de investigación. Taller: 100 h · Seminario: 50 h.</p>
@@ -224,12 +223,16 @@
         <button data-close-modal class="text-gray-400 hover:text-gray-700 text-2xl">✕</button>
       </div>
       <form id="wantedForm" class="space-y-4">
-        <label class="block space-y-1">
+        <div class="block space-y-1 relative-dropdown-container">
           <span class="text-sm font-bold text-gray-600">Materia</span>
-          <input id="wantedName" list="wantedCourseOptions" autocomplete="off" required class="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-primary" placeholder="Buscá una materia…">
-          <datalist id="wantedCourseOptions"></datalist>
-          <p id="wantedCourseHelp" class="text-xs text-gray-400">Elegí primero el tipo de materia.</p>
-        </label>
+          <div class="relative">
+            <input id="wantedName" autocomplete="off" required class="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-primary" placeholder="Buscá una materia…">
+            <!-- Custom Dropdown -->
+            <div id="wantedDropdown" class="custom-dropdown hidden absolute left-0 right-0 top-full mt-2 bg-white border border-gray-100 rounded-xl shadow-2xl z-[60] flex-col overflow-hidden">
+              <!-- Content injected via JS -->
+            </div>
+          </div>
+        </div>
         <label class="block space-y-1">
           <span class="text-sm font-bold text-gray-600">Tipo</span>
           <select id="wantedType" class="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-primary bg-white">
@@ -263,12 +266,16 @@
       </div>
       <form id="completedForm" class="space-y-4">
         <input id="completedEditId" type="hidden">
-        <label class="block space-y-1">
+        <div class="block space-y-1 relative-dropdown-container">
           <span class="text-sm font-bold text-gray-600">Materia / actividad</span>
-          <input id="completedName" list="completedCourseOptions" autocomplete="off" required class="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-primary" placeholder="Buscá una materia o actividad…">
-          <datalist id="completedCourseOptions"></datalist>
-          <p id="completedCourseHelp" class="text-xs text-gray-400">Elegí primero el tipo de materia.</p>
-        </label>
+          <div class="relative">
+            <input id="completedName" autocomplete="off" required class="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-primary" placeholder="Buscá una materia o actividad…">
+            <!-- Custom Dropdown -->
+            <div id="completedDropdown" class="custom-dropdown hidden absolute left-0 right-0 top-full mt-2 bg-white border border-gray-100 rounded-xl shadow-2xl z-[60] flex-col overflow-hidden">
+              <!-- Content injected via JS -->
+            </div>
+          </div>
+        </div>
         <label class="block space-y-1">
           <span class="text-sm font-bold text-gray-600">Tipo</span>
           <select id="completedType" class="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-primary bg-white">
@@ -281,7 +288,7 @@
         </label>
         <div id="gradeField">
           <label class="block space-y-1">
-            <span class="text-sm font-bold text-gray-600">Nota <span class="font-normal text-gray-400">(opcional)</span></span>
+            <span class="text-sm font-bold text-gray-600">Nota final <span class="font-normal text-gray-400">(opcional)</span></span>
             <input id="completedGrade" type="number" min="0" max="10" step="0.01" class="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-primary" placeholder="0–10">
           </label>
           <p class="text-xs text-gray-400 mt-1">Modificar esta nota actualiza el promedio UBA y el GPA del panel lateral.</p>
@@ -380,7 +387,8 @@
     let profileWriteChain = Promise.resolve();
     let authStateRevision = 0;
     
-    let expandedGroups = new Set(['obligatoria', 'especial', 'teoria', 'investigacion']);
+    // Inicia con todos los grupos colapsados
+    let expandedGroups = new Set();
 
     const PLAN_ESTUDIOS = [
       { id: '251', name: 'Sociología General', req: [], tier: 1 },
@@ -498,7 +506,6 @@
       return year ? String(year) : 'Sin fecha';
     }
 
-    // Normalizador estricto para evitar duplicados. Ignora tildes y mayúsculas.
     function normalizedCourseName(name) {
       return String(name || '').trim().toLocaleLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     }
@@ -521,24 +528,25 @@
             text: review.texto || ''
           }));
 
-        // Migración automática: Agregar materias reseñadas al historial si no existen
+        // Migración automática inteligente
         rawReviews.forEach(review => {
           const materiaNombre = review.materiaNombre;
           if (!materiaNombre) return;
           
-          const rName = normalizedCourseName(materiaNombre);
+          const normalizedName = normalizedCourseName(materiaNombre);
           
-          // Filtro Absoluto: No importa si cambió de categoría, si el nombre coincide, no se agrega.
-          const exists = state.completed.some(c => normalizedCourseName(c.name) === rName);
+          // Filtro Absoluto: Verifica si la materia ya está en "Materias Realizadas" ignorando tildes y mayúsculas
+          const exists = state.completed.some(c => normalizedCourseName(c.name) === normalizedName);
           
           if (!exists) {
             let courseType = 'especial'; // Por defecto
             
-            if (PLAN_ESTUDIOS.some(p => !p.isGroup && normalizedCourseName(p.name) === rName)) {
+            // Detección heurística de categorías
+            if (PLAN_ESTUDIOS.some(p => !p.isGroup && normalizedCourseName(p.name) === normalizedName)) {
               courseType = 'obligatoria';
-            } else if (rName.includes('teor')) {
+            } else if (normalizedName.includes('teor')) {
               courseType = 'teoria';
-            } else if (rName.includes('taller') || rName.includes('seminario')) {
+            } else if (normalizedName.includes('taller') || normalizedName.includes('seminario')) {
               courseType = 'investigacion';
             }
             
@@ -552,7 +560,7 @@
         });
 
         if (importedCount > 0) {
-          saveState();
+          saveState(); 
           showToast(`✨ ¡Magia! Importamos ${importedCount} materias desde tus reseñas.`);
         } else {
           persistLocalState();
@@ -581,9 +589,8 @@
         render();
         profileCloudReady = true;
 
-        if (!remoteProfile) {
-          syncProfileToCloud();
-        }
+        if (!remoteProfile) syncProfileToCloud();
+        
         loadUserReviews(user, revision);
       } catch (error) {
         console.warn('No se pudo cargar el perfil académico desde Firebase.', error);
@@ -656,46 +663,84 @@
       return courseCatalogRequests[collection];
     }
 
-    function populateCourseOptions(optionsId, names) {
-      const options = $(optionsId);
-      options.replaceChildren(...names.map(name => {
-        const option = document.createElement('option');
-        option.value = name;
-        return option;
-      }));
-    }
-
     async function refreshCourseSearch(form, clearValue = false) {
       const isWanted = form === 'wanted';
       const input = $(isWanted ? 'wantedName' : 'completedName');
       const type = $(isWanted ? 'wantedType' : 'completedType').value;
-      const optionsId = isWanted ? 'wantedCourseOptions' : 'completedCourseOptions';
-      const help = $(isWanted ? 'wantedCourseHelp' : 'completedCourseHelp');
       const collection = collectionForCourseType(type);
 
       if (clearValue) input.value = '';
       input.dataset.courseCollection = collection;
-      populateCourseOptions(optionsId, []);
-      input.placeholder = 'Cargando catálogo…';
-      input.setAttribute('aria-busy', 'true');
-      help.textContent = `Cargando ${COURSE_COLLECTION_LABELS[collection]}…`;
 
       try {
-        const names = await loadCourseCatalog(collection);
-        if (input.dataset.courseCollection !== collection) return;
-        populateCourseOptions(optionsId, names);
-        input.placeholder = `Buscá en ${COURSE_COLLECTION_LABELS[collection]}…`;
-        help.textContent = `${names.length} opciones disponibles. Empezá a escribir para buscar.`;
+        await loadCourseCatalog(collection);
+        // Dispara la actualización visual del dropdown si está activo
+        input.dispatchEvent(new Event('input'));
       } catch (error) {
-        if (input.dataset.courseCollection !== collection) return;
-        populateCourseOptions(optionsId, []);
-        input.placeholder = 'Escribí el nombre de la materia…';
-        help.textContent = 'No se pudo cargar el catálogo. Podés escribir el nombre manualmente.';
         console.warn(`No se pudo cargar la colección ${collection}.`, error);
-      } finally {
-        if (input.dataset.courseCollection === collection) input.removeAttribute('aria-busy');
       }
     }
+
+    function setupDropdown(inputId, dropdownId, typeId) {
+      const input = $(inputId);
+      const dropdown = $(dropdownId);
+      
+      const updateList = () => {
+        const type = $(typeId).value;
+        const collection = collectionForCourseType(type);
+        const names = courseCatalogCache[collection] || [];
+        const query = normalizedCourseName(input.value);
+        
+        const filtered = query === '' ? names : names.filter(n => normalizedCourseName(n).includes(query));
+        const label = COURSE_COLLECTION_LABELS[collection];
+        const title = label.charAt(0).toUpperCase() + label.slice(1);
+
+        // Cabecera Naranja
+        let html = `<div class="bg-[#f97316] text-white font-bold text-[13px] px-4 py-2.5 shrink-0 shadow-sm z-10 relative">${title}</div>`;
+        
+        if (filtered.length === 0) {
+          html += `<div class="px-4 py-4 text-sm text-gray-500 italic bg-slate-50">No hay coincidencias. Podés escribir el nombre manualmente.</div>`;
+        } else {
+          html += `<div class="overflow-y-auto flex-1 max-h-56 bg-white">`;
+          filtered.forEach(n => {
+            html += `<div class="px-4 py-3 text-[14px] text-dark hover:bg-orange-50 cursor-pointer border-b border-gray-50 last:border-0 transition-colors" data-dropdown-val="${escapeHTML(n)}">${escapeHTML(n)}</div>`;
+          });
+          html += `</div>`;
+        }
+        dropdown.innerHTML = html;
+        dropdown.classList.remove('hidden');
+        dropdown.classList.add('flex');
+      };
+
+      input.addEventListener('input', updateList);
+      input.addEventListener('focus', () => {
+        if (courseCatalogCache[collectionForCourseType($(typeId).value)]) updateList();
+      });
+    }
+
+    // Inicializar dropdowns customizados
+    setupDropdown('wantedName', 'wantedDropdown', 'wantedType');
+    setupDropdown('completedName', 'completedDropdown', 'completedType');
+
+    // Cierre global para dropdowns custom
+    document.addEventListener('click', e => {
+      const dropdownItem = e.target.closest('[data-dropdown-val]');
+      if (dropdownItem) {
+        const dropdown = dropdownItem.closest('.custom-dropdown');
+        const inputId = dropdown.id === 'wantedDropdown' ? 'wantedName' : 'completedName';
+        $(inputId).value = dropdownItem.dataset.dropdownVal;
+        dropdown.classList.add('hidden');
+        dropdown.classList.remove('flex');
+        return;
+      }
+
+      if (!e.target.closest('.relative-dropdown-container')) {
+        document.querySelectorAll('.custom-dropdown').forEach(d => {
+          d.classList.add('hidden');
+          d.classList.remove('flex');
+        });
+      }
+    });
 
     function getCompletedCourseByPlanSubject(subject) {
       return state.completed.find(course => normalizedCourseName(course.name) === normalizedCourseName(subject.name));
@@ -1043,8 +1088,9 @@
       $('deleteCompletedBtn').classList.toggle('hidden', !course);
       syncCompletedTypeFields();
       refreshCourseSearch('completed');
+      
       openModal('completedModal');
-      setTimeout(() => $('completedName').focus(), 50);
+      // No autofocus
     }
 
     document.addEventListener('click', e => {
@@ -1101,7 +1147,7 @@
       $('wantedForm').reset();
       refreshCourseSearch('wanted');
       openModal('wantedModal');
-      setTimeout(() => $('wantedName').focus(), 50);
+      // No autofocus
     });
 
     $('wantedForm').addEventListener('submit', e => {
@@ -1136,8 +1182,6 @@
       const gradeVal = $('completedGrade').value.trim();
       if (gradeVal !== '') {
         item.grade = Number(gradeVal);
-      } else {
-        delete item.grade; // Si lo dejaron vacío, borra la nota.
       }
       
       if (research) {
@@ -1157,15 +1201,11 @@
       showToast(editId ? 'Materia realizada actualizada.' : 'Materia realizada agregada.');
     });
 
-    // Eliminación directa sin confirm() de JS nativo
     $('deleteCompletedBtn').addEventListener('click', () => {
       const id = $('completedEditId').value;
       if (!id) return;
       state.completed = state.completed.filter(c => c.id !== id);
-      saveState(); 
-      closeModal('completedModal'); 
-      render(); 
-      showToast('Registro eliminado.');
+      saveState(); closeModal('completedModal'); render(); showToast('Registro eliminado.');
     });
 
     if (profileAuth) {
