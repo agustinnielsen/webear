@@ -9,6 +9,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  
   <script>
     tailwind.config = {
       theme: {
@@ -22,6 +23,7 @@
       }
     };
   </script>
+  
   <style>
     html { scroll-behavior: smooth; }
     body { min-height: 100vh; overflow-x: hidden; }
@@ -41,6 +43,7 @@
       }
       .mobile-safe-bottom { padding-bottom: max(1.25rem, env(safe-area-inset-bottom)); }
     }
+    
     .modal { display: none; }
     .modal.active { display: flex; animation: fadeIn .18s ease-out; }
     .modal-card { animation: popIn .2s ease-out; }
@@ -49,7 +52,6 @@
     .progress-ring { transition: background .35s ease; }
     .progress-bar { transition: width .4s ease; }
     
-    /* Smooth height transitions for accordions could go here, but block/hidden works efficiently for simple lists */
     ::-webkit-scrollbar { width: 8px; }
     ::-webkit-scrollbar-track { background: #f1f1f1; }
     ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
@@ -101,7 +103,6 @@
     <div class="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-6 md:gap-8 items-start">
       <div class="order-2 xl:order-1 space-y-5 md:space-y-7">
         
-        <!-- 1. Quiero cursar -->
         <section id="wantedSection" class="bg-white rounded-2xl md:rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
           <div class="p-4 sm:p-5 md:p-7 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100">
             <div>
@@ -118,7 +119,6 @@
           <div id="wantedCoursesList" class="p-4 sm:p-5 md:p-7 grid grid-cols-1 md:grid-cols-2 gap-2.5 sm:gap-3"></div>
         </section>
 
-        <!-- 2. Materias realizadas -->
         <section id="completedSection" class="bg-white rounded-2xl md:rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
           <div class="p-4 sm:p-5 md:p-7 border-b border-gray-100 flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-slate-50/50">
             <div>
@@ -128,7 +128,6 @@
               </div>
               <p class="text-sm text-gray-500 mt-1"><span id="completedCountLabel">0</span> registros · las notas alimentan automáticamente tus promedios.</p>
             </div>
-            <!-- Eliminado el select de filtro, ahora solo queda el botón para agregar -->
             <div class="w-full lg:w-auto">
               <button id="addCompletedBtn" class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-primary text-white font-bold shadow-sm hover:bg-primaryDark transition-colors flex items-center justify-center gap-2">
                 <span class="material-symbols-outlined text-lg">add</span> Agregar realizada
@@ -140,7 +139,6 @@
           </div>
         </section>
 
-        <!-- 3. Reseñas -->
         <section class="bg-white rounded-2xl md:rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
           <div class="p-4 sm:p-5 md:p-7 border-b border-gray-100">
             <div class="flex items-center gap-2">
@@ -153,7 +151,6 @@
         </section>
       </div>
 
-      <!-- Panel lateral -->
       <aside class="order-1 xl:order-2 space-y-3 sm:space-y-4">
         <section class="bg-white rounded-2xl md:rounded-3xl shadow-sm border border-gray-100 p-4 sm:p-5 md:p-6">
           <h2 class="font-black text-base sm:text-lg text-dark mb-4 sm:mb-5">Resumen académico</h2>
@@ -196,12 +193,10 @@
 
           <p class="text-[11px] text-gray-400 leading-relaxed mt-5 pt-4 border-t border-gray-100">16 obligatorias + 3 especiales + 3 teorías + 3 adicionales entre especiales/teorías + 200 h de investigación. Taller: 100 h · Seminario: 50 h.</p>
         </section>
-
       </aside>
     </div>
   </main>
 
-  <!-- Modal perfil -->
   <div id="profileModal" class="modal fixed inset-0 bg-black/60 z-50 items-center justify-center p-4 backdrop-blur-sm">
     <div class="modal-card mobile-safe-bottom bg-white rounded-3xl w-full max-w-md shadow-2xl p-6 md:p-8">
       <div class="flex items-start justify-between gap-4 mb-5">
@@ -228,7 +223,6 @@
     </div>
   </div>
 
-  <!-- Modal quiero cursar -->
   <div id="wantedModal" class="modal fixed inset-0 bg-black/60 z-50 items-center justify-center p-4 backdrop-blur-sm">
     <div class="modal-card mobile-safe-bottom bg-white rounded-3xl w-full max-w-md shadow-2xl p-6 md:p-8">
       <div class="flex items-start justify-between gap-4 mb-5">
@@ -266,7 +260,6 @@
     </div>
   </div>
 
-  <!-- Modal materia realizada: alta y edición -->
   <div id="completedModal" class="modal fixed inset-0 bg-black/60 z-50 items-center justify-center p-4 backdrop-blur-sm">
     <div class="modal-card mobile-safe-bottom bg-white rounded-3xl w-full max-w-lg max-h-[92vh] overflow-y-auto shadow-2xl p-6 md:p-8">
       <div class="flex items-start justify-between gap-4 mb-5">
@@ -319,7 +312,6 @@
     </div>
   </div>
 
-  <!-- Modal Plan de Estudios (Correlatividades) -->
   <div id="planModal" class="modal fixed inset-0 bg-black/60 z-50 items-center justify-center p-2 sm:p-4 backdrop-blur-sm">
     <div class="modal-card bg-slate-50 w-full h-[95vh] max-w-7xl rounded-3xl shadow-2xl flex flex-col overflow-hidden">
       <div class="p-5 md:p-6 border-b border-gray-200 bg-white flex items-center justify-between shrink-0">
@@ -343,8 +335,6 @@
   <div id="toast" class="fixed top-16 sm:top-20 left-4 right-4 sm:left-auto sm:right-4 md:right-8 sm:max-w-sm z-[60] translate-x-[120%] opacity-0 transition-all duration-300 px-4 py-3 rounded-xl bg-dark text-white font-bold shadow-2xl text-sm"></div>
 
   <script>
-    // Solo lectura del catálogo público de Gino Social. El perfil continúa siendo local en esta etapa.
-    // Catálogo público + perfil académico del usuario autenticado en Gino Social.
     const FIREBASE_CONFIG = {
       apiKey: 'AIzaSyBnpshX3I7ZY3EUoraDZPdb2W6B6HZOYR0',
       authDomain: 'social-sociales.firebaseapp.com',
@@ -368,12 +358,6 @@
     }
 
     const COURSE_COLLECTIONS = {
-      obligatoria: 'Materias',
-      especial: 'Especiales',
-      teoria: 'Teorias',
-      investigacion: 'Horasinv',
-      taller: 'Horasinv',
-      seminario: 'Horasinv'
       obligatoria: 'materias',
       especial: 'especiales',
       teoria: 'teorias',
@@ -383,10 +367,6 @@
     };
 
     const COURSE_COLLECTION_LABELS = {
-      Materias: 'materias obligatorias',
-      Especiales: 'sociologías especiales',
-      Teorias: 'teorías sociológicas',
-      Horasinv: 'talleres y seminarios de investigación'
       materias: 'materias obligatorias',
       especiales: 'sociologías especiales',
       teorias: 'teorías sociológicas',
@@ -436,39 +416,30 @@
     let profileCloudReady = false;
     let profileWriteChain = Promise.resolve();
     let authStateRevision = 0;
-    
-    // Estado de los acordeones: todos empiezan abiertos
     let expandedGroups = new Set(['obligatoria', 'especial', 'teoria', 'investigacion']);
 
-    // Mapeo estructural del plan de correlatividades (Res. CD 2024-186)
     const PLAN_ESTUDIOS = [
-      // Nivel 1 (Sin correlativas)
       { id: '251', name: 'Sociología General', req: [], tier: 1 },
       { id: '252', name: 'Filosofía', req: [], tier: 1 },
       { id: '253', name: 'Historia Social Moderna y Contemporánea', req: [], tier: 1 },
-      { id: '256', name: 'Economía 2', req: [], tier: 1 }, // El PDF dice Economía II, se matchea con el default.
+      { id: '256', name: 'Economía 2', req: [], tier: 1 },
       
-      // Nivel 2
       { id: '254', name: 'Historia del Conocimiento Sociológico 1', req: ['251', '252'], tier: 2 },
       { id: '255', name: 'Epistemología de las Ciencias Sociales', req: ['252'], tier: 2 },
       { id: '259', name: 'Historia Social Latinoamericana', req: ['253', '256'], tier: 2 },
       { id: '263', name: 'Sociología Política', req: ['253', '256'], tier: 2 },
       
-      // Nivel 3
       { id: '257', name: 'Historia del Conocimiento Sociológico 2', req: ['254'], tier: 3 },
       { id: '262', name: 'Historia Social Argentina', req: ['259'], tier: 3 },
       { id: '258', name: 'Metodología 1', req: ['251', '255', '256'], tier: 3 },
       
-      // Nivel 4
       { id: '260', name: 'Sociología Sistemática', req: ['257'], tier: 4 },
       { id: '261', name: 'Metodología 2', req: ['258'], tier: 4 },
       
-      // Nivel 5
       { id: '264', name: 'Metodología 3', req: ['261'], tier: 5 },
       { id: '266', name: 'Psicología Social', req: ['260'], tier: 5 },
       { id: '265', name: 'Análisis de la Sociedad Argentina', req: ['262', '254', '260'], tier: 5 },
       
-      // Nivel 6
       { id: 'opt_esp', name: '6 Sociologías Especiales', req: ['257', '258'], tier: 6, isGroup: true },
       { id: 'opt_teo', name: '3 Teorías sociológicas', req: ['260', '258'], tier: 6, isGroup: true },
       { id: 'opt_inv', name: '200 h de investigación', req: ['260', '258'], tier: 6, isGroup: true }
@@ -554,7 +525,6 @@
         entryYear: Number(profile.entryYear) || '',
         wanted: Array.isArray(profile.wanted) ? profile.wanted : [],
         completed: normalizeCompleted(profile.completed),
-        // Las reseñas públicas se leen de la colección central `resenas`.
         reviews: []
       };
     }
@@ -774,7 +744,6 @@
       return String(name || '').trim().toLocaleLowerCase();
     }
 
-    // El mapa y “Materias realizadas” usan el mismo registro como fuente de verdad.
     function getCompletedCourseByPlanSubject(subject) {
       return state.completed.find(course => normalizedCourseName(course.name) === normalizedCourseName(subject.name));
     }
@@ -936,7 +905,6 @@
 
       $('completedCountLabel').textContent = state.completed.length;
 
-      // Generación de acordeones para materias realizadas
       const groupsConfig = [
         { id: 'obligatoria', title: 'Obligatorias', icon: 'school' },
         { id: 'especial', title: 'Especiales', icon: 'interests' },
@@ -1014,7 +982,6 @@
     }
 
     function renderPlan() {
-      // Set de materias aprobadas: se deriva de los mismos registros de “Materias realizadas”.
       const completedNames = new Set(state.completed.map(c => normalizedCourseName(c.name)));
       
       const tiers = {};
@@ -1147,7 +1114,6 @@
       const editCompleted = e.target.closest('[data-edit-completed]');
       if (editCompleted) openCompletedEditor(editCompleted.dataset.editCompleted);
 
-      // Control de los acordeones
       const toggleGroup = e.target.closest('[data-toggle-group]');
       if (toggleGroup) {
         const id = toggleGroup.dataset.toggleGroup;
@@ -1224,7 +1190,6 @@
         item.hours = typeValue === 'seminario' ? 50 : 100;
       }
       
-      // Auto-expandir la categoría donde se agregó la materia si estaba cerrada
       expandedGroups.add(item.type);
 
       if (editId) {
