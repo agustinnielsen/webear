@@ -345,7 +345,6 @@
       console.warn('No se pudo inicializar el catálogo de Firebase.', error);
     }
 
-    // CORRECCIÓN 1: Arreglados los nombres repetidos y las comas faltantes.
     const COURSE_COLLECTIONS = {
       obligatoria: 'materias',
       especial: 'especiales',
@@ -365,7 +364,6 @@
     const courseCatalogCache = {};
     const courseCatalogRequests = {};
 
-    // CORRECCIÓN 2: Limpieza del estado por defecto (sin demo).
     const DEFAULT_STATE = {
       name: 'Usuario',
       entryYear: new Date().getFullYear(),
@@ -447,13 +445,6 @@
       return 'Usuario';
     }
 
-    function setSyncStatus(label, message) {
-      const badge = $('syncStatusBadge');
-      const notice = $('profileStorageNotice');
-      if (badge) badge.textContent = label;
-      if (notice) notice.innerHTML = message;
-    }
-
     function createCloudProfileState(user, profile = {}) {
       return {
         name: profile.name || displayNameForUser(user),
@@ -486,7 +477,7 @@
 
       const uid = user.uid;
       const payload = cloudProfilePayload();
-      setSyncStatus('Guardando…', '<strong>Guardando perfil académico.</strong> Tus cambios se están sincronizando con Firebase.');
+      
       profileWriteChain = profileWriteChain
         .catch(() => undefined)
         .then(async () => {
@@ -494,15 +485,9 @@
             perfilAcademico: payload,
             perfilAcademicoActualizadoEn: firebase.firestore.FieldValue.serverTimestamp()
           }, { merge: true });
-          if (activeProfileUser?.uid === uid) {
-            setSyncStatus('Sincronizado', '<strong>Perfil sincronizado.</strong> Tu avance académico se guarda en tu cuenta de Gino Social.');
-          }
         });
       profileWriteChain.catch(error => {
         console.warn('No se pudo guardar el perfil académico en Firebase.', error);
-        if (activeProfileUser?.uid === uid) {
-          setSyncStatus('Sin conexión', '<strong>Guardado local activo.</strong> No se pudo sincronizar Firebase en este momento.');
-        }
       });
     }
 
@@ -512,7 +497,10 @@
       return year ? String(year) : 'Sin fecha';
     }
 
-    // CORRECCIÓN 3: Función que importa reseñas automáticamente
+    function normalizedCourseName(name) {
+      return String(name || '').trim().toLocaleLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    }
+
     async function loadUserReviews(user, revision) {
       try {
         const snapshot = await courseCatalogDb.collection('resenas').where('usuarioId', '==', user.uid).get();
@@ -536,9 +524,10 @@
           const materiaNombre = review.materiaNombre;
           if (!materiaNombre) return;
           
-          const exists = state.completed.some(c => normalizedCourseName(c.name) === normalizedCourseName(materiaNombre));
+          const normalizedName = normalizedCourseName(materiaNombre);
+          const exists = state.completed.some(c => normalizedCourseName(c.name) === normalizedName);
+          
           if (!exists) {
-            const normalizedName = normalizedCourseName(materiaNombre);
             let courseType = 'especial'; // Por defecto
             
             if (PLAN_ESTUDIOS.some(p => !p.isGroup && normalizedCourseName(p.name) === normalizedName)) {
@@ -577,11 +566,9 @@
       profileCloudReady = false;
 
       if (!user || !courseCatalogDb) {
-        setSyncStatus('Modo local', '<strong>Modo local.</strong> El catálogo de materias se consulta desde Firebase. Iniciá sesión en Gino Social para guardar también tu perfil académico.');
         return;
       }
 
-      setSyncStatus('Cargando…', '<strong>Cargando tu perfil.</strong> Estamos recuperando tu avance académico desde Firebase.');
       try {
         const userDoc = await courseCatalogDb.collection('usuarios').doc(user.uid).get();
         if (revision !== authStateRevision || activeProfileUser?.uid !== user.uid) return;
@@ -592,17 +579,12 @@
         render();
         profileCloudReady = true;
 
-        if (remoteProfile) {
-          setSyncStatus('Sincronizado', '<strong>Perfil sincronizado.</strong> Tu avance académico se guarda en tu cuenta de Gino Social.');
-        } else {
+        if (!remoteProfile) {
           syncProfileToCloud();
         }
         loadUserReviews(user, revision);
       } catch (error) {
         console.warn('No se pudo cargar el perfil académico desde Firebase.', error);
-        if (revision === authStateRevision) {
-          setSyncStatus('Guardado local', '<strong>Guardado local activo.</strong> No se pudo acceder a tu perfil de Firebase en este momento.');
-        }
       }
     }
 
@@ -713,10 +695,6 @@
       }
     }
 
-    function normalizedCourseName(name) {
-      return String(name || '').trim().toLocaleLowerCase();
-    }
-
     function getCompletedCourseByPlanSubject(subject) {
       return state.completed.find(course => normalizedCourseName(course.name) === normalizedCourseName(subject.name));
     }
@@ -740,8 +718,7 @@
       state.completed.unshift({
         id: `c-${Date.now()}`,
         name: subject.name,
-        type: 'obligatoria',
-        year: new Date().getFullYear()
+        type: 'obligatoria'
       });
       expandedGroups.add('obligatoria');
       saveState();
@@ -1187,8 +1164,6 @@
 
     if (profileAuth) {
       profileAuth.onAuthStateChanged(handleProfileAuthState);
-    } else {
-      setSyncStatus('Guardado local', '<strong>Guardado local activo.</strong> Firebase no está disponible en este momento.');
     }
 
     render();
