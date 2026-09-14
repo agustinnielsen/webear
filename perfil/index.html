@@ -67,9 +67,9 @@
       </a>
       <div class="text-center min-w-0">
         <p class="font-black leading-none">Mi perfil</p>
-        <p class="text-[10px] uppercase tracking-[.16em] text-white/70 mt-1">Prototipo local</p>
+        <p class="text-[10px] uppercase tracking-[.16em] text-white/70 mt-1">Gino Social</p>
       </div>
-      <button id="resetBtn" class="w-10 h-10 rounded-full hover:bg-white/15 flex items-center justify-center" title="Reiniciar demo">
+      <button id="resetBtn" class="w-10 h-10 rounded-full hover:bg-white/15 flex items-center justify-center" title="Borrar datos locales">
         <span class="material-symbols-outlined">restart_alt</span>
       </button>
     </div>
@@ -78,13 +78,13 @@
   <header class="bg-gradient-to-br from-[#ff7d29] via-[#ff8a3d] to-[#ffad70] text-white px-4 md:px-8 pt-6 sm:pt-8 pb-8 sm:pb-12">
     <div class="max-w-7xl mx-auto flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-6">
       <div class="flex items-center gap-4 min-w-0">
-        <div id="profileAvatar" class="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-2xl sm:rounded-3xl bg-white text-primary flex items-center justify-center text-2xl sm:text-3xl md:text-4xl font-black shadow-xl border-4 border-white/30 shrink-0">G</div>
+        <div id="profileAvatar" class="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-2xl sm:rounded-3xl bg-white text-primary flex items-center justify-center text-2xl sm:text-3xl md:text-4xl font-black shadow-xl border-4 border-white/30 shrink-0">U</div>
         <div class="min-w-0">
           <div class="flex flex-wrap items-center gap-2 mb-1">
             <span class="text-[11px] font-black uppercase tracking-[.14em] bg-white/20 border border-white/30 px-2.5 py-1 rounded-full">Perfil académico</span>
-            <span id="syncStatusBadge" class="text-[11px] font-bold bg-white/20 border border-white/20 px-2.5 py-1 rounded-full">Modo local</span>
+            <span id="syncStatusBadge" class="text-[11px] font-bold bg-white/20 border border-white/20 px-2.5 py-1 rounded-full">Conectando...</span>
           </div>
-          <h1 id="profileName" class="text-2xl sm:text-3xl md:text-5xl font-black tracking-tight truncate">Gino Demo</h1>
+          <h1 id="profileName" class="text-2xl sm:text-3xl md:text-5xl font-black tracking-tight truncate">Usuario</h1>
           <p id="profileMeta" class="text-white/80 mt-1">Sociología · UBA</p>
         </div>
       </div>
@@ -377,40 +377,14 @@
     const courseCatalogRequests = {};
 
     const DEFAULT_STATE = {
-      name: 'Gino Demo',
-      entryYear: 2022,
-      wanted: [
-        { id: 'w1', name: 'Metodología 3', type: 'obligatoria', note: 'Prioridad alta · buscar turno tarde/noche' },
-        { id: 'w2', name: 'Sociología de la Cultura (demo)', type: 'especial', note: 'Comparar cátedras antes de inscribirme' },
-        { id: 'w3', name: 'Teoría Sociológica Contemporánea (demo)', type: 'teoria', note: 'Completar bloque de teorías' }
-      ],
-      completed: [
-        { id: 'c1', name: 'Sociología General', type: 'obligatoria', year: 2022, grade: 8 },
-        { id: 'c2', name: 'Filosofía', type: 'obligatoria', year: 2022, grade: 7 },
-        { id: 'c3', name: 'Economía 2', type: 'obligatoria', year: 2023, grade: 9 },
-        { id: 'c4', name: 'Historia Social Moderna y Contemporánea', type: 'obligatoria', year: 2023, grade: 10 },
-        { id: 'c5', name: 'Metodología 1', type: 'obligatoria', year: 2023, grade: 6 },
-        { id: 'c6', name: 'Historia Social Argentina', type: 'obligatoria', year: 2024, grade: 8 },
-        { id: 'c7', name: 'Metodología 2', type: 'obligatoria', year: 2024, grade: 9 },
-        { id: 'c8', name: 'Sociología Política', type: 'obligatoria', year: 2025, grade: 7 },
-        { id: 'c9', name: 'Historia del Conocimiento Sociológico 1', type: 'obligatoria', year: 2025, grade: 8 },
-        { id: 'c10', name: 'Epistemología de las Ciencias Sociales', type: 'obligatoria', year: 2025, grade: 8 },
-        { id: 'c11', name: 'Sociología de la Cultura (demo)', type: 'especial', year: 2024, grade: 8 },
-        { id: 'c12', name: 'Sociología de la Educación (demo)', type: 'especial', year: 2025, grade: 9 },
-        { id: 'c13', name: 'Sociología del Trabajo (demo)', type: 'especial', year: 2025, grade: 7 },
-        { id: 'c14', name: 'Sociología Urbana (demo)', type: 'especial', year: 2026, grade: 9 },
-        { id: 'c15', name: 'Teoría Social Clásica (demo)', type: 'teoria', year: 2024, grade: 10 },
-        { id: 'c16', name: 'Teoría Sociológica II (demo)', type: 'teoria', year: 2025, grade: 8 },
-        { id: 'c17', name: 'Teoría Sociológica III (demo)', type: 'teoria', year: 2026, grade: 9 },
-        { id: 'c18', name: 'Taller de Investigación (demo)', type: 'investigacion', subtype: 'taller', hours: 100, year: 2026, grade: 8 }
-      ],
-      reviews: [
-        { materia: 'Historia Social Argentina', catedra: 'Cátedra de prueba', rating: 5, date: 'Jun 2026', text: 'Muy buen recorrido bibliográfico y clases claras. La carga de lectura es alta pero consistente con la propuesta.' },
-        { materia: 'Metodología 2', catedra: 'Cátedra de prueba', rating: 4, date: 'Dic 2025', text: 'El práctico fue clave para seguir la cursada. Recomendaría llegar con los ejercicios hechos para aprovechar mejor la clase.' }
-      ]
+      name: '',
+      entryYear: '',
+      wanted: [],
+      completed: [],
+      reviews: []
     };
 
-    const STORAGE_KEY = 'ginoPerfilDirectorio_v3_demo';
+    const STORAGE_KEY = 'ginoPerfilDirectorio_v3';
     let state = loadState();
     let activeProfileUser = null;
     let profileCloudReady = false;
@@ -465,31 +439,6 @@
         if (raw) {
           const parsed = JSON.parse(raw);
           return { ...cloneDefault(), ...parsed, completed: normalizeCompleted(parsed.completed) };
-        }
-        const v2Raw = localStorage.getItem('ginoPerfilDirectorio_v2_demo');
-        if (v2Raw) {
-          const old = JSON.parse(v2Raw);
-          const migrated = {
-            ...cloneDefault(),
-            ...old,
-            completed: normalizeCompleted(Array.isArray(old.completed) ? old.completed : DEFAULT_STATE.completed)
-          };
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
-          return migrated;
-        }
-        const oldRaw = localStorage.getItem('ginoProfilePrototype_v1_demo');
-        if (oldRaw) {
-          const old = JSON.parse(oldRaw);
-          const migrated = {
-            ...cloneDefault(),
-            name: old.name || DEFAULT_STATE.name,
-            entryYear: old.entryYear || DEFAULT_STATE.entryYear,
-            wanted: Array.isArray(old.wanted) ? old.wanted : DEFAULT_STATE.wanted,
-            completed: normalizeCompleted(Array.isArray(old.completed) ? old.completed : DEFAULT_STATE.completed),
-            reviews: Array.isArray(old.reviews) ? old.reviews : DEFAULT_STATE.reviews
-          };
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
-          return migrated;
         }
       } catch (e) {
         console.warn('No se pudo cargar el estado local', e);
@@ -1212,11 +1161,11 @@
     });
 
     $('resetBtn').addEventListener('click', () => {
-      if (!confirm('¿Reiniciar todos los datos locales de este prototipo?')) return;
+      if (!confirm('¿Borrar todos los datos locales de tu perfil?')) return;
       localStorage.removeItem(STORAGE_KEY);
       state = cloneDefault();
       expandedGroups = new Set(['obligatoria', 'especial', 'teoria', 'investigacion']);
-      render(); showToast('Demo reiniciada.');
+      render(); showToast('Datos locales borrados.');
     });
 
     if (profileAuth) {
