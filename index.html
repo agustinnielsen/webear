@@ -1686,6 +1686,10 @@
 
         // --- FUNCIONES DEL PLANIFICADOR DE CARRERA (TRAYECTORIA) ---
 
+               function normalizedCourseName(name) {
+            return String(name || '').trim().toLocaleLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        }
+
         async function guardarMateriaEnPerfil(estadoDeseado) {
             const user = auth.currentUser || appState.user;
             
@@ -1712,40 +1716,106 @@
             actualizarBotonesTrayectoriaUI(estadoFinal);
 
             const userRef = db.collection('usuarios').doc(user.uid);
-            const trayectoriaRef = userRef.collection('trayectoria').doc(materia.id);
             
-            const batch = db.batch();
-
-            batch.set(userRef, {
-                nombre: user.displayName ? user.displayName.split(' ')[0] : 'Usuario',
-                email: user.email,
-                tycAceptados: true, 
-            }, { merge: true });
-
-            if (estadoFinal === null) {
-                batch.delete(trayectoriaRef);
-            } else {
-                batch.set(trayectoriaRef, {
-                    materiaNombre: materia.nombre,
-                    materiaTipo: materia.tipo,
-                    estado: estadoFinal,
-                    fechaActualizacion: firebase.firestore.FieldValue.serverTimestamp()
-                });
-            }
-
             try {
-                await batch.commit();
+                // Usamos una transacción para no sobreescribir el perfil accidentalmente
+                await db.runTransaction(async (transaction) => {
+                    const doc = await transaction.get(userRef);
+                    let data = doc.exists ? doc.data() : {};
+                    let perfil = data.perfilAcademico || {
+                        version: 1,
+                        name: user.displayName ? user.displayName.split(' ')[0] : 'Usuario',
+                        entryYear: new Date().getFullYear(),
+                        wanted: [],
+                        completed: []
+                    };
+
+                    // Asegurar que los arrays existan
+                    if (!Array.isArray(perfil.wanted)) perfil.wanted = [];
+                    if (!Array.isArray(perfil.completed)) perfil.completed = [];
+
+                    const materiaNombreNormalizado = normalizedCourseName(materia.nombre);
+
+                    // 1. Limpiar la materia de ambas listas para evitar duplicados o estados contradictorios
+                    perfil.wanted = perfil.wanted.filter(w => normalizedCourseName(w.name) !== materiaNombreNormalizado);
+                    perfil.completed = perfil.completed.filter(c => normalizedCourseName(c.name) !== materiaNombreNormalizado);
+
+                    // 2. Mapear el tipo de colección del catálogo al tipo esperado por el Perfil
+                    const typeMap = {
+                        materias: 'obligatoria',
+                        especiales: 'especial',
+                        teorias: 'teoria',
+                        horasdeinv: 'investigacion',
+                        idiomas: 'especial'
+                    };
+                    const profileType = typeMap[materia.tipo] || 'obligatoria';
+
+                    // 3. Agregar a la lista correspondiente si hay un estado seleccionado
+                    if (estadoFinal === 'deseada') {
+                        perfil.wanted.unshift({
+                            id: `w-${Date.now()}`,
+                            name: materia.nombre,
+                            type: profileType,
+                            note: '' // Se puede dejar vacío para que el usuario lo llene en el perfil
+                        });
+                    } else if (estadoFinal === 'cursada') {
+                        perfil.completed.unshift({
+                            id: `c-${Date.now()}`,
+                            name: materia.nombre,
+                            type: profileType
+                            // Se asume sin nota. El usuario puede entrar a su perfil luego a agregarle la nota
+                        });
+                    }
+
+                    // 4. Guardar los datos en el documento
+                    transaction.set(userRef, {
+                        perfilAcademico: perfil,
+                        perfilAcademicoActualizadoEn: firebase.firestore.FieldValue.serverTimestamp()
+                    }, { merge: true });
+                });
+
                 if (estadoFinal === 'cursada') mostrarNotificacion('¡Materia marcada como cursada!', 'success');
                 if (estadoFinal === 'deseada') mostrarNotificacion('Materia agregada a tu wishlist.', 'success');
-                if (estadoFinal === null) mostrarNotificacion('Progreso removido.', 'info');
+                if (estadoFinal === null) mostrarNotificacion('Progreso removido del perfil.', 'info');
+                
             } catch (error) {
-                console.error("Error al guardar trayectoria: ", error);
+                console.error("Error al guardar trayectoria en perfil: ", error);
                 mostrarNotificacion('Hubo un error al guardar.', 'error');
                 actualizarBotonesTrayectoriaUI(estabaDeseada ? 'deseada' : (estabaCursada ? 'cursada' : null));
             }
         }
 
         async function cargarEstadoTrayectoria(materiaId) {
+            actualizarBotonesTrayectoriaUI(null); 
+            const user = auth.currentUser || appState.user;
+            if (!user || !appState.materiaSeleccionada) return;
+            
+            try {
+                const doc = await db.collection('usuarios').doc(user.uid).get();
+                if (doc.exists) {
+                    const perfil = doc.data().perfilAcademico || { wanted: [], completed: [] };
+                    const materiaNombreNormalizado = normalizedCourseName(appState.materiaSeleccionada.nombre);
+
+                    // Revisar si ya está en las materias completadas
+                    const enCursadas = (perfil.completed || []).some(c => normalizedCourseName(c.name) === materiaNombreNormalizado);
+                    if (enCursadas) {
+                        actualizarBotonesTrayectoriaUI('cursada');
+                        return;
+                    }
+
+                    // Revisar si está en la wishlist
+                    const enDeseadas = (perfil.wanted || []).some(w => normalizedCourseName(w.name) === materiaNombreNormalizado);
+                    if (enDeseadas) {
+                        actualizarBotonesTrayectoriaUI('deseada');
+                        return;
+                    }
+                }
+            } catch (error) {
+                console.error("Error cargando trayectoria del perfil: ", error);
+            }
+        }
+
+        function actualizarBotonesTrayectoriaUI(estado) {            
             actualizarBotonesTrayectoriaUI(null); 
             const user = auth.currentUser || appState.user;
             if (!user) return;
