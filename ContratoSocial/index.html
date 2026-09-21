@@ -10,6 +10,28 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+    <!-- Tailwind CSS y Configuración -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#ff7d29',
+                        primaryDark: '#e66b1d',
+                        dark: '#2c3e50',
+                        primaryLight: '#fff2eb',
+                        primaryMuted: '#ffdfcc'
+                    },
+                    fontFamily: {
+                        sans: ['"Segoe UI"', 'Tahoma', 'Geneva', 'Verdana', 'sans-serif'],
+                        segoe: ['"Segoe UI"', 'Tahoma', 'Geneva', 'Verdana', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
     
     <style>
         :root {
@@ -45,15 +67,15 @@
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            padding-top: var(--navbar-height);
+            margin: 0;
         }
 
         /* --- SIDEBAR & MENU STYLES --- */
         .hamburger-btn {
             background: transparent;
             border: none;
-            color: var(--primary-color);
-            font-size: 1.8rem;
+            color: white;
+            font-size: 1.9rem;
             cursor: pointer;
             padding: 5px;
             display: flex;
@@ -62,6 +84,7 @@
             transition: transform 0.2s;
             z-index: 1100;
             margin-right: 15px;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
         }
         
         .hamburger-btn:hover {
@@ -151,8 +174,7 @@
             color: var(--dark-color);
             font-weight: 600;
             border-radius: 12px;
-            transition: background 0.2s;
-            border-left: 4px solid transparent;
+            transition: background 0.2s, color 0.2s;
         }
 
         .sidebar-item:hover {
@@ -163,8 +185,6 @@
         .sidebar-item.active {
             background-color: #fff0e6;
             color: var(--primary-color);
-            border-left: 4px solid var(--primary-color);
-            border-right: none;
         }
 
         .sidebar-item.highlight {
@@ -190,61 +210,56 @@
             padding-top: 1rem;
         } 
 
-        /* Navbar FIJA */
+        /* Navbar Fija Transparente estilo Gino Social */
         .navbar {
-            background: white;
-            padding: 0.5rem 2rem;
+            background: transparent;
+            padding: 1rem 2rem;
             display: flex;
-            justify-content: space-between; 
             align-items: center;
-            box-shadow: var(--shadow-sm);
+            justify-content: space-between;
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
-            height: var(--navbar-height);
-            z-index: 100;
+            z-index: 1000;
+            transition: background 0.3s ease, padding 0.3s ease, box-shadow 0.3s ease;
         }
 
-        .navbar-left {
-            display: flex;
-            align-items: center;
+        .navbar.scrolled {
+            background-color: rgba(255, 125, 41, 0.98);
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+            backdrop-filter: blur(8px);
         }
 
         .brand-logo {
             font-weight: 800;
-            font-size: 1.5rem;
-            color: var(--primary-color);
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .btn-back {
-            background: transparent;
-            border: 1px solid var(--primary-color);
-            color: var(--primary-color);
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            text-decoration: none;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .btn-back:hover {
-            background: var(--primary-color);
+            font-size: 1.4rem;
             color: white;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+            user-select: none;
         }
 
-        /* Header */
+        .brand-logo span:last-child {
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 400;
+        }
+
+        /* Ojos interactivos estilo Gino Social */
+        .eyes-container { opacity: 0; transition: opacity 0.2s ease; }
+        .eyes-container.active { opacity: 1; }
+        .eyes-container.open .eyelid { height: 0%; }
+
+        /* Header estilo index.html */
         .page-header {
-            background: var(--primary-gradient);
+            background: linear-gradient(135deg, #ff7d29 0%, #ff914d 100%);
             color: white;
-            padding: 3rem 1.5rem;
+            padding: 7rem 1.5rem 4rem;
             text-align: center;
             margin-bottom: 2rem;
             clip-path: polygon(0 0, 100% 0, 100% 90%, 0 100%);
@@ -252,18 +267,25 @@
         }
 
         .page-header h1 {
-            font-size: 3.5rem;
-            font-weight: 700;
+            font-size: 2.75rem;
+            font-weight: 900;
             margin-bottom: 0.5rem;
-            letter-spacing: -0.5px;
+            letter-spacing: -1px;
             text-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
+        @media (min-width: 768px) {
+            .page-header h1 {
+                font-size: 4rem;
+            }
+        }
+
         .page-header p {
-            opacity: 0.95;
-            font-size: 1.2rem;
+            opacity: 0.92;
+            font-size: 1.05rem;
             max-width: 700px;
             margin: 0 auto;
+            font-weight: 500;
         }
 
         .container {
@@ -284,7 +306,6 @@
             position: relative;
             overflow: hidden;
             width: 100%;
-            border-top: 4px solid var(--primary-color);
         }
 
         .data-card h2 {
@@ -554,8 +575,9 @@
         }
         
         @media (max-width: 768px) {
-            .page-header h1 { font-size: 2.5rem; }
-            .navbar { padding: 0.5rem 1rem; }
+            .navbar { padding: 0.75rem 1rem; }
+            .page-header { padding: 5.5rem 1rem 3rem; }
+            .page-header h1 { font-size: 2.25rem; }
             .container { padding: 0 1rem 2rem; }
             .tyc-item { flex-direction: column; align-items: center; text-align: center; }
             .faq-answer { margin-left: 0; margin-top: 10px; }
@@ -575,20 +597,20 @@
         
         <div class="sidebar-menu">
             <!-- Apunta a la raíz (Página Principal) -->
-            <a href="https://ginosocial.ar" class="sidebar-item">
+            <a href="../" class="sidebar-item">
                 <span class="material-symbols-outlined"> home </span> Inicio
             </a>
-            <a href="https://ginosocial.ar/datos" class="sidebar-item">
+            <a href="../datos/" class="sidebar-item">
                  <span class="material-symbols-outlined">graph_3</span>  Centro de Datos
             </a>
             <!-- Enlace activo para Contrato Social -->
-            <a href="#" class="sidebar-item active">
+            <a href="./" class="sidebar-item active">
                  <span class="material-symbols-outlined"> diversity_3 </span> Contrato Social
             </a>
-            <a href="https://ginosocial.ar/bitacora" class="sidebar-item">
+            <a href="../bitacora/" class="sidebar-item">
                 <span class="material-symbols-outlined"> book_5 </span> Bitácora
             </a>
-            <a href="https://ginosocial.ar/quienessomos" class="sidebar-item">
+            <a href="../quienessomos/" class="sidebar-item">
                  <span class="material-symbols-outlined"> co_present </span> ¿Quienes somos?
             </a>
             <a href="#" id="sidebarCollaborateBtn" class="sidebar-item highlight">
@@ -597,24 +619,34 @@
         </div>
 
         <div class="sidebar-footer">
-            <p>© 2025 Gino Social</p>
+            <p>© 2026 Gino Social</p>
             <p style="font-size: 0.7rem; margin-top: 5px;">Hecho con ❤️ por estudiantes</p>
         </div>
     </div>
 
     <!-- NAVBAR -->
-    <nav class="navbar">
-        <div class="navbar-left">
-            <button id="menuBtn" class="hamburger-btn" title="Menú">
+    <nav id="mainNav" class="navbar fixed top-0 left-0 w-full p-4 md:px-8 flex justify-between items-center z-[1000] bg-transparent transition-all duration-300">
+        <div class="flex items-center gap-3">
+            <button id="menuBtn" class="text-white text-3xl hover:scale-110 transition-transform drop-shadow-md cursor-pointer" title="Menú">
                 ☰
             </button>
-            <a href="https://ginosocial.ar" class="brand-logo">
-                <span>Gino</span> <span style="color: var(--dark-color); font-weight: 400;">Info</span>
+            <a href="../" class="brand-logo flex items-center gap-1.5 text-white font-extrabold text-xl md:text-2xl drop-shadow-md hover:opacity-90 transition-opacity">
+                <span>Gino</span> <span class="font-normal opacity-90">Social</span>
             </a>
         </div>
-        <a href="https://ginosocial.ar" class="btn-back">
-            <span>↩ Volver</span>
-        </a>
+
+        <div class="eyes-container absolute left-1/2 -translate-x-1/2 hidden md:flex gap-4 pointer-events-none" id="navEyes">
+            <div class="w-12 h-8 bg-white rounded-[50%] relative overflow-hidden shadow-inner eye">
+                <div class="w-[17px] h-[17px] bg-dark rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pupil"><div class="w-1.5 h-1.5 bg-white rounded-full absolute top-1 left-1 opacity-80"></div></div>
+                <div class="absolute inset-0 bg-primaryDark transition-all duration-300 eyelid z-10"></div>
+            </div>
+            <div class="w-12 h-8 bg-white rounded-[50%] relative overflow-hidden shadow-inner eye">
+                <div class="w-[17px] h-[17px] bg-dark rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pupil"><div class="w-1.5 h-1.5 bg-white rounded-full absolute top-1 left-1 opacity-80"></div></div>
+                <div class="absolute inset-0 bg-primaryDark transition-all duration-300 eyelid z-10"></div>
+            </div>
+        </div>
+
+        <div class="w-8"></div>
     </nav>
 
     <!-- HEADER -->
@@ -834,8 +866,30 @@ handshake
             });
         }
 
+        function configurarOjosGino() {
+            const eyes = document.getElementById('navEyes');
+            const pupils = document.querySelectorAll('.pupil');
+            if (!eyes) return;
+
+            document.addEventListener('mousemove', (e) => {
+                if (!eyes.classList.contains('active')) return;
+                pupils.forEach(p => {
+                    const rect = p.parentElement.getBoundingClientRect();
+                    const angle = Math.atan2(e.clientY - (rect.top + rect.height / 2), e.clientX - (rect.left + rect.width / 2));
+                    const dist = Math.min(10, Math.hypot(e.clientX - (rect.left + rect.width / 2), e.clientY - (rect.top + rect.height / 2)) / 15);
+                    p.style.transform = `translate(calc(-50% + ${Math.cos(angle) * dist}px), calc(-50% + ${Math.sin(angle) * dist}px))`;
+                });
+            });
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             configurarSidebar();
+            configurarOjosGino();
+
+            window.addEventListener('scroll', () => {
+                const nav = document.getElementById('mainNav');
+                if (nav) nav.classList.toggle('scrolled', window.scrollY > 20);
+            });
         });
     </script>
 </body>
