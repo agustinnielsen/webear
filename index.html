@@ -1,4 +1,4 @@
-    <!DOCTYPE html>
+Put your HTML text here    <!DOCTYPE html>
     <html lang="es">
     <head>
         <link rel="shortcut icon" href="GinoLogo.ico.png">
@@ -1891,6 +1891,15 @@
                 const res = appState.resenas.filter(r => (!fCat || r.catedra === fCat) && (!fPrac || r.practico === fPrac) && (!fRat || r.calificacionGeneral <= fRat));
                 mod('resenasList').innerHTML = res.length ? res.map(r => {
                     const isOwner = appState.user && appState.user.uid === r.usuarioId;
+                    const tiposEvaluacion = Array.isArray(r.tiposEvaluacion)
+                        ? r.tiposEvaluacion
+                        : (r.tipoEvaluacion ? [r.tipoEvaluacion] : []);
+                    const tiposEvaluacionHtml = tiposEvaluacion.length
+                        ? `<div class="flex flex-wrap items-center gap-2 mb-4 md:mb-6">
+                            <span class="text-xs md:text-sm font-bold text-gray-500 mr-0.5">Evaluación:</span>
+                            ${tiposEvaluacion.map(tipo => `<span class="bg-orange-50 text-primary border border-orange-200 px-2.5 py-1 rounded-md text-[10px] md:text-xs font-bold uppercase tracking-wide">${tipo}</span>`).join('')}
+                           </div>`
+                        : '';
 
                     let menuItems = '';
                     if (isOwner) {
@@ -1918,6 +1927,7 @@
                         </div>
                         <div class="text-xl md:text-3xl tracking-widest text-yellow-500 mb-3 md:mb-4">${'★'.repeat(r.calificacionGeneral)}${'☆'.repeat(5-r.calificacionGeneral)}</div>
                         <p class="text-gray-700 leading-relaxed text-sm md:text-base mb-4 md:mb-6 break-words">${r.texto}</p>
+                        ${tiposEvaluacionHtml}
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 bg-gray-50 p-4 rounded-xl mb-4 md:mb-6 text-xs md:text-sm">
                             <div class="flex flex-col"><span class="text-gray-500 font-semibold mb-1">Pedagogía</span><span class="font-bold text-dark text-sm md:text-base">${r.claridad}/5</span></div>
                             <div class="flex flex-col"><span class="text-gray-500 font-semibold mb-1">Contenidos</span><span class="font-bold text-dark text-sm md:text-base">${r.programa}/5</span></div>
@@ -1958,11 +1968,21 @@
                 mod('reviewFormElement').onsubmit = async (e) => {
                     e.preventDefault(); const btn = e.target.querySelector('button[type="submit"]'); btn.disabled = true;
                     const user = auth.currentUser || appState.user;
+                    const tiposEvaluacion = Array.from(document.querySelectorAll('#tiposEvaluacionCheckboxes input[type="checkbox"]:checked'))
+                        .map(input => input.value);
+
+                    if (tiposEvaluacion.length === 0) {
+                        mostrarNotificacion('Seleccioná al menos un tipo de evaluación.', 'error');
+                        btn.disabled = false;
+                        return;
+                    }
+
                     try {
                         await db.collection('resenas').add({
                             materiaId: appState.materiaSeleccionada.id, materiaNombre: appState.materiaSeleccionada.nombre,
                             catedra: mod('catedra').value || "Única", practico: mod('practico').value || "Único",
                             anioCursada: parseInt(mod('anioCursada').value), cursoVerano: mod('cursoVerano').checked,
+                            tiposEvaluacion: tiposEvaluacion,
                             tomanAsistencia: mod('tomanAsistencia').value, calificacionGeneral: parseInt(mod('generalRating').dataset.rating),
                             claridad: parseInt(mod('claridadRating').dataset.rating)||0, programa: parseInt(mod('programaRating').dataset.rating)||0,
                             dificultad: parseInt(mod('dificultadRating').dataset.rating)||0, oferta: parseInt(mod('ofertaRating').dataset.rating)||0,
