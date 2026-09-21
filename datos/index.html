@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Datos - Gino Social</title>
-    
+
     <!-- Fuentes e Iconos -->
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
-    
+
     <!-- Firebase SDKs (Sección 1) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    
+
     <!-- Tailwind CSS y Configuración (Sección 2) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -34,13 +34,13 @@
             }
         }
     </script>
-    
+
     <!-- React, Babel y Vis Network (Sección 2) -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
-    
+
     <style>
         /* =========================================================
            ESTILOS ORIGINALES (Nube, Menú, Estructura General)
@@ -58,14 +58,14 @@
             --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
             --navbar-height: 60px;
         }
-        
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-        
+
         html, body {
             overflow-x: hidden;
             background-color: #f5f7fa;
@@ -77,7 +77,6 @@
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            padding-top: var(--navbar-height);
             margin: 0;
         }
 
@@ -85,8 +84,8 @@
         .hamburger-btn {
             background: transparent;
             border: none;
-            color: var(--primary-color);
-            font-size: 1.8rem;
+            color: white;
+            font-size: 1.9rem;
             cursor: pointer;
             padding: 5px;
             display: flex;
@@ -95,8 +94,9 @@
             transition: transform 0.2s;
             z-index: 1100;
             margin-right: 15px;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
         }
-        
+
         .hamburger-btn:hover {
             transform: scale(1.1);
         }
@@ -203,7 +203,7 @@
             box-shadow: 0 4px 10px rgba(255, 125, 41, 0.3);
             border-left: none;
         }
-        
+
         .sidebar-item.highlight:hover {
             transform: translateY(-2px);
             box-shadow: 0 6px 15px rgba(255, 125, 41, 0.4);
@@ -217,63 +217,58 @@
             color: #999;
             border-top: 1px solid #eee;
             padding-top: 1rem;
-        } 
+        }
 
-        /* Navbar Fija */
+        /* Navbar Fija Transparente estilo Gino Social (index.html) */
         .navbar {
-            background: white;
-            padding: 0.5rem 2rem;
+            background: transparent;
+            padding: 1rem 2rem;
             display: flex;
-            justify-content: space-between; 
             align-items: center;
-            box-shadow: var(--shadow-sm);
+            justify-content: space-between;
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
-            height: var(--navbar-height);
             z-index: 1000;
+            transition: background 0.3s ease, padding 0.3s ease, box-shadow 0.3s ease;
         }
 
-        .navbar-left {
-            display: flex;
-            align-items: center;
+        .navbar.scrolled {
+            background-color: rgba(255, 125, 41, 0.98);
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+            backdrop-filter: blur(8px);
         }
 
         .brand-logo {
             font-weight: 800;
-            font-size: 1.5rem;
-            color: var(--primary-color);
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .btn-back {
-            background: transparent;
-            border: 1px solid var(--primary-color);
-            color: var(--primary-color);
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            text-decoration: none;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .btn-back:hover {
-            background: var(--primary-color);
+            font-size: 1.4rem;
             color: white;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+            user-select: none;
         }
 
-        /* Header */
+        .brand-logo span:last-child {
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 400;
+        }
+
+        /* Ojos interactivos estilo Gino Social */
+        .eyes-container { opacity: 0; transition: opacity 0.2s ease; }
+        .eyes-container.active { opacity: 1; }
+        .eyes-container.open .eyelid { height: 0%; }
+
+        /* Header estilo index.html */
         .page-header {
-            background: var(--primary-gradient);
+            background: linear-gradient(135deg, #ff7d29 0%, #ff914d 100%);
             color: white;
-            padding: 3rem 1.5rem;
+            padding: 7rem 1.5rem 4rem;
             text-align: center;
             margin-bottom: 2rem;
             clip-path: polygon(0 0, 100% 0, 100% 90%, 0 100%);
@@ -281,16 +276,25 @@
         }
 
         .page-header h1 {
-            font-size: 4rem;
-            font-weight: 700;
+            font-size: 2.75rem;
+            font-weight: 900;
             margin-bottom: 0.5rem;
-            letter-spacing: -0.5px;
+            letter-spacing: -1px;
             text-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
+        @media (min-width: 768px) {
+            .page-header h1 {
+                font-size: 4rem;
+            }
+        }
+
         .page-header p {
-            opacity: 0.9;
-            font-size: 1.1rem;
+            opacity: 0.92;
+            font-size: 1.05rem;
+            max-width: 650px;
+            margin: 0 auto;
+            font-weight: 500;
         }
 
         .container {
@@ -337,66 +341,67 @@
             border-color: #eee;
         }
 
-        /* Buscador */
-        .search-wrapper {
-            position: relative;
-            min-width: 300px;
-            flex: 1;
-            max-width: 100%;
-        }
-        
-        .search-input {
-            width: 100%;
-            padding: 0.8rem 1.2rem;
-            border: 1px solid #ddd;
-            border-radius: 50px;
-            font-size: 1rem;
-            box-shadow: var(--shadow-sm);
-            outline: none;
-            transition: all 0.3s ease;
-        }
-
-        .search-dropdown {
+        /* Desplegable de sugerencia única estilo Gino Social (index.html) */
+        .gino-dropdown-menu {
             position: absolute;
-            top: 110%;
+            top: calc(100% + 8px);
             left: 0;
             width: 100%;
-            background: white;
-            border: 1px solid #eee;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            max-height: 300px;
-            overflow-y: auto;
-            z-index: 1000;
-            display: none;
-        }
-        
-        .search-dropdown.active {
-            display: block;
-            animation: fadeIn 0.2s ease;
+            z-index: 50;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-8px) scale(0.98);
+            pointer-events: none;
+            transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+                        transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+                        visibility 0.22s;
+            background: #ffffff;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 1.25rem;
+            box-shadow: 0 18px 40px -4px rgba(255, 125, 41, 0.16),
+                        0 8px 24px -4px rgba(0, 0, 0, 0.08);
+            padding: 0.45rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
         }
 
-        .dropdown-item {
-            padding: 12px 20px;
+        .gino-dropdown-menu.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0) scale(1);
+            pointer-events: auto;
+        }
+
+        .gino-dropdown-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            padding: 0.65rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #374151;
             cursor: pointer;
-            border-bottom: 1px solid #f9f9f9;
-            transition: background 0.2s;
-            font-size: 0.95rem;
-            color: #555;
-        }
-        
-        .dropdown-item:last-child {
-            border-bottom: none;
+            transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        .dropdown-item:hover {
-            background-color: #f0f7ff;
-            color: var(--primary-color);
+        .gino-dropdown-item:hover:not(.active) {
+            background-color: rgba(255, 125, 41, 0.1);
+            color: #ff7d29;
+            transform: translateX(3px);
         }
-        
-        .dropdown-item.selected {
-            background-color: var(--primary-color);
-            color: white;
+
+        .gino-dropdown-item.active {
+            background: linear-gradient(135deg, #ff7d29 0%, #ff9800 100%);
+            color: #ffffff;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(255, 125, 41, 0.3);
+        }
+
+        .gino-dropdown-item.active .material-symbols-outlined {
+            color: #ffffff !important;
         }
 
         @keyframes fadeIn {
@@ -427,7 +432,7 @@
             gap: 10px;
             font-weight: bold; /* Corrección para Tailwind */
         }
-        
+
         .cloud-subtitle {
             font-size: 0.95rem;
             color: #666;
@@ -538,7 +543,7 @@
             user-select: none;
             flex-shrink: 0;
         }
-        
+
         .arrow-btn:hover {
             transform: scale(1.2);
             color: #e67e22;
@@ -565,9 +570,8 @@
             border-radius: 12px;
             text-align: center;
             box-shadow: var(--shadow-sm);
-            border-bottom: 4px solid var(--primary-color);
-            min-width: 220px; 
-            flex-shrink: 0;   
+            min-width: 220px;
+            flex-shrink: 0;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -585,7 +589,7 @@
             font-size: 0.9rem;
             font-weight: 600;
         }
-        
+
         /* Modal Colaborar */
         .modal {
             display: none;
@@ -600,7 +604,7 @@
             justify-content: center;
             backdrop-filter: blur(3px);
         }
-        
+
         .modal.active {
             display: flex;
             animation: fadeIn 0.3s ease;
@@ -608,15 +612,15 @@
 
         .modal-content {
             background: white;
-            padding: 2rem; 
+            padding: 2rem;
             border-radius: 16px;
             width: 90%;
             max-width: 500px;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
             transform: scale(0.95);
             animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-            max-height: 85vh; 
-            overflow-y: auto; 
+            max-height: 85vh;
+            overflow-y: auto;
         }
 
         @keyframes popIn {
@@ -654,19 +658,19 @@
             gap: 1rem;
             margin-top: 2rem;
         }
-        
+
         .btn-outline {
             background-color: transparent;
             border: 1px solid #ddd;
             color: #666;
             padding: 0.6rem 1.2rem;
-            border-radius: 30px; 
+            border-radius: 30px;
             cursor: pointer;
             font-size: 0.9rem;
             font-weight: 700;
             transition: all 0.3s ease;
         }
-        
+
         .btn-outline:hover {
             background-color: #f8f9fa;
             color: var(--dark-color);
@@ -677,12 +681,12 @@
            ========================================================= */
         .vis-network:focus { outline: none; }
         body.modal-open { overflow: hidden; }
-        
+
         .custom-scrollbar::-webkit-scrollbar { width: 5px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        
+
         @keyframes slideDownFade {
             from { opacity: 0; transform: translateY(-10px); }
             to { opacity: 1; transform: translateY(0); }
@@ -696,12 +700,11 @@
         @keyframes spinMonitor { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
         @media (max-width: 768px) {
-            .navbar { padding: 0.5rem 1rem; }
-            .page-header h1 { font-size: 2rem; }
+            .navbar { padding: 0.75rem 1rem; }
+            .page-header { padding: 5.5rem 1rem 3rem; }
+            .page-header h1 { font-size: 2.25rem; }
             .word-cloud-container { gap: 8px; }
-            .filter-controls { flex-direction: column; align-items: stretch; }
             .container { padding: 0 4vw 2rem; }
-            .search-wrapper { min-width: 100%; }
             .arrow-btn { font-size: 2rem; }
         }
     </style>
@@ -715,21 +718,21 @@
             <span class="sidebar-brand">Gino Social</span>
             <button class="close-sidebar-btn" id="closeSidebar">✕</button>
         </div>
-        
+
         <div class="sidebar-menu">
-            <a href="https://ginosocial.ar" class="sidebar-item">
+            <a href="../" class="sidebar-item">
                 <span class="material-symbols-outlined"> home </span> Inicio
             </a>
-            <a href="https://ginosocial.ar/datos" class="sidebar-item active">
+            <a href="./" class="sidebar-item active">
                 <span class="material-symbols-outlined">graph_3</span> Centro de Datos
             </a>
-            <a href="https://ginosocial.ar/ContratoSocial" class="sidebar-item">
+            <a href="../ContratoSocial/" class="sidebar-item">
                 <span class="material-symbols-outlined"> diversity_3 </span> Contrato Social
             </a>
-            <a href="https://ginosocial.ar/bitacora" class="sidebar-item">
+            <a href="../bitacora/" class="sidebar-item">
                 <span class="material-symbols-outlined"> book_5 </span> Bitácora
             </a>
-            <a href="https://ginosocial.ar/quienessomos" class="sidebar-item">
+            <a href="../quienessomos/" class="sidebar-item">
                 <span class="material-symbols-outlined"> co_present </span> ¿Quienes somos?
             </a>
             <a href="#" id="sidebarCollaborateBtn" class="sidebar-item highlight">
@@ -744,18 +747,28 @@
     </div>
 
     <!-- ================= NAVBAR ================= -->
-    <nav class="navbar">
-        <div class="navbar-left">
-            <button id="menuBtn" class="hamburger-btn" title="Menú">
+    <nav id="mainNav" class="navbar fixed top-0 left-0 w-full p-4 md:px-8 flex justify-between items-center z-[1000] bg-transparent transition-all duration-300">
+        <div class="flex items-center gap-3">
+            <button id="menuBtn" class="text-white text-3xl hover:scale-110 transition-transform drop-shadow-md cursor-pointer" title="Menú">
                 ☰
             </button>
-            <a href="https://ginosocial.ar" class="brand-logo">
-                <span>Gino</span> <span style="color: var(--dark-color); font-weight: 400;">Datos</span>
+            <a href="../" class="brand-logo flex items-center gap-1.5 text-white font-extrabold text-xl md:text-2xl drop-shadow-md hover:opacity-90 transition-opacity">
+                <span>Gino</span> <span class="font-normal opacity-90">Datos</span>
             </a>
         </div>
-        <a href="https://www.ginosocial.ar" class="btn-back">
-            <span>↩ Volver</span>
-        </a>
+
+        <div class="eyes-container absolute left-1/2 -translate-x-1/2 hidden md:flex gap-4 pointer-events-none" id="navEyes">
+            <div class="w-12 h-8 bg-white rounded-[50%] relative overflow-hidden shadow-inner eye">
+                <div class="w-[17px] h-[17px] bg-dark rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pupil"><div class="w-1.5 h-1.5 bg-white rounded-full absolute top-1 left-1 opacity-80"></div></div>
+                <div class="absolute inset-0 bg-primaryDark transition-all duration-300 eyelid z-10"></div>
+            </div>
+            <div class="w-12 h-8 bg-white rounded-[50%] relative overflow-hidden shadow-inner eye">
+                <div class="w-[17px] h-[17px] bg-dark rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pupil"><div class="w-1.5 h-1.5 bg-white rounded-full absolute top-1 left-1 opacity-80"></div></div>
+                <div class="absolute inset-0 bg-primaryDark transition-all duration-300 eyelid z-10"></div>
+            </div>
+        </div>
+
+        <div class="w-8"></div>
     </nav>
 
     <!-- ================= HEADER ================= -->
@@ -766,11 +779,11 @@
 
     <!-- ================= CONTENEDOR PRINCIPAL ================= -->
     <div class="container">
-        
+
         <!-- Carrusel de Nube (Nativo) -->
         <div class="carousel-wrapper">
             <button class="arrow-btn" id="prevBtn">‹</button>
-            
+
             <div class="stats-marquee" id="marqueeContainer">
                 <div class="stats-track" id="statsTrack">
                     <div class="loader" style="padding: 0.5rem;">
@@ -782,16 +795,24 @@
             <button class="arrow-btn" id="nextBtn">›</button>
         </div>
 
-        <!-- Filtros de Nube (Nativo) -->
-        <div class="filter-controls">
-            <div class="search-wrapper">
-                <input type="text" id="filterMateriaInput" class="search-input" placeholder="🔍 Buscar materia..." autocomplete="off">
-                <div id="materiaDropdown" class="search-dropdown"></div>
+        <!-- Filtros de Nube estilo index.html -->
+        <div class="bg-white p-2.5 md:p-3.5 rounded-2xl md:rounded-3xl shadow-sm mb-7 flex flex-col sm:flex-row gap-2.5 items-center border border-gray-100 max-w-4xl mx-auto">
+            <div class="w-full sm:flex-1 relative flex items-center" id="materiaSearchWrapper">
+                <span class="material-symbols-outlined absolute left-4 text-gray-400 text-xl pointer-events-none">search</span>
+                <input type="text" id="filterMateriaInput" placeholder="Buscar materia..." autocomplete="off" class="w-full pl-12 pr-10 py-2.5 bg-gray-50/90 border border-gray-200/80 rounded-xl focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/15 outline-none transition-all text-sm md:text-base text-dark placeholder:text-gray-400 font-medium">
+                <button type="button" id="clearMateriaBtn" class="hidden absolute right-3 text-gray-400 hover:text-dark p-1 rounded-full transition-colors cursor-pointer" title="Borrar filtro">
+                    <span class="material-symbols-outlined text-lg">close</span>
+                </button>
+                <!-- Desplegable con exactamente UNA sugerencia (estilo gino-dropdown) -->
+                <div id="materiaDropdown" class="gino-dropdown-menu align-left w-full absolute top-[calc(100%+8px)] left-0 z-50"></div>
             </div>
-            
-            <select id="filterCatedra" class="filter-select" disabled>
-                <option value="all">Todas las cátedras</option>
-            </select>
+
+            <div class="w-full sm:w-auto shrink-0 relative flex items-center">
+                <select id="filterCatedra" class="w-full sm:w-auto py-2.5 pl-4 pr-9 bg-gray-50/90 hover:bg-orange-50/50 border border-gray-200/80 rounded-full font-bold text-dark text-sm outline-none transition-all cursor-pointer shadow-xs disabled:opacity-50 disabled:cursor-not-allowed appearance-none" disabled>
+                    <option value="all">Todas las cátedras</option>
+                </select>
+                <span class="material-symbols-outlined text-gray-400 text-lg absolute right-3 pointer-events-none">expand_more</span>
+            </div>
         </div>
 
         <!-- Nube de Palabras (Nativo) -->
@@ -801,7 +822,7 @@
                 <span class="last-update" id="lastUpdateDate">Cargando...</span>
             </h2>
             <div id="cloudSubtitle" class="cloud-subtitle">En base a -- reseñas</div>
-            
+
             <div id="wordCloud" class="word-cloud-container">
                 <div class="loader">
                     <div class="spinner"></div>
@@ -809,11 +830,11 @@
                 </div>
             </div>
         </div>
-        
+
         <!-- ================= ROOT PARA MONITOR DE AUTORES (React) ================= -->
         <!-- Tailwind está habilitado aquí por herencia del CDN global -->
         <div id="monitor-root"></div>
-        
+
     </div>
 
     <!-- ================= MODAL COLABORAR (Nativo) ================= -->
@@ -822,14 +843,14 @@
             <h2 style="color: var(--primary-color); margin-bottom: 1rem; text-align: center;">
                 <span class="material-symbols-outlined">handshake</span> Colaborar
             </h2>
-            
+
             <div style="text-align: left; color: #444; font-size: 1rem; line-height: 1.7;">
                 <p style="margin-bottom: 1rem;">
-                    Este proyecto está llevado a cabo por <strong>Helecho Social</strong> y <strong>CrisisPuntoCom</strong>, 
+                    Este proyecto está llevado a cabo por <strong>Helecho Social</strong> y <strong>CrisisPuntoCom</strong>,
                     dos revistas partes de un colectivo conformado por estudiantes de la carrera de Sociología de la UBA.
                 </p>
                 <p style="margin-bottom: 1rem;">
-                    Porque alguien tiene que hacerle la vida más fácil al pueblo. Para hacerlo no tuvimos que pedirle permiso a nadie, 
+                    Porque alguien tiene que hacerle la vida más fácil al pueblo. Para hacerlo no tuvimos que pedirle permiso a nadie,
                     pero por la misma razón necesitamos tu colaboración.
                 </p>
                 <p style="margin-bottom: 1rem; background: #f9f9f9; padding: 10px; border-radius: 8px; border-left: 4px solid var(--primary-color);">
@@ -869,9 +890,9 @@
             firebase.initializeApp(firebaseConfig);
         }
         const db = firebase.firestore();
-        
+
         let datosGlobales = null;
-        let selectedMateriaKey = 'global'; 
+        let selectedMateriaKey = 'global';
 
         const marqueeContainer = document.getElementById('marqueeContainer');
         let autoScrollInterval;
@@ -886,7 +907,7 @@
                         marqueeContainer.scrollLeft = 0;
                     }
                 }
-            }, 30); 
+            }, 30);
         }
 
         function setupCarouselButtons() {
@@ -902,7 +923,7 @@
             prevBtn.addEventListener('mouseleave', () => isHovering = false);
             nextBtn.addEventListener('mouseenter', () => isHovering = true);
             nextBtn.addEventListener('mouseleave', () => isHovering = false);
-            
+
             startAutoScroll();
         }
 
@@ -910,7 +931,7 @@
             const container = document.getElementById('wordCloud');
             const dateLabel = document.getElementById('lastUpdateDate');
             const statsTrack = document.getElementById('statsTrack');
-            
+
             try {
                 const docPalabras = await db.collection('datos').doc('palabras_clave').get();
 
@@ -922,10 +943,10 @@
                 }
 
                 datosGlobales = docPalabras.data();
-                
+
                 const stats = datosGlobales.stats || {};
                 const topWords = datosGlobales.topPalabras || [];
-                
+
                 const realTotalResenas = stats.totalResenas || 0;
                 const totalUsuarios = stats.totalUsuarios || 0;
                 const startResenas = Math.max(0, realTotalResenas - 5);
@@ -943,7 +964,7 @@
                     { label: "Seminarios y Talleres", value: stats.totalTalleres || "-" }
                 ];
 
-                statsTrack.innerHTML = ''; 
+                statsTrack.innerHTML = '';
 
                 const createBox = (item) => {
                     const box = document.createElement('div');
@@ -963,7 +984,7 @@
                 if (startResenas < realTotalResenas) {
                     let currentCount = startResenas;
                     const counterElements = document.querySelectorAll('#liveReviewCounter');
-                    
+
                     const interval = setInterval(() => {
                         currentCount++;
                         counterElements.forEach(el => el.textContent = currentCount);
@@ -979,9 +1000,9 @@
                 } else {
                     dateLabel.textContent = "Sin fecha";
                 }
-                
+
                 inicializarFiltros();
-                
+
                 const usuariosText = totalUsuarios > 0 ? `, escritas por ${totalUsuarios} estudiantes` : '';
                 document.getElementById('cloudSubtitle').textContent = `En base a ${realTotalResenas} reseñas de toda la carrera${usuariosText}`;
                 renderizarNube(topWords, container);
@@ -997,80 +1018,156 @@
             const materiaInput = document.getElementById('filterMateriaInput');
             const materiaDropdown = document.getElementById('materiaDropdown');
             const catedraSelect = document.getElementById('filterCatedra');
-            
+            const clearBtn = document.getElementById('clearMateriaBtn');
+
             const renderDropdown = (filterText = '') => {
                 materiaDropdown.innerHTML = '';
-                
-                if ('todas las materias'.includes(filterText.toLowerCase()) || filterText === '') {
-                    const globalItem = document.createElement('div');
-                    globalItem.className = 'dropdown-item';
-                    if (selectedMateriaKey === 'global') globalItem.classList.add('selected');
-                    globalItem.textContent = 'Todas las materias';
-                    globalItem.addEventListener('click', () => selectMateria('global', 'Todas las materias'));
-                    materiaDropdown.appendChild(globalItem);
+                const query = filterText.trim().toLowerCase();
+
+                // Si la consulta está vacía
+                if (!query) {
+                    if (selectedMateriaKey !== 'global') {
+                        // Sugerir exactamente una opción: volver a Todas las materias
+                        const globalItem = document.createElement('div');
+                        globalItem.className = 'gino-dropdown-item';
+                        globalItem.innerHTML = `
+                            <span class="flex items-center gap-2.5 truncate">
+                                <span class="material-symbols-outlined text-primary text-lg">public</span>
+                                <span class="item-text font-semibold truncate">Todas las materias</span>
+                            </span>
+                            <span class="material-symbols-outlined text-gray-400 text-sm">keyboard_return</span>
+                        `;
+                        globalItem.addEventListener('click', () => selectMateria('global', 'Todas las materias'));
+                        materiaDropdown.appendChild(globalItem);
+                        materiaDropdown.classList.add('active');
+                    } else {
+                        materiaDropdown.classList.remove('active');
+                    }
+                    return;
                 }
 
+                // Si el usuario escribe "todas", "global" o "todas las materias"
+                if ('todas las materias'.includes(query) || 'global'.includes(query) || 'todas'.includes(query)) {
+                    const globalItem = document.createElement('div');
+                    globalItem.className = 'gino-dropdown-item' + (selectedMateriaKey === 'global' ? ' active' : '');
+                    globalItem.innerHTML = `
+                        <span class="flex items-center gap-2.5 truncate">
+                            <span class="material-symbols-outlined text-primary text-lg">public</span>
+                            <span class="item-text font-semibold truncate">Todas las materias</span>
+                        </span>
+                        <span class="material-symbols-outlined text-gray-400 text-sm">keyboard_return</span>
+                    `;
+                    globalItem.addEventListener('click', () => selectMateria('global', 'Todas las materias'));
+                    materiaDropdown.appendChild(globalItem);
+                    materiaDropdown.classList.add('active');
+                    return;
+                }
+
+                // Buscar exactamente UNA materia (la mejor coincidencia única)
                 if (datosGlobales && datosGlobales.desglose) {
                     const materias = Object.keys(datosGlobales.desglose).sort();
-                    
-                    materias.forEach(mat => {
-                        if (mat.toLowerCase().includes(filterText.toLowerCase())) {
-                            const item = document.createElement('div');
-                            item.className = 'dropdown-item';
-                            if (selectedMateriaKey === mat) item.classList.add('selected');
-                            item.textContent = mat;
-                            item.addEventListener('click', () => selectMateria(mat, mat));
-                            materiaDropdown.appendChild(item);
-                        }
-                    });
-                }
-                
-                if (materiaDropdown.children.length > 0) {
-                    materiaDropdown.classList.add('active');
-                } else {
-                    materiaDropdown.classList.remove('active');
+
+                    // Priorizar materias que empiezan con la consulta, luego las que la contienen
+                    let match = materias.find(mat => mat.toLowerCase().startsWith(query));
+                    if (!match) {
+                        match = materias.find(mat => mat.toLowerCase().includes(query));
+                    }
+
+                    if (match) {
+                        const item = document.createElement('div');
+                        item.className = 'gino-dropdown-item' + (selectedMateriaKey === match ? ' active' : '');
+                        item.innerHTML = `
+                            <span class="flex items-center gap-2.5 truncate">
+                                <span class="material-symbols-outlined text-primary text-lg">school</span>
+                                <span class="item-text font-semibold truncate">${match}</span>
+                            </span>
+                            <span class="material-symbols-outlined text-gray-400 text-sm">keyboard_return</span>
+                        `;
+                        item.addEventListener('click', () => selectMateria(match, match));
+                        materiaDropdown.appendChild(item);
+                        materiaDropdown.classList.add('active');
+                    } else {
+                        const emptyItem = document.createElement('div');
+                        emptyItem.className = 'px-4 py-2.5 text-xs text-gray-400 text-center font-medium';
+                        emptyItem.textContent = 'No se encontró ninguna materia';
+                        materiaDropdown.appendChild(emptyItem);
+                        materiaDropdown.classList.add('active');
+                    }
                 }
             };
 
-            materiaInput.addEventListener('input', (e) => renderDropdown(e.target.value));
-            materiaInput.addEventListener('focus', () => renderDropdown(materiaInput.value));
-            
+            materiaInput.addEventListener('input', (e) => {
+                const val = e.target.value;
+                if (clearBtn) clearBtn.classList.toggle('hidden', val.length === 0);
+                renderDropdown(val);
+            });
+
+            materiaInput.addEventListener('focus', () => {
+                if (selectedMateriaKey === 'global') {
+                    materiaInput.value = '';
+                } else {
+                    materiaInput.select();
+                }
+                renderDropdown(materiaInput.value);
+            });
+
+            materiaInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const firstItem = materiaDropdown.querySelector('.gino-dropdown-item');
+                    if (firstItem) firstItem.click();
+                } else if (e.key === 'Escape') {
+                    materiaDropdown.classList.remove('active');
+                }
+            });
+
+            if (clearBtn) {
+                clearBtn.addEventListener('click', () => {
+                    selectMateria('global', 'Todas las materias');
+                    materiaInput.value = '';
+                    clearBtn.classList.add('hidden');
+                    materiaDropdown.classList.remove('active');
+                    materiaInput.focus();
+                });
+            }
+
             document.addEventListener('click', (e) => {
-                if (!e.target.closest('.search-wrapper')) {
+                if (!e.target.closest('#materiaSearchWrapper')) {
                     materiaDropdown.classList.remove('active');
                 }
             });
 
             const selectMateria = (key, displayName) => {
                 selectedMateriaKey = key;
-                materiaInput.value = displayName;
+                materiaInput.value = (key === 'global') ? '' : displayName;
+                if (clearBtn) clearBtn.classList.toggle('hidden', key === 'global');
                 materiaDropdown.classList.remove('active');
-                
+
                 const cloudContainer = document.getElementById('wordCloud');
                 const subtitle = document.getElementById('cloudSubtitle');
-                
+
                 if (key === 'global') {
                     catedraSelect.disabled = true;
                     catedraSelect.value = 'all';
-                    catedraSelect.innerHTML = '<option value="all">Todas las cátedras</option>'; 
+                    catedraSelect.innerHTML = '<option value="all">Todas las cátedras</option>';
                     document.getElementById('cloudTitle').textContent = "Vocabulario Social (Global)";
-                    
+
                     const totalGlobal = datosGlobales.stats ? (datosGlobales.stats.totalResenas || datosGlobales.totalResenas) : 0;
                     const totalUsuarios = datosGlobales.stats ? (datosGlobales.stats.totalUsuarios || 0) : 0;
                     const usuariosText = totalUsuarios > 0 ? `, escritas por ${totalUsuarios} estudiantes` : '';
                     subtitle.textContent = `En base a ${totalGlobal} reseñas de toda la carrera${usuariosText}`;
-                    
+
                     renderizarNube(datosGlobales.topPalabras, cloudContainer);
                 } else {
                     catedraSelect.disabled = false;
                     llenarCatedras(key);
-                    
+
                     const datosMateria = datosGlobales.desglose[key];
                     const palabrasMateria = datosMateria.global || [];
-                    
+
                     const totalMateria = datosMateria.totalResenas || '?';
                     subtitle.textContent = `En base a ${totalMateria} reseñas`;
-                    
+
                     document.getElementById('cloudTitle').textContent = `En ${key}`;
                     renderizarNube(palabrasMateria, cloudContainer);
                 }
@@ -1080,11 +1177,11 @@
                 const materia = selectedMateriaKey;
                 const catedra = catedraSelect.value;
                 const cloudContainer = document.getElementById('wordCloud');
-                
-                if (materia === 'global') return; 
+
+                if (materia === 'global') return;
 
                 const datosMateria = datosGlobales.desglose[materia];
-                
+
                 if (catedra === 'all') {
                     renderizarNube(datosMateria.global || [], cloudContainer);
                     document.getElementById('cloudTitle').textContent = `En ${materia}`;
@@ -1099,7 +1196,7 @@
         function llenarCatedras(materia) {
             const catedraSelect = document.getElementById('filterCatedra');
             while (catedraSelect.options.length > 1) catedraSelect.remove(1);
-            
+
             if (datosGlobales.desglose[materia] && datosGlobales.desglose[materia].catedras) {
                 const catedras = Object.keys(datosGlobales.desglose[materia].catedras).sort();
                 catedras.forEach(cat => {
@@ -1115,7 +1212,7 @@
             container.style.opacity = '0';
             setTimeout(() => {
                 container.innerHTML = '';
-                
+
                 if (!palabras || palabras.length === 0) {
                     container.innerHTML = '<div style="color:#888; padding:2rem;">No hay suficientes datos para este filtro.</div>';
                     container.style.opacity = '1';
@@ -1130,29 +1227,29 @@
                     const span = document.createElement('span');
                     span.className = 'word-tag';
                     span.textContent = item.text;
-                    span.dataset.count = `${item.size} veces`; 
-                    
+                    span.dataset.count = `${item.size} veces`;
+
                     let percent = 0;
                     if (maxCount !== minCount) {
                         percent = (item.size - minCount) / (maxCount - minCount);
                     } else {
-                        percent = 0.5; 
+                        percent = 0.5;
                     }
-                    
+
                     const fontSize = 0.85 + (percent * 2.5);
-                    const opacity = 0.6 + (percent * 0.4);   
-                    const fontWeight = 400 + (Math.round(percent * 5) * 100); 
+                    const opacity = 0.6 + (percent * 0.4);
+                    const fontWeight = 400 + (Math.round(percent * 5) * 100);
 
                     span.style.fontSize = `${fontSize}rem`;
                     span.style.opacity = opacity;
                     span.style.fontWeight = fontWeight;
-                    
+
                     if (percent > 0.8) span.style.color = 'var(--primary-color)';
                     else if (percent > 0.6) span.style.color = '#e67e22';
 
                     container.appendChild(span);
                 });
-                
+
                 container.style.opacity = '1';
             }, 300);
         }
@@ -1173,13 +1270,13 @@
             function openSidebar() {
                 sidebar.classList.add('active');
                 overlay.classList.add('active');
-                document.body.style.overflow = 'hidden'; 
+                document.body.style.overflow = 'hidden';
             }
 
             function closeSidebar() {
                 sidebar.classList.remove('active');
                 overlay.classList.remove('active');
-                document.body.style.overflow = ''; 
+                document.body.style.overflow = '';
             }
 
             menuBtn.addEventListener('click', openSidebar);
@@ -1201,9 +1298,42 @@
             });
         }
 
+        function configurarOjosGino() {
+            const eyes = document.getElementById('navEyes');
+            const pupils = document.querySelectorAll('.pupil');
+            const input = document.getElementById('filterMateriaInput');
+            if (!eyes) return;
+
+            if (input) {
+                input.addEventListener('focus', () => {
+                    eyes.classList.add('active', 'open');
+                });
+                input.addEventListener('blur', () => {
+                    eyes.classList.remove('open');
+                    setTimeout(() => eyes.classList.remove('active'), 300);
+                });
+            }
+
+            document.addEventListener('mousemove', (e) => {
+                if (!eyes.classList.contains('active')) return;
+                pupils.forEach(p => {
+                    const rect = p.parentElement.getBoundingClientRect();
+                    const angle = Math.atan2(e.clientY - (rect.top + rect.height / 2), e.clientX - (rect.left + rect.width / 2));
+                    const dist = Math.min(10, Math.hypot(e.clientX - (rect.left + rect.width / 2), e.clientY - (rect.top + rect.height / 2)) / 15);
+                    p.style.transform = `translate(calc(-50% + ${Math.cos(angle) * dist}px), calc(-50% + ${Math.sin(angle) * dist}px))`;
+                });
+            });
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             cargarDatos();
             configurarSidebar();
+            configurarOjosGino();
+
+            window.addEventListener('scroll', () => {
+                const nav = document.getElementById('mainNav');
+                if (nav) nav.classList.toggle('scrolled', window.scrollY > 20);
+            });
         });
     </script>
 
@@ -1228,10 +1358,10 @@
         const Layers = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>;
         const Briefcase = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>;
         const Bookmark = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"></path></svg>;
-        
+
         // --- CAMBIO: Nuevo icono de engranaje (Settings/Cog de Lucide) ---
         const Settings = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path><circle cx="12" cy="12" r="3"></circle></svg>;
-        
+
         const SearchIcon = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>;
         const TrendingUp = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>;
         const Info = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>;
@@ -1248,24 +1378,24 @@
         const parseCSV = (csvText) => {
             const lines = csvText.split('\n');
             if (lines.length === 0) return [];
-            
+
             const headers = lines[0].split(',').map(h => h.trim().replace(/\r$/, ''));
             const result = [];
-            
+
             for (let i = 1; i < lines.length; i++) {
                 const line = lines[i].replace(/\r$/, '');
                 if (!line.trim()) continue;
-                
+
                 const regex = /(?:\"([^\"]*(?:\"\"[^\"]*)*)\"|([^,]*))(?:,|$)/g;
                 let match;
                 const values = [];
-                
+
                 while ((match = regex.exec(line)) !== null) {
                     if (match.index === regex.lastIndex) regex.lastIndex++;
                     let val = match[1] ? match[1].replace(/\"\"/g, '\"') : match[2];
                     values.push(val ? val.trim() : '');
                 }
-                
+
                 if (values.length > 0) {
                     let obj = {};
                     headers.forEach((h, index) => {
@@ -1294,9 +1424,9 @@
             if (total === 0) return <div className="text-sm text-slate-400 h-full flex items-center justify-center">Sin datos de género</div>;
 
             const chartData = [
-                { name: 'Femenino', count: data['Femenino'], color: '#10b981' }, 
-                { name: 'Masculino', count: data['Masculino'], color: '#94a3b8' }, 
-                { name: 'Otro/No esp.', count: data['Otro/No especificado'], color: '#e2e8f0' } 
+                { name: 'Femenino', count: data['Femenino'], color: '#10b981' },
+                { name: 'Masculino', count: data['Masculino'], color: '#94a3b8' },
+                { name: 'Otro/No esp.', count: data['Otro/No especificado'], color: '#e2e8f0' }
             ].filter(d => d.count > 0);
 
             let currentAngle = 0;
@@ -1323,10 +1453,10 @@
                                 const pathData = `M 50 50 L ${x1} ${y1} A 50 50 0 ${largeArcFlag} 1 ${x2} ${y2} Z`;
 
                                 return (
-                                    <path 
-                                        key={idx} 
-                                        d={pathData} 
-                                        fill={item.color} 
+                                    <path
+                                        key={idx}
+                                        d={pathData}
+                                        fill={item.color}
                                         className="transition-opacity hover:opacity-80 stroke-white stroke-[1.5]"
                                     >
                                         <title>{`${item.name}: ${item.count} textos (${Math.round((item.count / total) * 100)}%)`}</title>
@@ -1353,7 +1483,7 @@
 
         const SVGCompositionPie = ({ data, onAuthorClick }) => {
             if (!data || data.length === 0) return <div className="text-sm text-slate-400 h-full flex items-center justify-center">Sin datos vigentes</div>;
-            
+
             const topN = data.slice(0, 10);
             const othersCount = data.slice(10).reduce((sum, item) => sum + item.count, 0);
             const chartData = [...topN];
@@ -1371,12 +1501,12 @@
                             {chartData.map((item, idx) => {
                                 const angle = (item.count / total) * 360;
                                 const itemColor = item.color || SLICE_COLORS[idx % SLICE_COLORS.length];
-                                
+
                                 if (angle === 360) {
                                     return (
-                                        <circle 
-                                            key={idx} cx="50" cy="50" r="50" 
-                                            fill={itemColor} 
+                                        <circle
+                                            key={idx} cx="50" cy="50" r="50"
+                                            fill={itemColor}
                                             className={`transition-opacity ${item.name !== 'Otros' ? 'hover:opacity-80 cursor-pointer' : ''}`}
                                             onClick={() => item.name !== 'Otros' && onAuthorClick(item.name)}
                                         >
@@ -1397,9 +1527,9 @@
                                 const pathData = `M 50 50 L ${x1} ${y1} A 50 50 0 ${largeArcFlag} 1 ${x2} ${y2} Z`;
 
                                 return (
-                                    <path 
-                                        key={idx} d={pathData} 
-                                        fill={itemColor} 
+                                    <path
+                                        key={idx} d={pathData}
+                                        fill={itemColor}
                                         className={`transition-opacity stroke-white stroke-[0.5] ${item.name !== 'Otros' ? 'hover:opacity-80 cursor-pointer' : ''}`}
                                         onClick={() => item.name !== 'Otros' && onAuthorClick(item.name)}
                                     >
@@ -1414,8 +1544,8 @@
                             {chartData.map((item, idx) => {
                                 const itemColor = item.color || SLICE_COLORS[idx % SLICE_COLORS.length];
                                 return (
-                                    <div 
-                                        key={idx} 
+                                    <div
+                                        key={idx}
                                         className={`flex items-center text-xs p-1 rounded transition-colors ${item.name !== 'Otros' ? 'hover:bg-slate-100 cursor-pointer' : ''}`}
                                         onClick={() => item.name !== 'Otros' && onAuthorClick(item.name)}
                                     >
@@ -1448,7 +1578,7 @@
 
             const years = evolution.map(e => e.year);
             let maxY = 1;
-            
+
             selectedAuthors.forEach(author => {
                 years.forEach(year => {
                     const count = yearlyDataMap[year]?.[author] || 0;
@@ -1457,10 +1587,10 @@
             });
 
             maxY = Math.ceil(maxY * 1.15);
-            if (maxY < 5) maxY = 5; 
+            if (maxY < 5) maxY = 5;
 
             const getX = (index) => {
-                if (years.length === 1) return 410; 
+                if (years.length === 1) return 410;
                 return 40 + (740 / (years.length - 1)) * index;
             };
 
@@ -1485,7 +1615,7 @@
 
                         {selectedAuthors.map((author, aIdx) => {
                             const color = SLICE_COLORS[aIdx % SLICE_COLORS.length];
-                            
+
                             const points = years.map((year, i) => {
                                 const count = yearlyDataMap[year]?.[author] || 0;
                                 const x = getX(i);
@@ -1501,9 +1631,9 @@
                                     {points.map((p, i) => (
                                         <g key={`point-${i}`}>
                                             <circle cx={p.x} cy={p.y} r="15" fill="transparent" />
-                                            <circle 
-                                                cx={p.x} cy={p.y} r="5" 
-                                                fill="#ffffff" stroke={color} strokeWidth="2.5" 
+                                            <circle
+                                                cx={p.x} cy={p.y} r="5"
+                                                fill="#ffffff" stroke={color} strokeWidth="2.5"
                                                 className="transition-all duration-200 cursor-pointer"
                                                 onMouseEnter={(e) => {
                                                     e.target.setAttribute('r', '7');
@@ -1543,15 +1673,15 @@
                 const edges = new vis.DataSet();
 
                 const materias = new Set();
-                const catedraNodes = new Map(); 
-                const authorCatedras = new Map(); 
-                const materiaGroups = new Map(); 
+                const catedraNodes = new Map();
+                const authorCatedras = new Map();
+                const materiaGroups = new Map();
 
                 data.forEach(row => {
                     const m = row['Materia'] || 'Sin Materia';
                     const c = row['Catedra'] || 'Sin Cátedra';
                     const a = getAuthorName(row);
-                    const mcKey = `${m}::${c}`; 
+                    const mcKey = `${m}::${c}`;
 
                     if (m) {
                         materias.add(m);
@@ -1568,8 +1698,8 @@
 
                 materias.forEach(m => {
                     const mId = `m_${m}`;
-                    nodes.add({ 
-                        id: mId, label: m.toUpperCase(), group: 'materia', shape: 'box', 
+                    nodes.add({
+                        id: mId, label: m.toUpperCase(), group: 'materia', shape: 'box',
                         font: { size: 20, bold: true, color: '#2c3e50' },
                         color: { background: 'rgba(255,255,255,0.95)', border: '#94a3b8' },
                         shadow: true, mass: 3, margin: 15
@@ -1579,7 +1709,7 @@
 
                 catedraNodes.forEach(({ m, c }, mcKey) => {
                     const cId = `c_${mcKey}`;
-                    nodes.add({ 
+                    nodes.add({
                         id: cId, label: `Cátedra:\n${c}`, group: 'catedra', shape: 'box',
                         font: { size: 14, color: '#e66b1d' },
                         color: { background: 'rgba(255,125,41,0.08)', border: '#ff7d29' },
@@ -1590,13 +1720,13 @@
                 });
 
                 authorCatedras.forEach((mcKeys, a) => {
-                    if (mcKeys.size > 1) { 
+                    if (mcKeys.size > 1) {
                         const aId = `a_${a}`;
-                        nodes.add({ 
+                        nodes.add({
                             id: aId, label: a, group: 'autor', shape: 'dot', size: 16,
                             font: { size: 13, bold: true, color: '#064e3b', background: 'rgba(255,255,255,0.85)' },
                             color: { background: '#10b981', border: '#047857' },
-                            mass: 1 
+                            mass: 1
                         });
                         mcKeys.forEach(mcKey => {
                             edges.add({ from: `c_${mcKey}`, to: aId, color: { color: '#10b981', opacity: 0.7 }, width: 2, length: 200 });
@@ -1635,17 +1765,17 @@
 
                         if (hasPoints) {
                             const colorSet = AURA_COLORS[index % AURA_COLORS.length];
-                            const padding = 65; 
+                            const padding = 65;
                             const width = maxX - minX + padding * 2;
                             const height = maxY - minY + padding * 2;
-                            const radius = 15; 
+                            const radius = 15;
                             const x = minX - padding;
                             const y = minY - padding;
 
                             ctx.fillStyle = colorSet.bg;
                             ctx.strokeStyle = colorSet.border;
                             ctx.lineWidth = 3;
-                            ctx.setLineDash([8, 6]); 
+                            ctx.setLineDash([8, 6]);
 
                             ctx.beginPath();
                             ctx.moveTo(x + radius, y);
@@ -1658,10 +1788,10 @@
                             ctx.lineTo(x, y + radius);
                             ctx.quadraticCurveTo(x, y, x + radius, y);
                             ctx.closePath();
-                            
+
                             ctx.fill();
                             ctx.stroke();
-                            ctx.setLineDash([]); 
+                            ctx.setLineDash([]);
                         }
                         index++;
                     });
@@ -1709,21 +1839,21 @@
             const [rawData, setRawData] = useState([]);
             const [isLoading, setIsLoading] = useState(true);
             const [error, setError] = useState(null);
-            
+
             const [selectedAuthor, setSelectedAuthor] = useState(null);
             const [selectedEvolutionYear, setSelectedEvolutionYear] = useState(null);
             const [compositionView, setCompositionView] = useState('Autores'); // Agregado: Estado para el toggle
-            
+
             const [showInfoModal, setShowInfoModal] = useState(false);
             const [showMapInfoModal, setShowMapInfoModal] = useState(false);
 
-            const [mapHiddenCatedras, setMapHiddenCatedras] = useState(new Set()); 
+            const [mapHiddenCatedras, setMapHiddenCatedras] = useState(new Set());
             const [mapSelectedYear, setMapSelectedYear] = useState('Todos');
-            const [showMapConfig, setShowMapConfig] = useState(false); 
-            
+            const [showMapConfig, setShowMapConfig] = useState(false);
+
             // --- CAMBIO: Variable para indicar si el año por defecto del mapa ya fue inicializado ---
             const [hasInitializedMapYear, setHasInitializedMapYear] = useState(false);
-            
+
             const [evolutionSelectedCatedras, setEvolutionSelectedCatedras] = useState(new Set());
             const [showEvolutionFilter, setShowEvolutionFilter] = useState(false);
 
@@ -1738,14 +1868,14 @@
                 try {
                     const sheetId = '1ARaGDBVnQaE2HijdVwLE6xe00fuaOJsZ';
                     const url = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`;
-                    
+
                     const response = await fetch(url);
                     if (!response.ok) throw new Error('No se pudo establecer conexión con Google Sheets.');
-                    
+
                     const csvText = await response.text();
                     const data = parseCSV(csvText);
                     setRawData(data);
-                    
+
                     setMapHiddenCatedras(new Set());
                     // --- CAMBIO: Reiniciamos la validación del año cuando recargamos los datos ---
                     setHasInitializedMapYear(false);
@@ -1781,7 +1911,7 @@
                 });
                 return Array.from(years).sort((a,b) => a - b).map(String);
             }, [validData]);
-            
+
             // --- CAMBIO: Lógica para auto-seleccionar el último año disponible por defecto ---
             useEffect(() => {
                 if (availableMapYears.length > 0 && !hasInitializedMapYear) {
@@ -1863,7 +1993,7 @@
             const temporalAnalysis = useMemo(() => {
                 if (filteredForTemporal.length === 0) return { evolution: [], yearlyAuthors: {}, yearlyGenders: {}, yearlyEditorials: {}, yearlyMaxEditorials: {}, yearlyActiveAuthorsMap: {}, maxTexts: 1, latestYear: null };
 
-                const programSnapshots = {}; 
+                const programSnapshots = {};
                 let minYear = Infinity; let maxYear = -Infinity;
 
                 filteredForTemporal.forEach(row => {
@@ -1871,7 +2001,7 @@
                     const c = row['Catedra'] || 'Sin Cátedra';
                     const a = getAuthorName(row);
                     const ed = (row['Editorial'] || '').trim();
-                    const gender = row['Genero 1'] || ''; 
+                    const gender = row['Genero 1'] || '';
                     const yearStr = row['Año del programa'];
                     const year = parseInt(yearStr, 10);
 
@@ -1903,7 +2033,7 @@
                             const itemsInProgram = programSnapshots[key][activeYear];
                             itemsInProgram.forEach(item => {
                                 activeAuthorsForYear[item.author] = (activeAuthorsForYear[item.author] || 0) + 1;
-                                
+
                                 if (item.gender && item.gender.toLowerCase().includes('masculino')) activeGendersForYear['Masculino']++;
                                 else if (item.gender && item.gender.toLowerCase().includes('femenino')) activeGendersForYear['Femenino']++;
                                 else activeGendersForYear['Otro/No especificado']++;
@@ -1925,14 +2055,14 @@
                         const yearStr = y.toString();
                         evolution.push({ year: yearStr, texts: totalActiveTexts, authors: uniqueAuthorsCount });
                         yearlyAuthors[yearStr] = Object.entries(activeAuthorsForYear).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
-                        
+
                         yearlyGenders[yearStr] = [
                             { name: 'Femenino', count: activeGendersForYear['Femenino'], color: '#10b981' },
                             { name: 'Masculino', count: activeGendersForYear['Masculino'], color: '#94a3b8' },
                             { name: 'Otro/No esp.', count: activeGendersForYear['Otro/No especificado'], color: '#e2e8f0' }
                         ].filter(d => d.count > 0).sort((a,b) => b.count - a.count);
 
-                        const topEditorials = Object.values(activeEditorialsForYear).sort((a, b) => b.count - a.count).slice(0, 10); 
+                        const topEditorials = Object.values(activeEditorialsForYear).sort((a, b) => b.count - a.count).slice(0, 10);
                         yearlyEditorials[yearStr] = topEditorials;
                         yearlyMaxEditorials[yearStr] = topEditorials.length > 0 ? topEditorials[0].count : 1;
                         yearlyActiveAuthorsMap[yearStr] = activeAuthorsForYear;
@@ -2020,7 +2150,7 @@
             // Main UI Return
             return (
                 <div className="mt-12 font-sans text-dark">
-                    
+
                     {/* Encabezado del Monitor Integrado */}
                     <div className="bg-primary text-white rounded-2xl shadow-md p-6 sm:px-8 mb-8 flex flex-col sm:flex-row justify-between items-center bg-gradient-to-r from-[#ff7d29] to-[#ff914d]">
                         <div className="flex items-center space-x-4 mb-4 sm:mb-0">
@@ -2140,7 +2270,7 @@
                     {}
                     {/* Contenido Central del Monitor */}
                     <div className="space-y-8">
-                        
+
                         {/* Resumen Global */}
                         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
                             <div className="flex items-center mb-8 border-b border-slate-100 pb-4">
@@ -2200,7 +2330,7 @@
                                     </button>
                                 </div>
                             </div>
-                            
+
                             <div className="relative">
                                 {showMapConfig && (
                                     <div className="absolute top-4 right-4 w-72 bg-white/95 backdrop-blur shadow-2xl border border-slate-200 rounded-xl z-20 flex flex-col max-h-[90%] overflow-hidden animate-slide-down">
@@ -2305,14 +2435,14 @@
                                     )}
                                 </div>
                             </div>
-                            
+
                             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                                 <div className="lg:col-span-2 flex flex-col">
                                     <div className="flex justify-between items-end mb-4">
                                         <h3 className="text-sm font-bold text-slate-700 m-0">Línea de tiempo de vigencia</h3>
                                         <span className="text-xs text-slate-400 bg-slate-50 px-2 py-1 rounded">Haz clic en una barra para inspeccionar el año</span>
                                     </div>
-                                    
+
                                     <div className="h-80 flex space-x-0.5 pt-6 pb-4 border-b border-slate-200 overflow-x-auto custom-scrollbar">
                                         {temporalAnalysis.evolution.length > 0 ? temporalAnalysis.evolution.map((point, idx) => {
                                             const isSelected = selectedEvolutionYear === point.year;
@@ -2363,7 +2493,7 @@
                                                 )}
                                             </div>
                                         </div>
-                                        
+
                                         {selectedEvolutionAuthors.length > 0 && (
                                             <div className="flex flex-wrap gap-2 mb-4">
                                                 {selectedEvolutionAuthors.map((author, idx) => {
@@ -2377,7 +2507,7 @@
                                                 })}
                                             </div>
                                         )}
-                                        
+
                                         <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 flex items-center justify-center relative w-full overflow-hidden">
                                             <SVGAuthorEvolutionLineChart selectedAuthors={selectedEvolutionAuthors} evolution={temporalAnalysis.evolution} yearlyDataMap={temporalAnalysis.yearlyActiveAuthorsMap} />
                                         </div>
@@ -2411,9 +2541,9 @@
 
                                         <div className="overflow-hidden">
                                             {selectedEvolutionYear && temporalAnalysis.yearlyAuthors[selectedEvolutionYear] ? (
-                                                <SVGCompositionPie 
-                                                    data={compositionView === 'Autores' ? temporalAnalysis.yearlyAuthors[selectedEvolutionYear] : temporalAnalysis.yearlyGenders[selectedEvolutionYear]} 
-                                                    onAuthorClick={compositionView === 'Autores' ? setSelectedAuthor : () => {}} 
+                                                <SVGCompositionPie
+                                                    data={compositionView === 'Autores' ? temporalAnalysis.yearlyAuthors[selectedEvolutionYear] : temporalAnalysis.yearlyGenders[selectedEvolutionYear]}
+                                                    onAuthorClick={compositionView === 'Autores' ? setSelectedAuthor : () => {}}
                                                 />
                                             ) : (
                                                 <div className="py-12 flex items-center justify-center text-sm text-slate-400">Selecciona un año en el gráfico</div>
