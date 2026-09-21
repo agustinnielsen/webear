@@ -48,7 +48,7 @@
             .view-section { display: none; animation: fadeIn 0.4s ease-out; }
             .view-section.active { display: block; }
             .modal { display: none; }
-            .modal.active { display: flex; animation: fadeIn 0.3s ease; }
+            .modal.active { display: flex !important; animation: fadeIn 0.3s ease; }
             .dropdown-menu { display: none; }
             .dropdown-menu.active { display: block; animation: fadeIn 0.2s ease; }
             .replies-container { display: none; }
@@ -120,8 +120,7 @@
                 display: flex;
             }
 
-            .gino-dropdown.hidden,
-            .hidden {
+            .gino-dropdown.hidden {
                 display: none !important;
             }
 
@@ -810,7 +809,7 @@
                             </div>
                         </form>
                     </div>
-                    <div class="flex-1 bg-amber-50 p-6 rounded-2xl border-l-4 border-primary flex flex-col justify-center text-sm text-gray-700 space-y-4">
+                    <div class="flex-1 bg-amber-50 p-6 rounded-2xl flex flex-col justify-center text-sm text-gray-700 space-y-4">
                         <h3 class="text-primary text-lg font-bold flex items-center gap-2">⚠️ Importante</h3>
                         <p>Es importante cuidar a la comunidad académica. A la hora de hacer reseñas se opina sobre el trabajo de personas reales.</p>
                         <p>Contamos con tu buena fe para que Gino Social sea un herramienta útil y constructiva.</p>
@@ -929,13 +928,17 @@
 
             function abrirModal(id) {
                 const el = mod(id);
-                if (el) el.classList.add('active');
+                if (el) {
+                    el.classList.remove('hidden');
+                    el.classList.add('active');
+                }
             }
 
             function cerrarModal(id) {
                 const el = mod(id);
                 if (!el) return;
                 el.classList.remove('active');
+                el.classList.add('hidden');
                 if (id === 'tycModal') pendingRegistrationData = null;
                 if (id === 'deleteConfirmModal') pendingDelete = null;
                 if (id === 'deleteReplyModal') pendingReplyDelete = null;
