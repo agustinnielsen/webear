@@ -238,9 +238,68 @@
                 transform: scale(1);
             }
 
+            /* Reel de Peek vertical para el selector de categoría */
+            .category-ticker-box {
+                position: relative;
+                overflow: hidden;
+                height: 24px;
+                width: 100%;
+                display: block;
+            }
+            @media (min-width: 640px) {
+                .category-ticker-box {
+                    width: 195px;
+                }
+            }
+            .category-peek-reel {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                display: flex;
+                flex-direction: column;
+                transform: translateY(-24px);
+                will-change: transform;
+            }
+            .category-peek-item {
+                height: 24px;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                pointer-events: none;
+                width: 100%;
+                white-space: nowrap;
+            }
+            @keyframes categoryPeekAnim {
+                0% {
+                    transform: translateY(-24px);
+                }
+                18% {
+                    transform: translateY(-11px); /* Asoma el de arriba */
+                }
+                34% {
+                    transform: translateY(-11px); /* Pausa breve arriba */
+                }
+                52% {
+                    transform: translateY(-37px); /* Asoma el de abajo */
+                }
+                68% {
+                    transform: translateY(-37px); /* Pausa breve abajo */
+                }
+                85% {
+                    transform: translateY(-23px); /* Micro rebote suave */
+                }
+                100% {
+                    transform: translateY(-24px); /* Regresa SIEMPRE al centro exacto */
+                }
+            }
+            .category-peek-reel.animate-peek {
+                animation: categoryPeekAnim 1.4s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+            }
+
             .modal-content-animated { animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-            .navbar.solid-bg { background-color: rgba(255, 125, 41, 0.95); padding-top: 0.5rem; padding-bottom: 0.5rem; box-shadow: 0 4px 10px rgba(0,0,0,0.15); backdrop-filter: blur(5px); }
-            .navbar.scrolled { background-color: rgba(255, 125, 41, 0.95); padding-top: 0.5rem; padding-bottom: 0.5rem; box-shadow: 0 4px 10px rgba(0,0,0,0.15); backdrop-filter: blur(5px); }
+            .navbar.solid-bg { background-color: #ff7d29; padding-top: 0.5rem; padding-bottom: 0.5rem; box-shadow: none; }
+            .navbar.scrolled { background-color: #ff7d29; padding-top: 0.5rem; padding-bottom: 0.5rem; box-shadow: none; }
 
             ::-webkit-scrollbar { width: 8px; }
             ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
@@ -300,7 +359,7 @@
 
         <!-- Navbar -->
         <nav id="mainNav" class="navbar fixed top-0 left-0 w-full p-4 md:px-8 flex justify-between items-center z-[1000] bg-transparent transition-all duration-300">
-            <button id="menuBtn" class="text-white text-3xl hover:scale-110 transition-transform drop-shadow-md">☰</button>
+            <button id="menuBtn" class="text-white text-3xl hover:scale-110 transition-transform drop-shadow-md flex items-center justify-center cursor-pointer select-none" title="Menú" aria-label="Menú">☰</button>
 
             <div class="eyes-container absolute left-1/2 -translate-x-1/2 flex gap-4 pointer-events-none" id="navEyes">
                 <div class="w-12 h-8 bg-white rounded-[50%] relative overflow-hidden shadow-inner eye">
@@ -315,9 +374,9 @@
 
             <div class="flex items-center gap-3">
                 <div id="userInfo" class="gino-dropdown hidden items-center">
-                    <button type="button" id="userDropdownBtn" class="gino-dropdown-trigger py-1.5 pl-2 pr-2.5 sm:pr-3.5 bg-white hover:bg-orange-50 text-dark rounded-full font-bold text-sm gap-2 sm:gap-2.5 shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all select-none flex items-center outline-none cursor-pointer">
-                        <div id="userAvatar" class="w-7 h-7 bg-primary text-white font-black rounded-full flex items-center justify-center text-xs shrink-0 shadow-xs">U</div>
-                        <span id="userName" class="text-sm font-bold text-dark hidden sm:inline max-w-[110px] md:max-w-[160px] truncate">Usuario</span>
+                    <button type="button" id="userDropdownBtn" class="gino-dropdown-trigger py-1.5 px-3.5 sm:px-4 bg-white hover:bg-orange-50 text-dark rounded-full font-bold text-sm gap-2 shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all select-none flex items-center outline-none cursor-pointer">
+                        <span class="material-symbols-outlined text-primary text-lg">person</span>
+                        <span class="text-sm font-bold text-dark">Mi Perfil</span>
                         <span class="material-symbols-outlined text-gray-400 text-lg chevron-icon">expand_more</span>
                     </button>
 
@@ -336,8 +395,8 @@
                         <div class="space-y-0.5">
                             <button type="button" id="myProfileBtn" class="gino-dropdown-item w-full flex items-center justify-between text-gray-700 hover:text-primary transition-colors">
                                 <span class="flex items-center gap-2.5">
-                                    <span class="material-symbols-outlined text-lg text-primary">person</span>
-                                    <span class="item-text font-semibold text-sm">Mi Perfil</span>
+                                    <span class="material-symbols-outlined text-lg text-primary">route</span>
+                                    <span class="item-text font-semibold text-sm">Mi Trayectoria</span>
                                 </span>
                                 <span class="material-symbols-outlined text-sm text-gray-400">chevron_right</span>
                             </button>
@@ -363,7 +422,7 @@
         <main id="app-content" class="flex-grow">
             <!-- VISTA DE INICIO -->
             <div id="home-view" class="view-section active">
-                <header class="bg-gradient-to-br from-[#ff7d29] to-[#ff914d] text-white pt-28 pb-16 px-6 text-center mb-8" style="clip-path: polygon(0 0, 100% 0, 100% 90%, 0 100%);">
+                <header class="bg-primary text-white pt-28 pb-16 px-6 text-center mb-8" style="clip-path: polygon(0 0, 100% 0, 100% 90%, 0 100%);">
                     <h1 id="ginoTitle" class="text-5xl md:text-7xl font-black mb-2 tracking-tighter drop-shadow-md cursor-pointer">Gino Social</h1>
                 </header>
 
@@ -377,11 +436,26 @@
                         </div>
                         <div class="gino-dropdown w-full sm:w-auto shrink-0" id="categoryDropdownWrapper">
                             <button type="button" id="categoryDropdownBtn" class="gino-dropdown-trigger w-full sm:w-auto py-2.5 px-4 bg-gray-50/90 hover:bg-orange-50 border border-gray-200/80 hover:border-primary/50 rounded-full font-bold text-dark text-sm justify-between gap-3 shadow-xs transition-all">
-                                <div class="flex items-center gap-2">
-                                    <span class="material-symbols-outlined text-primary text-lg">category</span>
-                                    <span class="gino-dropdown-label truncate" id="categoryDropdownLabel">Materias obligatorias</span>
+                                <div class="category-ticker-box relative overflow-hidden h-6 flex-1 min-w-0 sm:w-[195px] sm:flex-initial">
+                                    <div id="categoryPeekReel" class="category-peek-reel">
+                                        <!-- Opción de arriba (preview sutil) -->
+                                        <div id="peekItemAbove" class="category-peek-item text-gray-400 opacity-60 text-xs sm:text-sm select-none">
+                                            <span class="material-symbols-outlined text-primary/70 text-base shrink-0" id="peekAboveIcon">translate</span>
+                                            <span class="truncate" id="peekAboveLabel">Idiomas</span>
+                                        </div>
+                                        <!-- Opción CENTRAL (Filtro Activo Real) -->
+                                        <div id="peekItemCenter" class="category-peek-item text-dark font-bold text-sm select-none">
+                                            <span class="material-symbols-outlined text-primary text-lg shrink-0" id="categoryDropdownIcon">school</span>
+                                            <span class="gino-dropdown-label truncate" id="categoryDropdownLabel">Materias obligatorias</span>
+                                        </div>
+                                        <!-- Opción de abajo (preview sutil) -->
+                                        <div id="peekItemBelow" class="category-peek-item text-gray-400 opacity-60 text-xs sm:text-sm select-none">
+                                            <span class="material-symbols-outlined text-primary/70 text-base shrink-0" id="peekBelowIcon">psychology</span>
+                                            <span class="truncate" id="peekBelowLabel">Sociologías especiales</span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <span class="material-symbols-outlined text-gray-400 text-lg chevron-icon">expand_more</span>
+                                <span class="material-symbols-outlined text-gray-400 text-lg chevron-icon shrink-0">expand_more</span>
                             </button>
                             <div class="gino-dropdown-menu align-right w-full sm:w-64" id="categoryDropdownMenu">
                                 <div class="gino-dropdown-item active" data-value="materias" data-label="Materias obligatorias">
@@ -467,11 +541,8 @@
 
             <!-- VISTA DE MATERIA INDIVIDUAL -->
             <div id="materia-view" class="view-section">
-                <div class="bg-primary pt-24 pb-6 px-6 md:px-12 text-white shadow-inner mb-6">
+                <div class="bg-primary pt-24 pb-6 px-6 md:px-12 text-white mb-6">
                     <div class="max-w-6xl mx-auto flex flex-col gap-4">
-                        <a href="javascript:void(0)" onclick="window.location.hash='#/'" class="inline-flex items-center gap-2 bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full font-semibold w-fit transition-colors">
-                            <span class="material-symbols-outlined text-sm">arrow_back</span> Volver al listado
-                        </a>
                         <h1 id="materiaPageTitle" class="text-4xl md:text-5xl font-black drop-shadow-sm">Cargando Materia...</h1>
                         <div id="materiaCatedrasList" class="flex flex-wrap gap-2 text-lg opacity-90 items-center"></div>
                     </div>
@@ -507,7 +578,6 @@
                                 </div>
 
                                 <form id="reviewFormElement" class="hidden space-y-6">
-                                    <h2 class="text-xl md:text-2xl font-black text-primary text-center mb-6">Tu experiencia importa</h2>
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div class="space-y-2">
                                             <label for="catedra" class="block font-semibold text-dark">Cátedra</label>
@@ -810,7 +880,7 @@
                         </form>
                     </div>
                     <div class="flex-1 bg-amber-50 p-6 rounded-2xl flex flex-col justify-center text-sm text-gray-700 space-y-4">
-                        <h3 class="text-primary text-lg font-bold flex items-center gap-2">Importante</h3>
+                        <h3 class="text-primary text-lg font-bold flex items-center gap-2">⚠️ Importante</h3>
                         <p>Es importante cuidar a la comunidad académica. A la hora de hacer reseñas se opina sobre el trabajo de personas reales.</p>
                         <p>Contamos con tu buena fe para que Gino Social sea un herramienta útil y constructiva.</p>
                         <p>Por esta razón <strong class="text-red-500">pedimos que tus reseñas sean con nombre y apellidos reales</strong>.</p>
@@ -1003,6 +1073,13 @@
                 document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
                 mod('menu-home-link').classList.add('active');
 
+                const menuBtn = mod('menuBtn');
+                if (menuBtn) {
+                    menuBtn.innerHTML = '☰';
+                    menuBtn.setAttribute('title', 'Menú');
+                    menuBtn.setAttribute('aria-label', 'Menú');
+                }
+
                 if (mod('categorySelect')) mod('categorySelect').value = appState.currentCategory;
                 if (typeof setGinoDropdownValue === 'function') setGinoDropdownValue('categoryDropdownWrapper', appState.currentCategory);
                 document.querySelectorAll('.category-btn').forEach(x => {
@@ -1021,6 +1098,13 @@
                 mod('materia-view').classList.add('active');
                 mod('mainNav').classList.add('solid-bg');
                 document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+
+                const menuBtn = mod('menuBtn');
+                if (menuBtn) {
+                    menuBtn.innerHTML = '<span class="material-symbols-outlined text-3xl leading-none flex items-center justify-center">arrow_back</span>';
+                    menuBtn.setAttribute('title', 'Volver al inicio');
+                    menuBtn.setAttribute('aria-label', 'Volver al inicio');
+                }
 
                 mod('materiaPageTitle').textContent = materia.nombre;
                 const categoryNames = { materias: "Materia Obligatoria", especiales: "Sociología Especial", teorias: "Teoría Sociológica", horasdeinv: "Taller / Seminario", idiomas: "Idioma" };
@@ -1545,7 +1629,13 @@
                 const overlay = mod('sidebarOverlay');
                 const closeBtn = mod('closeSidebar');
 
-                menuBtn.onclick = () => { sidebar.classList.add('active'); overlay.classList.add('active'); document.body.style.overflow = 'hidden'; };
+                menuBtn.onclick = () => {
+                    if (window.location.hash.startsWith('#/materia/')) {
+                        window.location.hash = '#/';
+                        return;
+                    }
+                    sidebar.classList.add('active'); overlay.classList.add('active'); document.body.style.overflow = 'hidden';
+                };
                 const close = () => { sidebar.classList.remove('active'); overlay.classList.remove('active'); document.body.style.overflow = ''; };
                 closeBtn.onclick = close; overlay.onclick = close;
 
@@ -1637,18 +1727,63 @@
             }
 
             function configurarOjosGino() {
-                const eyes = mod('navEyes'); const pupils = document.querySelectorAll('.pupil'); const ta = mod('reviewText');
-                ta.onfocus = () => { eyes.classList.add('active', 'open'); mod('userName').classList.add('max-w-0','opacity-0'); };
-                ta.onblur = () => { eyes.classList.remove('open'); mod('userName').classList.remove('max-w-0','opacity-0'); setTimeout(()=>eyes.classList.remove('active'),300); };
-                document.onmousemove = e => {
-                    if (!eyes.classList.contains('active')) return;
+                const eyes = mod('navEyes');
+                const pupils = document.querySelectorAll('.pupil');
+                const ta = mod('reviewText');
+                const searchInput = mod('searchMaterias');
+                if (!eyes) return;
+
+                const lookAt = (targetX, targetY) => {
                     pupils.forEach(p => {
                         const rect = p.parentElement.getBoundingClientRect();
-                        const angle = Math.atan2(e.clientY - (rect.top + rect.height/2), e.clientX - (rect.left + rect.width/2));
-                        const dist = Math.min(10, Math.hypot(e.clientX - (rect.left + rect.width/2), e.clientY - (rect.top + rect.height/2)) / 15);
-                        p.style.transform = `translate(calc(-50% + ${Math.cos(angle)*dist}px), calc(-50% + ${Math.sin(angle)*dist}px))`;
+                        const eyeCenterX = rect.left + rect.width / 2;
+                        const eyeCenterY = rect.top + rect.height / 2;
+                        const angle = Math.atan2(targetY - eyeCenterY, targetX - eyeCenterX);
+                        const dist = Math.min(10, Math.hypot(targetX - eyeCenterX, targetY - eyeCenterY) / 15);
+                        p.style.transform = `translate(calc(-50% + ${Math.cos(angle) * dist}px), calc(-50% + ${Math.sin(angle) * dist}px))`;
                     });
                 };
+
+                const activate = (targetEl) => {
+                    eyes.classList.add('active', 'open');
+                    const userNameEl = mod('userName');
+                    if (userNameEl) userNameEl.classList.add('max-w-0', 'opacity-0');
+                    if (targetEl) {
+                        const r = targetEl.getBoundingClientRect();
+                        lookAt(r.left + r.width / 2, r.top + r.height / 2);
+                    }
+                };
+
+                const deactivate = () => {
+                    eyes.classList.remove('open');
+                    const userNameEl = mod('userName');
+                    if (userNameEl) userNameEl.classList.remove('max-w-0', 'opacity-0');
+                    setTimeout(() => {
+                        const isSearchFocused = searchInput && document.activeElement === searchInput;
+                        const isTaFocused = ta && document.activeElement === ta;
+                        if (!isSearchFocused && !isTaFocused) {
+                            eyes.classList.remove('active');
+                        }
+                    }, 300);
+                };
+
+                if (ta) {
+                    ta.addEventListener('focus', () => activate(ta));
+                    ta.addEventListener('blur', deactivate);
+                }
+
+                if (searchInput) {
+                    searchInput.addEventListener('focus', () => activate(searchInput));
+                    searchInput.addEventListener('blur', deactivate);
+                    searchInput.addEventListener('input', () => {
+                        if (!eyes.classList.contains('active')) activate(searchInput);
+                    });
+                }
+
+                document.addEventListener('mousemove', (e) => {
+                    if (!eyes.classList.contains('active')) return;
+                    lookAt(e.clientX, e.clientY);
+                });
             }
 
             function configurarEasterEgg() {
@@ -1928,9 +2063,19 @@
                     if (isMatch && label) {
                         label.textContent = item.dataset.label || item.querySelector('.item-text')?.textContent || item.textContent.trim();
                     }
+                    if (isMatch && wrapperId === 'categoryDropdownWrapper') {
+                        const icon = wrapper.querySelector('#categoryDropdownIcon');
+                        const itemIcon = item.querySelector('.material-symbols-outlined:not(.check-icon)');
+                        if (icon && itemIcon) {
+                            icon.textContent = itemIcon.textContent.trim();
+                        }
+                    }
                 });
                 if (hiddenSelect && hiddenSelect.value !== value) {
                     hiddenSelect.value = value;
+                }
+                if (wrapperId === 'categoryDropdownWrapper' && typeof window.syncCategoryTickerToActive === 'function') {
+                    window.syncCategoryTickerToActive();
                 }
             }
 
@@ -1949,6 +2094,7 @@
                 initGinoDropdown('categoryDropdownWrapper', (val) => {
                     cambiarCategoria(val);
                 });
+                initCategoryTicker();
                 const select = mod('categorySelect');
                 if (select) {
                     select.onchange = e => cambiarCategoria(e.target.value);
@@ -1958,9 +2104,135 @@
                 });
             }
 
+            function initCategoryTicker() {
+                const wrapper = mod('categoryDropdownWrapper');
+                const btn = mod('categoryDropdownBtn');
+                const reel = mod('categoryPeekReel');
+                const currentIcon = mod('categoryDropdownIcon');
+                const currentLabel = mod('categoryDropdownLabel');
+                const aboveIcon = mod('peekAboveIcon');
+                const aboveLabel = mod('peekAboveLabel');
+                const belowIcon = mod('peekBelowIcon');
+                const belowLabel = mod('peekBelowLabel');
+                if (!wrapper || !btn || !reel) return;
+
+                const menuItems = Array.from(wrapper.querySelectorAll('.gino-dropdown-menu .gino-dropdown-item'));
+                if (menuItems.length === 0) return;
+
+                const categoryList = menuItems.map(item => ({
+                    value: item.dataset.value,
+                    label: item.dataset.label || item.querySelector('.item-text')?.textContent?.trim() || item.textContent.trim(),
+                    icon: item.querySelector('.material-symbols-outlined:not(.check-icon)')?.textContent?.trim() || 'category'
+                }));
+
+                let tickerTimer = null;
+                let isHovered = false;
+                let cycleOffset = 0;
+
+                function syncToActive() {
+                    reel.classList.remove('animate-peek');
+                    reel.style.transform = 'translateY(-24px)';
+                    const activeVal = appState.currentCategory || 'materias';
+                    const activeIdx = categoryList.findIndex(c => c.value === activeVal);
+                    const currentCat = categoryList[activeIdx >= 0 ? activeIdx : 0];
+                    if (currentCat) {
+                        if (currentIcon) currentIcon.textContent = currentCat.icon;
+                        if (currentLabel) currentLabel.textContent = currentCat.label;
+                    }
+                    prepareNeighborOptions();
+                }
+
+                function prepareNeighborOptions() {
+                    const activeVal = appState.currentCategory || 'materias';
+                    const otherCats = categoryList.filter(c => c.value !== activeVal);
+                    if (otherCats.length === 0) return;
+
+                    const catAbove = otherCats[cycleOffset % otherCats.length];
+                    const catBelow = otherCats[(cycleOffset + 1) % otherCats.length];
+
+                    if (aboveIcon) aboveIcon.textContent = catAbove.icon;
+                    if (aboveLabel) aboveLabel.textContent = catAbove.label;
+                    if (belowIcon) belowIcon.textContent = catBelow.icon;
+                    if (belowLabel) belowLabel.textContent = catBelow.label;
+                }
+
+                function triggerPeek() {
+                    if (isHovered || wrapper.classList.contains('open') || document.hidden) return;
+                    if (reel.classList.contains('animate-peek')) return;
+
+                    prepareNeighborOptions();
+                    cycleOffset = (cycleOffset + 1) % (categoryList.length - 1 || 1);
+
+                    // Forzar reflow y disparar animación de asomo
+                    reel.classList.remove('animate-peek');
+                    void reel.offsetWidth;
+                    reel.classList.add('animate-peek');
+                }
+
+                reel.addEventListener('animationend', () => {
+                    reel.classList.remove('animate-peek');
+                    reel.style.transform = 'translateY(-24px)';
+                });
+
+                function startLoop(delay = 4500) {
+                    stopLoop();
+                    tickerTimer = setInterval(triggerPeek, delay);
+                }
+
+                function stopLoop() {
+                    if (tickerTimer) {
+                        clearInterval(tickerTimer);
+                        tickerTimer = null;
+                    }
+                }
+
+                btn.addEventListener('mouseenter', () => {
+                    isHovered = true;
+                    stopLoop();
+                    reel.classList.remove('animate-peek');
+                    reel.style.transform = 'translateY(-24px)';
+                });
+
+                btn.addEventListener('mouseleave', () => {
+                    isHovered = false;
+                    if (!wrapper.classList.contains('open')) {
+                        startLoop(4800);
+                    }
+                });
+
+                const observer = new MutationObserver(() => {
+                    if (wrapper.classList.contains('open')) {
+                        stopLoop();
+                        reel.classList.remove('animate-peek');
+                        reel.style.transform = 'translateY(-24px)';
+                    } else if (!isHovered) {
+                        startLoop(5000);
+                    }
+                });
+                observer.observe(wrapper, { attributes: true, attributeFilter: ['class'] });
+
+                document.addEventListener('visibilitychange', () => {
+                    if (document.hidden) {
+                        stopLoop();
+                        reel.classList.remove('animate-peek');
+                        reel.style.transform = 'translateY(-24px)';
+                    } else if (!isHovered && !wrapper.classList.contains('open')) {
+                        startLoop(3500);
+                    }
+                });
+
+                window.syncCategoryTickerToActive = syncToActive;
+
+                setTimeout(() => {
+                    syncToActive();
+                    startLoop(3800);
+                }, 2200);
+            }
+
             function cambiarCategoria(cat) {
                 appState.currentCategory = cat;
                 if (typeof setGinoDropdownValue === 'function') setGinoDropdownValue('categoryDropdownWrapper', cat);
+                if (typeof window.syncCategoryTickerToActive === 'function') window.syncCategoryTickerToActive();
                 const select = mod('categorySelect');
                 if (select && select.value !== cat) select.value = cat;
 
