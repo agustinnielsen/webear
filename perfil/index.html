@@ -9,6 +9,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script>
     tailwind.config = {
       theme: {
@@ -48,6 +49,33 @@
     @keyframes popIn { from { opacity: 0; transform: translateY(8px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
     .progress-ring { transition: background .35s ease; }
     
+    select {
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+      background-position: right 0.85rem center;
+      background-repeat: no-repeat;
+      background-size: 1.2rem 1.2rem;
+      padding-right: 2.5rem !important;
+      cursor: pointer;
+    }
+    select:focus {
+      border-color: #ff7d29 !important;
+      box-shadow: 0 0 0 1px #ff7d29;
+    }
+    select:invalid,
+    select:has(option[value=""]:checked),
+    select.is-placeholder {
+      color: rgba(156, 163, 175, 0.65) !important;
+    }
+    select option {
+      color: #2c3e50;
+    }
+    select option[value=""] {
+      color: rgba(156, 163, 175, 0.65);
+    }
+
     ::-webkit-scrollbar { width: 8px; }
     ::-webkit-scrollbar-track { background: #f1f1f1; }
     ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
@@ -88,16 +116,17 @@
         
         <!-- 1. Quiero cursar -->
         <section id="wantedSection" class="bg-white rounded-2xl md:rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-          <div class="p-4 sm:p-5 md:p-7 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100">
-            <div>
+          <div class="p-4 sm:p-5 md:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100">
+            <div class="min-w-0">
               <div class="flex items-center gap-2">
                 <span class="material-symbols-outlined text-primary">bookmark_heart</span>
                 <h2 class="text-xl md:text-2xl font-black text-dark">Quiero cursar</h2>
               </div>
               <p class="text-sm text-gray-500 mt-1">Una lista corta para preparar tu próximo cuatrimestre.</p>
             </div>
-            <button id="addWantedBtn" class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-primary text-white font-bold shadow-sm hover:bg-primaryDark transition-colors flex items-center justify-center gap-2">
-              <span class="material-symbols-outlined text-lg">add</span> Agregar materia
+            <button id="addWantedBtn" type="button" class="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-transparent bg-primary text-white font-bold shadow-sm hover:bg-primaryDark hover:shadow active:scale-[0.98] transition-all flex items-center justify-center gap-2 text-sm whitespace-nowrap shrink-0">
+              <span class="material-symbols-outlined text-lg">add</span>
+              <span>Agregar materia</span>
             </button>
           </div>
           <div id="wantedCoursesList" class="p-4 sm:p-5 md:p-7 grid grid-cols-1 md:grid-cols-2 gap-2.5 sm:gap-3"></div>
@@ -105,17 +134,22 @@
 
         <!-- 2. Materias realizadas -->
         <section id="completedSection" class="bg-white rounded-2xl md:rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-          <div class="p-4 sm:p-5 md:p-7 border-b border-gray-100 flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-slate-50/50">
-            <div>
+          <div class="p-4 sm:p-5 md:p-6 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50/50">
+            <div class="min-w-0">
               <div class="flex items-center gap-2">
                 <span class="material-symbols-outlined text-primary">task_alt</span>
                 <h2 class="text-xl md:text-2xl font-black text-dark">Materias realizadas</h2>
               </div>
-              <p class="text-sm text-gray-500 mt-1"><span id="completedCountLabel">0</span> registros · las notas alimentan automáticamente tus promedios.</p>
+              <p class="text-sm text-gray-500 mt-1"><span id="completedCountLabel">0</span> materias registradas</p>
             </div>
-            <div class="w-full lg:w-auto">
-              <button id="addCompletedBtn" class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-primary text-white font-bold shadow-sm hover:bg-primaryDark transition-colors flex items-center justify-center gap-2">
-                <span class="material-symbols-outlined text-lg">add</span> Agregar realizada
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 shrink-0">
+              <button id="openImportSiuBtn" type="button" class="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-orange-200/90 bg-orange-50/70 text-primary font-bold shadow-xs hover:bg-orange-100 hover:border-primary/50 active:scale-[0.98] transition-all flex items-center justify-center gap-2 text-sm whitespace-nowrap">
+                <span class="material-symbols-outlined text-lg">upload_file</span>
+                <span>Cargar historia académica</span>
+              </button>
+              <button id="addCompletedBtn" type="button" class="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-transparent bg-primary text-white font-bold shadow-sm hover:bg-primaryDark hover:shadow active:scale-[0.98] transition-all flex items-center justify-center gap-2 text-sm whitespace-nowrap">
+                <span class="material-symbols-outlined text-lg">add</span>
+                <span>Agregar realizada</span>
               </button>
             </div>
           </div>
@@ -186,95 +220,222 @@
   <!-- Modal quiero cursar -->
   <div id="wantedModal" class="modal fixed inset-0 bg-black/60 z-50 items-center justify-center p-4 backdrop-blur-sm">
     <div class="modal-card mobile-safe-bottom bg-white rounded-3xl w-full max-w-md shadow-2xl p-6 md:p-8">
-      <div class="flex items-start justify-between gap-4 mb-5">
-        <div>
-          <h2 class="text-xl md:text-2xl font-black text-dark">Agregar a “Quiero cursar”</h2>
-          <p class="text-sm text-gray-500 mt-1">Planificación local del próximo cuatrimestre.</p>
-        </div>
+      <div class="flex items-center justify-between gap-4 mb-5">
+        <h2 class="text-xl md:text-2xl font-black text-dark">Quiero cursar</h2>
         <button data-close-modal class="text-gray-400 hover:text-gray-700 text-2xl">✕</button>
       </div>
       <form id="wantedForm" class="space-y-4">
         <div class="block space-y-1 relative-dropdown-container">
           <span class="text-sm font-bold text-gray-600">Materia</span>
           <div class="relative">
-            <input id="wantedName" autocomplete="off" required class="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-primary" placeholder="Buscá una materia…">
+            <input id="wantedName" autocomplete="off" required class="w-full p-3 pr-10 border border-gray-200 rounded-xl outline-none focus:border-primary" placeholder="Buscá una materia…">
+            <button type="button" id="wantedNameClear" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-sm font-bold" title="Borrar texto">✕</button>
             <!-- Custom Dropdown -->
-            <div id="wantedDropdown" class="custom-dropdown hidden absolute left-0 right-0 top-full mt-2 bg-white border border-gray-100 rounded-xl shadow-2xl z-[60] flex-col overflow-hidden">
+            <div id="wantedDropdown" class="custom-dropdown hidden absolute left-0 right-0 top-full mt-1.5 bg-white border border-gray-200 rounded-xl shadow-xl z-[60] flex-col overflow-hidden">
               <!-- Content injected via JS -->
             </div>
           </div>
         </div>
-        <label class="block space-y-1">
-          <span class="text-sm font-bold text-gray-600">Tipo</span>
-          <select id="wantedType" class="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-primary bg-white">
-            <option value="obligatoria">Obligatoria</option>
-            <option value="especial">Sociología especial</option>
-            <option value="teoria">Teoría sociológica</option>
-            <option value="investigacion">Investigación</option>
+        <input id="wantedType" type="hidden">
+        <div class="block space-y-1" id="wantedCatedraField">
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-bold text-gray-600">Cátedra</span>
+            <span id="wantedCatedraLoading" class="hidden text-xs text-primary font-medium">Buscando cátedras…</span>
+          </div>
+          <select id="wantedCatedra" required class="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-primary bg-white text-dark text-sm md:text-base cursor-pointer transition-colors">
+            <option value="">Seleccionar</option>
           </select>
-        </label>
+        </div>
         <label class="block space-y-1">
           <span class="text-sm font-bold text-gray-600">Nota personal <span class="font-normal text-gray-400">(opcional)</span></span>
           <textarea id="wantedNote" rows="3" class="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-primary resize-none" placeholder="Ej. Prioridad alta, buscar turno noche…"></textarea>
         </label>
-        <div class="flex gap-3 pt-2">
-          <button type="button" data-close-modal class="flex-1 py-3 border border-gray-200 text-gray-600 font-bold rounded-xl hover:bg-gray-50">Cancelar</button>
-          <button type="submit" class="flex-1 py-3 bg-primary text-white font-black rounded-xl hover:bg-primaryDark">Agregar</button>
+        <div class="flex items-center justify-end gap-3 pt-3 border-t border-gray-100">
+          <button type="button" data-close-modal class="flex-1 sm:flex-initial px-5 py-2.5 border border-gray-200 text-gray-600 font-bold rounded-xl hover:bg-gray-50 hover:text-dark transition-all text-sm shadow-xs">Cancelar</button>
+          <button type="submit" class="flex-1 sm:flex-initial px-6 py-2.5 bg-primary text-white font-black rounded-xl hover:bg-primaryDark hover:shadow active:scale-[0.98] transition-all text-sm shadow-sm">Agregar</button>
         </div>
       </form>
     </div>
   </div>
 
   <!-- Modal materia realizada: alta y edición -->
-  <div id="completedModal" class="modal fixed inset-0 bg-black/60 z-50 items-center justify-center p-4 backdrop-blur-sm">
-    <div class="modal-card mobile-safe-bottom bg-white rounded-3xl w-full max-w-lg max-h-[92vh] overflow-y-auto shadow-2xl p-6 md:p-8">
-      <div class="flex items-start justify-between gap-4 mb-5">
-        <div>
-          <h2 id="completedModalTitle" class="text-xl md:text-2xl font-black text-dark">Agregar materia realizada</h2>
-          <p class="text-sm text-gray-500 mt-1">El historial actualiza automáticamente avance y promedios.</p>
+  <div id="completedModal" class="modal fixed inset-0 bg-black/60 z-50 items-center justify-center p-3 sm:p-4 backdrop-blur-sm">
+    <div class="modal-card mobile-safe-bottom bg-white rounded-3xl w-full max-w-4xl max-h-[92vh] overflow-y-auto shadow-2xl p-5 sm:p-6 md:p-8">
+      <div class="flex items-center justify-between gap-4 mb-5">
+        <div class="flex items-center gap-2.5">
+          <span class="material-symbols-outlined text-primary text-2xl">school</span>
+          <h2 id="completedModalTitle" class="text-xl md:text-2xl font-black text-dark">Cargar materias realizadas</h2>
         </div>
         <button data-close-modal class="text-gray-400 hover:text-gray-700 text-2xl">✕</button>
       </div>
+
       <form id="completedForm" class="space-y-4">
         <input id="completedEditId" type="hidden">
-        <div class="block space-y-1 relative-dropdown-container">
-          <span class="text-sm font-bold text-gray-600">Materia / actividad</span>
-          <div class="relative">
-            <input id="completedName" autocomplete="off" required class="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-primary" placeholder="Buscá una materia o actividad…">
-            <!-- Custom Dropdown -->
-            <div id="completedDropdown" class="custom-dropdown hidden absolute left-0 right-0 top-full mt-2 bg-white border border-gray-100 rounded-xl shadow-2xl z-[60] flex-col overflow-hidden">
-              <!-- Content injected via JS -->
-            </div>
+
+        <!-- Encabezados de columnas (estilo pastillas como la referencia) -->
+        <div id="completedTableHeaders" class="hidden md:grid grid-cols-[minmax(260px,3.2fr)_minmax(170px,1.8fr)_minmax(85px,0.8fr)_36px] gap-2.5 text-center text-xs font-bold text-slate-600">
+          <div class="bg-slate-100/90 py-2.5 px-3 rounded-xl border border-slate-200/70 shadow-2xs">Materia / actividad</div>
+          <div class="bg-slate-100/90 py-2.5 px-3 rounded-xl border border-slate-200/70 shadow-2xs">Cátedra</div>
+          <div class="bg-slate-100/90 py-2.5 px-3 rounded-xl border border-slate-200/70 shadow-2xs">Nota</div>
+          <div class="bg-slate-100/90 py-2.5 px-1 rounded-xl border border-slate-200/70 flex items-center justify-center text-slate-400 shadow-2xs">✕</div>
+        </div>
+
+        <!-- Contenedor dinámico de filas -->
+        <div id="completedRowsContainer" class="space-y-3">
+          <!-- Filas inyectadas dinámicamente -->
+        </div>
+
+        <!-- Botón agregar otra materia -->
+        <div id="completedAddRowBtnContainer" class="flex justify-center pt-2">
+          <button type="button" id="completedAddRowBtn" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-sm transition-all flex items-center gap-2 shadow-2xs active:scale-[0.98]">
+            <span class="material-symbols-outlined text-lg text-primary">add</span>
+            <span>Agregar otra materia</span>
+          </button>
+        </div>
+
+        <!-- Pie del modal -->
+        <div class="flex items-center justify-between gap-3 pt-4 border-t border-gray-100 mt-4">
+          <button id="deleteCompletedBtn" type="button" class="hidden px-3.5 py-2.5 border border-red-200 text-red-600 font-bold rounded-xl hover:bg-red-50 hover:border-red-300 transition-all text-sm shadow-xs" title="Eliminar registro">
+            <span class="material-symbols-outlined text-lg align-middle">delete</span>
+          </button>
+          <div class="flex items-center justify-end gap-3 ml-auto flex-1 sm:flex-initial">
+            <button type="button" data-close-modal class="flex-1 sm:flex-initial px-5 py-2.5 border border-gray-200 text-gray-600 font-bold rounded-xl hover:bg-gray-50 hover:text-dark transition-all text-sm shadow-xs">Cancelar</button>
+            <button type="submit" class="flex-1 sm:flex-initial px-6 py-2.5 bg-primary text-white font-black rounded-xl hover:bg-primaryDark hover:shadow active:scale-[0.98] transition-all text-sm shadow-sm">Guardar</button>
           </div>
         </div>
-        <label class="block space-y-1">
-          <span class="text-sm font-bold text-gray-600">Tipo</span>
-          <select id="completedType" class="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-primary bg-white">
-            <option value="obligatoria">Obligatoria</option>
-            <option value="especial">Sociología especial</option>
-            <option value="teoria">Teoría sociológica</option>
-            <option value="taller">Taller de investigación · 100 h</option>
-            <option value="seminario">Seminario de investigación · 50 h</option>
-          </select>
-        </label>
-        <div id="gradeField">
-          <label class="block space-y-1">
-            <span class="text-sm font-bold text-gray-600">Nota final <span class="font-normal text-gray-400">(opcional)</span></span>
-            <input id="completedGrade" type="number" min="0" max="10" step="0.01" class="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-primary" placeholder="0–10">
-          </label>
-          <p class="text-xs text-gray-400 mt-1">Modificar esta nota actualiza el promedio UBA y el GPA del panel lateral.</p>
-        </div>
-        <div id="researchInfo" class="hidden rounded-2xl bg-emerald-50 border border-emerald-100 p-4 text-sm text-emerald-800">
-          <strong id="researchHoursLabel">100 horas</strong> se sumarán al requisito de investigación. La nota de esta actividad también se incluye en el promedio UBA y el GPA.
-        </div>
-        <div class="flex gap-3 pt-2">
-          <button id="deleteCompletedBtn" type="button" class="hidden px-4 py-3 border border-red-200 text-red-600 font-bold rounded-xl hover:bg-red-50" title="Eliminar registro">
-            <span class="material-symbols-outlined align-middle">delete</span>
-          </button>
-          <button type="button" data-close-modal class="flex-1 py-3 border border-gray-200 text-gray-600 font-bold rounded-xl hover:bg-gray-50">Cancelar</button>
-          <button type="submit" class="flex-1 py-3 bg-primary text-white font-black rounded-xl hover:bg-primaryDark">Guardar</button>
-        </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Modal Cargar historia académica (SIU Guaraní) -->
+  <div id="importSiuModal" class="modal fixed inset-0 bg-black/60 z-50 items-center justify-center p-4 backdrop-blur-sm">
+    <div class="modal-card mobile-safe-bottom bg-white rounded-3xl w-full max-w-xl max-h-[92vh] overflow-y-auto shadow-2xl p-6 md:p-8">
+      
+      <!-- Paso 1: Subida de archivo -->
+      <div id="siuStepUpload" class="space-y-5">
+        <div class="flex items-center justify-between gap-4">
+          <div class="flex items-center gap-2.5">
+            <span class="material-symbols-outlined text-primary text-2xl">upload_file</span>
+            <h2 class="text-xl md:text-2xl font-black text-dark">Cargar historia académica</h2>
+          </div>
+          <button data-close-modal class="text-gray-400 hover:text-gray-700 text-2xl">✕</button>
+        </div>
+        
+        <p class="text-sm text-gray-600 leading-relaxed">
+          Subí el archivo de Excel (<strong class="text-dark">.xls</strong> o <strong class="text-dark">.xlsx</strong>) descargado directamente de <strong class="text-primary font-bold">SIU Guaraní</strong> (desde <em>Reportes → Historia Académica</em>). Detectaremos automáticamente tus materias aprobadas, notas y tipos.
+        </p>
+
+        <!-- Dropzone -->
+        <div id="siuDropzone" class="border-2 border-dashed border-gray-300 hover:border-primary rounded-2xl p-8 text-center cursor-pointer transition-colors bg-slate-50/50 hover:bg-orange-50/30 flex flex-col items-center justify-center gap-3">
+          <span class="material-symbols-outlined text-5xl text-primary/70">description</span>
+          <div>
+            <p class="font-bold text-dark text-base">Hacé clic aquí o arrastrá tu archivo Excel (.xls)</p>
+            <p class="text-xs text-gray-400 mt-1">Archivo oficial generado por SIU Guaraní</p>
+          </div>
+          <span class="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-gray-200 rounded-xl text-xs font-bold text-dark shadow-xs hover:border-primary/50 hover:text-primary transition-all">
+            <span class="material-symbols-outlined text-base text-primary">folder_open</span> Explorar archivo
+          </span>
+          <input type="file" id="siuFileInput" accept=".xls,.xlsx" class="hidden">
+        </div>
+
+        <div class="bg-amber-50 border border-amber-200/80 rounded-2xl p-3.5 text-xs text-amber-900 flex items-start gap-2.5">
+          <span class="material-symbols-outlined text-amber-600 shrink-0 text-base mt-0.5">info</span>
+          <span>Asegurate de subir el archivo descargado del SIU sin modificar para que el sistema identifique correctamente todas las materias y notas.</span>
+        </div>
+
+        <div class="flex justify-end gap-3 pt-3 border-t border-gray-100">
+          <button type="button" data-close-modal class="flex-1 sm:flex-initial px-5 py-2.5 border border-gray-200 text-gray-600 font-bold rounded-xl hover:bg-gray-50 hover:text-dark transition-all text-sm shadow-xs">Cancelar</button>
+        </div>
+      </div>
+
+      <!-- Paso 2: Cargando/Procesando -->
+      <div id="siuStepLoading" class="hidden text-center py-10 space-y-4">
+        <div class="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+        <p class="font-bold text-dark text-base">Procesando historia académica…</p>
+        <p class="text-sm text-gray-400">Consultando catálogo y cátedras en la base de datos.</p>
+      </div>
+
+      <!-- Paso 3: Selección de cátedras materia por materia -->
+      <div id="siuStepCatedras" class="hidden space-y-5">
+        <div class="flex items-center justify-between gap-4">
+          <div>
+            <span class="text-xs font-bold text-primary tracking-wider uppercase" id="siuWizardProgressText">Materia 1 de 15</span>
+            <h2 class="text-xl md:text-2xl font-black text-dark mt-0.5">Seleccionar cátedra</h2>
+          </div>
+          <button data-close-modal class="text-gray-400 hover:text-gray-700 text-2xl">✕</button>
+        </div>
+
+        <!-- Barra de progreso -->
+        <div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+          <div id="siuWizardProgressBar" class="bg-primary h-full transition-all duration-300" style="width: 10%;"></div>
+        </div>
+
+        <!-- Tarjeta de la materia actual -->
+        <div class="rounded-2xl border border-gray-200 p-5 bg-slate-50/50 space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <span id="siuCurrentSubjectType" class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary/10 text-primary">Obligatoria</span>
+            <span id="siuCurrentSubjectGrade" class="text-xs font-bold text-gray-500 bg-white border border-gray-200 px-2 py-0.5 rounded">Nota: 9</span>
+          </div>
+          <h3 id="siuCurrentSubjectName" class="text-lg md:text-xl font-black text-dark leading-tight">Sociología General</h3>
+          <p class="text-xs text-gray-500">¿En qué cátedra cursaste esta materia?</p>
+          
+          <!-- Lista de opciones de cátedra -->
+          <div id="siuCatedrasOptionsContainer" class="space-y-2 pt-1">
+            <!-- Se generan dinámicamente -->
+          </div>
+        </div>
+
+        <!-- Aviso de materias únicas ya asignadas -->
+        <div id="siuAutoAssignedNotice" class="text-xs text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-xl p-2.5 flex items-center gap-2">
+          <span class="material-symbols-outlined text-emerald-600 text-base shrink-0">check_circle</span>
+          <span id="siuAutoAssignedText">Materias con cátedra única se asignaron automáticamente.</span>
+        </div>
+
+        <!-- Botones de navegación -->
+        <div class="flex items-center justify-between gap-3 pt-3 border-t border-gray-100">
+          <button type="button" id="siuWizardPrevBtn" class="flex-1 sm:flex-initial px-5 py-2.5 border border-gray-200 bg-white text-gray-600 font-bold rounded-xl hover:bg-gray-50 hover:text-dark disabled:opacity-30 disabled:cursor-not-allowed transition-all text-sm flex items-center justify-center gap-1.5 shadow-xs">
+            <span class="material-symbols-outlined text-base">arrow_back</span>
+            <span>Anterior</span>
+          </button>
+          <button type="button" id="siuWizardNextBtn" class="flex-1 sm:flex-initial px-6 py-2.5 bg-primary text-white font-black rounded-xl hover:bg-primaryDark hover:shadow-md active:scale-[0.98] transition-all text-sm flex items-center justify-center gap-1.5 shadow-sm">
+            <span>Siguiente</span>
+            <span class="material-symbols-outlined text-base">arrow_forward</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Paso 4: Confirmación y Resumen -->
+      <div id="siuStepSuccess" class="hidden space-y-5">
+        <div class="flex items-center justify-between gap-4">
+          <div class="flex items-center gap-2.5">
+            <span class="material-symbols-outlined text-emerald-600 text-2xl">check_circle</span>
+            <h2 class="text-xl md:text-2xl font-black text-dark">Resumen de importación</h2>
+          </div>
+          <button data-close-modal class="text-gray-400 hover:text-gray-700 text-2xl">✕</button>
+        </div>
+
+        <div class="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4 text-emerald-900 text-sm space-y-1">
+          <p class="font-bold text-base text-emerald-950" id="siuSummaryTotal">¡Se detectaron materias aprobadas!</p>
+          <p class="text-xs text-emerald-800" id="siuSummaryDetails">Detalle de materias y créditos</p>
+        </div>
+
+        <!-- Lista scrolleable de resumen -->
+        <div class="space-y-1">
+          <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Materias a incorporar:</span>
+          <div id="siuSummaryList" class="max-h-56 overflow-y-auto divide-y divide-gray-100 border border-gray-200 rounded-xl bg-white p-2 text-sm">
+            <!-- Inyectado dinámicamente -->
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-3 border-t border-gray-100">
+          <button type="button" data-close-modal class="flex-1 sm:flex-initial px-5 py-2.5 border border-gray-200 text-gray-600 font-bold rounded-xl hover:bg-gray-50 hover:text-dark transition-all text-sm shadow-xs">Cancelar</button>
+          <button type="button" id="siuConfirmImportBtn" class="flex-1 sm:flex-initial px-6 py-2.5 bg-primary text-white font-black rounded-xl hover:bg-primaryDark hover:shadow-md active:scale-[0.98] transition-all text-sm flex items-center justify-center gap-2 shadow-sm">
+            <span class="material-symbols-outlined text-lg">check</span>
+            <span>Guardar en mi perfil</span>
+          </button>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -342,6 +503,7 @@
 
     const courseCatalogCache = {};
     const courseCatalogRequests = {};
+    const courseCatalogItems = {};
 
     const DEFAULT_STATE = {
       name: 'Usuario',
@@ -521,11 +683,15 @@
               courseType = 'investigacion';
             }
             
-            state.completed.push({
+            const newCompletedItem = {
               id: `c-auto-${Date.now()}-${Math.floor(Math.random()*1000)}`,
               name: materiaNombre,
               type: courseType
-            });
+            };
+            if (review.catedra && review.catedra !== 'Cátedra única') {
+              newCompletedItem.catedra = review.catedra;
+            }
+            state.completed.push(newCompletedItem);
             importedCount++;
           }
         });
@@ -576,9 +742,27 @@
       showToast.timer = setTimeout(() => el.classList.add('translate-x-[120%]', 'opacity-0'), 2300);
     }
 
-    function openModal(id) { $(id).classList.add('active'); }
-    function closeModal(id) { $(id).classList.remove('active'); }
-    function closeAllModals() { document.querySelectorAll('.modal.active').forEach(m => m.classList.remove('active')); }
+    function openModal(id) {
+      $(id).classList.add('active');
+      document.querySelectorAll('.custom-dropdown').forEach(d => {
+        d.classList.add('hidden');
+        d.classList.remove('flex');
+      });
+    }
+    function closeModal(id) {
+      $(id).classList.remove('active');
+      document.querySelectorAll('.custom-dropdown').forEach(d => {
+        d.classList.add('hidden');
+        d.classList.remove('flex');
+      });
+    }
+    function closeAllModals() {
+      document.querySelectorAll('.modal.active').forEach(m => m.classList.remove('active'));
+      document.querySelectorAll('.custom-dropdown').forEach(d => {
+        d.classList.add('hidden');
+        d.classList.remove('flex');
+      });
+    }
 
     function typeLabel(type, subtype) {
       if (type === 'investigacion') return subtype === 'seminario' ? 'Seminario de investigación' : 'Taller de investigación';
@@ -607,25 +791,46 @@
       return String(value ?? '').replace(/[&<>'"]/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' }[ch]));
     }
 
+    function formatCatedra(name) {
+      if (!name) return '';
+      return String(name).replace(/^(c[aá]tedra|c[aá]t\.?)\s+/i, '').trim();
+    }
+
+    function syncSelectPlaceholder(select) {
+      if (!select) return;
+      const isEmpty = !select.value;
+      select.classList.toggle('is-placeholder', isEmpty);
+      select.style.color = isEmpty ? 'rgba(156, 163, 175, 0.65)' : '#2c3e50';
+    }
+
     function collectionForCourseType(type) {
       return COURSE_COLLECTIONS[type] || COURSE_COLLECTIONS.obligatoria;
     }
 
     async function loadCourseCatalog(collection) {
-      if (courseCatalogCache[collection]) return courseCatalogCache[collection];
+      if (courseCatalogCache[collection] && courseCatalogItems[collection]) return courseCatalogCache[collection];
       if (courseCatalogRequests[collection]) return courseCatalogRequests[collection];
       if (!courseCatalogDb) throw new Error('Firebase no está disponible');
 
       courseCatalogRequests[collection] = courseCatalogDb.collection(collection).get()
         .then(snapshot => {
-          const names = [...new Set(snapshot.docs
-            .map(doc => {
-              const data = doc.data();
-              return data.nombre || data.name || data.titulo || '';
-            })
-            .map(name => String(name).trim())
-            .filter(Boolean))]
-            .sort((a, b) => a.localeCompare(b, 'es'));
+          const items = snapshot.docs.map(doc => {
+            const data = doc.data();
+            const rawCatedras = Array.isArray(data.catedras) ? data.catedras : [];
+            const catedras = rawCatedras.map(c => {
+              if (typeof c === 'string') return c.trim();
+              return (c?.nombre || c?.name || '').trim();
+            }).filter(Boolean);
+
+            return {
+              id: doc.id,
+              name: String(data.nombre || data.name || data.titulo || '').trim(),
+              catedras
+            };
+          }).filter(item => Boolean(item.name));
+
+          courseCatalogItems[collection] = items;
+          const names = [...new Set(items.map(item => item.name))].sort((a, b) => a.localeCompare(b, 'es'));
           courseCatalogCache[collection] = names;
           return names;
         })
@@ -634,10 +839,385 @@
       return courseCatalogRequests[collection];
     }
 
-    async function refreshCourseSearch(form, clearValue = false) {
-      const isWanted = form === 'wanted';
-      const input = $(isWanted ? 'wantedName' : 'completedName');
-      const type = $(isWanted ? 'wantedType' : 'completedType').value;
+    function detectCourseType(courseName) {
+      if (!courseName) return null;
+      const norm = normalizedCourseName(courseName);
+
+      if (PLAN_ESTUDIOS.some(p => !p.isGroup && normalizedCourseName(p.name) === norm)) {
+        return 'obligatoria';
+      }
+      const materiasList = courseCatalogItems['materias'] || [];
+      if (materiasList.some(c => normalizedCourseName(c.name) === norm)) {
+        return 'obligatoria';
+      }
+
+      const especialesList = courseCatalogItems['especiales'] || [];
+      if (especialesList.some(c => normalizedCourseName(c.name) === norm)) {
+        return 'especial';
+      }
+
+      const teoriasList = courseCatalogItems['teorias'] || [];
+      if (teoriasList.some(c => normalizedCourseName(c.name) === norm)) {
+        return 'teoria';
+      }
+
+      const invList = courseCatalogItems['horasdeinv'] || [];
+      if (invList.some(c => normalizedCourseName(c.name) === norm)) {
+        return norm.includes('seminario') ? 'seminario' : 'taller';
+      }
+
+      if (norm.includes('seminario')) return 'seminario';
+      if (norm.includes('taller')) return 'taller';
+      if (norm.includes('teoria') || norm.includes('teoría')) return 'teoria';
+      if (norm.includes('especial')) return 'especial';
+
+      return 'obligatoria';
+    }
+
+    async function preloadAllCourseCatalogs() {
+      if (!courseCatalogDb) return;
+      const collections = ['materias', 'especiales', 'teorias', 'horasdeinv'];
+      await Promise.all(collections.map(col => loadCourseCatalog(col).catch(() => [])));
+    }
+
+    function getCatedrasForCourseName(courseName, preferredType) {
+      if (!courseName) return [];
+      const norm = normalizedCourseName(courseName);
+
+      if (preferredType) {
+        const col = collectionForCourseType(preferredType);
+        const list = courseCatalogItems[col] || [];
+        const match = list.find(c => normalizedCourseName(c.name) === norm);
+        if (match && Array.isArray(match.catedras) && match.catedras.length) {
+          return match.catedras;
+        }
+      }
+
+      for (const col of Object.values(COURSE_COLLECTIONS)) {
+        const list = courseCatalogItems[col] || [];
+        const match = list.find(c => normalizedCourseName(c.name) === norm);
+        if (match && Array.isArray(match.catedras) && match.catedras.length) {
+          return match.catedras;
+        }
+      }
+
+      return [];
+    }
+
+    function searchCatalogCourses(query = '', preferredType = '') {
+      const q = normalizedCourseName(query);
+      if (q !== '') {
+        const collectionsOrder = [
+          { col: 'materias', type: 'obligatoria', label: 'Obligatoria' },
+          { col: 'especiales', type: 'especial', label: 'Especial' },
+          { col: 'teorias', type: 'teoria', label: 'Teoría' },
+          { col: 'horasdeinv', type: 'horasdeinv', label: 'Investigación' }
+        ];
+
+        let matches = [];
+        collectionsOrder.forEach(entry => {
+          const list = courseCatalogItems[entry.col] || (courseCatalogCache[entry.col] || []).map(n => ({ name: n, catedras: [] }));
+          let items = [...list];
+          if (entry.col === 'materias') {
+            PLAN_ESTUDIOS.forEach(p => {
+              if (!p.isGroup && !items.some(x => normalizedCourseName(x.name) === normalizedCourseName(p.name))) {
+                items.push({ name: p.name, catedras: [] });
+              }
+            });
+          }
+          items.forEach(item => {
+            const nameMatches = normalizedCourseName(item.name).includes(q);
+            const matchedCatedra = (item.catedras || []).find(cat => normalizedCourseName(cat).includes(q));
+
+            if (nameMatches || matchedCatedra) {
+              if (!matches.some(m => normalizedCourseName(m.name) === normalizedCourseName(item.name))) {
+                let actualType = entry.type;
+                if (entry.col === 'horasdeinv') {
+                  const n = normalizedCourseName(item.name);
+                  actualType = n.includes('seminario') ? 'seminario' : 'taller';
+                }
+                matches.push({
+                  name: item.name,
+                  type: actualType,
+                  badge: entry.label,
+                  matchedCatedra: matchedCatedra || null
+                });
+              }
+            }
+          });
+        });
+        return matches;
+      }
+
+      const collection = preferredType ? collectionForCourseType(preferredType) : 'materias';
+      const list = courseCatalogItems[collection] || (courseCatalogCache[collection] || []).map(n => ({ name: n }));
+      return list.slice(0, 30).map(c => ({
+        name: c.name,
+        type: preferredType || 'obligatoria',
+        badge: '',
+        matchedCatedra: null
+      }));
+    }
+
+    function updateRowCatedraOptions(row, targetCatedra = null) {
+      const nameInput = row.querySelector('.row-name');
+      const typeInput = row.querySelector('.row-type');
+      const catSelect = row.querySelector('.row-catedra');
+      if (!catSelect || !nameInput) return;
+
+      const courseName = nameInput.value.trim();
+      if (!courseName) {
+        catSelect.innerHTML = '<option value="">Seleccionar</option>';
+        catSelect.value = '';
+        syncSelectPlaceholder(catSelect);
+        return;
+      }
+
+      const courseType = typeInput?.value || detectCourseType(courseName) || '';
+      const catedras = getCatedrasForCourseName(courseName, courseType);
+      catSelect.innerHTML = '';
+
+      if (catedras.length === 1) {
+        const singleCat = catedras[0];
+        catSelect.add(new Option(formatCatedra(singleCat), singleCat));
+        catSelect.value = singleCat;
+      } else if (catedras.length > 1) {
+        catSelect.add(new Option('Seleccionar', ''));
+        catedras.forEach(catName => {
+          catSelect.add(new Option(formatCatedra(catName), catName));
+        });
+
+        if (targetCatedra) {
+          const match = catedras.find(c => c.toLowerCase() === targetCatedra.toLowerCase());
+          catSelect.value = match || '';
+        } else {
+          catSelect.value = '';
+        }
+      } else {
+        catSelect.add(new Option('Seleccionar', ''));
+        if (targetCatedra) {
+          catSelect.add(new Option(formatCatedra(targetCatedra), targetCatedra));
+          catSelect.value = targetCatedra;
+        } else {
+          catSelect.value = '';
+        }
+      }
+      syncSelectPlaceholder(catSelect);
+    }
+
+    function updateRowDropdown(row) {
+      const input = row.querySelector('.row-name');
+      const dropdown = row.querySelector('.row-dropdown');
+      const typeInput = row.querySelector('.row-type');
+      if (!input || !dropdown) return;
+
+      if (document.activeElement !== input) {
+        dropdown.classList.add('hidden');
+        dropdown.classList.remove('flex');
+        return;
+      }
+
+      const query = input.value.trim();
+      const matches = searchCatalogCourses(query, typeInput?.value || '');
+
+      let html = '';
+      if (matches.length === 0) {
+        html = `<div class="px-4 py-3 text-xs text-gray-400 italic bg-slate-50">No hay coincidencias. Podés escribir el nombre manualmente.</div>`;
+      } else {
+        html = `<div class="overflow-y-auto flex-1 max-h-52 bg-white divide-y divide-gray-50">`;
+        matches.forEach(m => {
+          html += `<div class="px-3.5 py-2.5 text-xs md:text-sm text-dark hover:bg-orange-50 cursor-pointer transition-colors flex items-center justify-between" data-dropdown-val="${escapeHTML(m.name)}" data-dropdown-type="${escapeHTML(m.type)}" data-dropdown-catedra="${escapeHTML(m.matchedCatedra || '')}">
+            <span class="font-medium text-dark leading-tight truncate pr-2">${escapeHTML(m.name)}</span>
+            ${m.badge ? `<span class="text-[10px] font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded shrink-0">${escapeHTML(m.badge)}</span>` : ''}
+          </div>`;
+        });
+        html += `</div>`;
+      }
+
+      dropdown.innerHTML = html;
+      dropdown.classList.remove('hidden');
+      dropdown.classList.add('flex');
+    }
+
+    function createCompletedRow(data = null, isEdit = false) {
+      const row = document.createElement('div');
+      row.className = 'completed-row grid grid-cols-1 md:grid-cols-[minmax(260px,3.2fr)_minmax(170px,1.8fr)_minmax(85px,0.8fr)_36px] gap-2.5 items-center p-3.5 md:p-0 bg-slate-50/80 md:bg-transparent border border-slate-200/80 md:border-none rounded-2xl md:rounded-none relative transition-all';
+
+      const initName = data?.name || '';
+      let initType = '';
+      if (data) {
+        if (data.type === 'investigacion') {
+          initType = data.subtype === 'seminario' ? 'seminario' : 'taller';
+        } else {
+          initType = data.type || '';
+        }
+      }
+      if (!initType && initName) {
+        initType = detectCourseType(initName) || 'obligatoria';
+      }
+      const initGrade = data?.grade !== undefined && data?.grade !== null ? data.grade : '';
+      const initCatedra = data?.catedra || '';
+
+      row.innerHTML = `
+        <input type="hidden" class="row-type" value="${escapeHTML(initType)}">
+        <div class="relative relative-dropdown-container">
+          <span class="md:hidden text-xs font-bold text-slate-500 mb-1 block">Materia / actividad</span>
+          <div class="relative">
+            <input class="row-name w-full p-2.5 md:p-3 pr-8 border border-gray-200 rounded-xl outline-none focus:border-primary text-sm bg-white" placeholder="Buscá una materia…" autocomplete="off" value="${escapeHTML(initName)}">
+            <button type="button" class="row-clear ${initName ? '' : 'hidden'} absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 w-5 h-5 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-xs font-bold" title="Borrar texto">✕</button>
+          </div>
+          <div class="custom-dropdown row-dropdown hidden absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-2xl z-[70] flex-col overflow-hidden max-h-56"></div>
+        </div>
+        <div>
+          <span class="md:hidden text-xs font-bold text-slate-500 mb-1 block">Cátedra</span>
+          <select class="row-catedra w-full p-2.5 md:p-3 border border-gray-200 rounded-xl outline-none focus:border-primary bg-white text-dark text-sm cursor-pointer transition-colors">
+            <option value="">Seleccionar</option>
+          </select>
+        </div>
+        <div>
+          <span class="md:hidden text-xs font-bold text-slate-500 mb-1 block">Nota final <span class="font-normal text-gray-400">(opc.)</span></span>
+          <input class="row-grade w-full p-2.5 md:p-3 border border-gray-200 rounded-xl outline-none focus:border-primary text-sm text-center bg-white" type="number" min="0" max="10" step="0.01" placeholder="0–10" value="${initGrade}">
+        </div>
+        <div class="flex items-center justify-end md:justify-center ${isEdit ? 'hidden md:flex opacity-0 pointer-events-none' : ''}">
+          <button type="button" class="row-remove w-8 h-8 md:w-9 md:h-9 flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors font-bold text-base shrink-0" title="Eliminar fila">✕</button>
+        </div>
+      `;
+
+      const nameInput = row.querySelector('.row-name');
+      const clearBtn = row.querySelector('.row-clear');
+      const typeInput = row.querySelector('.row-type');
+      const catSelect = row.querySelector('.row-catedra');
+      const gradeInput = row.querySelector('.row-grade');
+      const removeBtn = row.querySelector('.row-remove');
+
+      let debounceTimer = null;
+      nameInput.addEventListener('input', () => {
+        const val = nameInput.value.trim();
+        clearBtn.classList.toggle('hidden', !val);
+        updateRowDropdown(row);
+
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          if (!val) return;
+          const autoType = detectCourseType(val) || 'obligatoria';
+          typeInput.value = autoType;
+          updateRowCatedraOptions(row);
+        }, 250);
+      });
+
+      nameInput.addEventListener('focus', () => {
+        row.style.zIndex = '30';
+        if (nameInput.value.trim() !== '') {
+          updateRowDropdown(row);
+        }
+      });
+
+      nameInput.addEventListener('blur', () => {
+        setTimeout(() => {
+          if (document.activeElement !== nameInput) {
+            row.style.zIndex = '';
+          }
+        }, 250);
+      });
+
+      clearBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        nameInput.value = '';
+        clearBtn.classList.add('hidden');
+        typeInput.value = '';
+        updateRowCatedraOptions(row, '');
+        nameInput.focus();
+      });
+
+      catSelect.addEventListener('change', () => {
+        syncSelectPlaceholder(catSelect);
+      });
+
+      removeBtn.addEventListener('click', () => {
+        const container = $('completedRowsContainer');
+        const allRows = container.querySelectorAll('.completed-row');
+        if (allRows.length > 1) {
+          row.remove();
+        } else {
+          nameInput.value = '';
+          clearBtn.classList.add('hidden');
+          typeInput.value = '';
+          catSelect.innerHTML = '<option value="">Seleccionar</option>';
+          catSelect.value = '';
+          syncSelectPlaceholder(catSelect);
+          gradeInput.value = '';
+        }
+      });
+
+      updateRowCatedraOptions(row, initCatedra);
+
+      return row;
+    }
+
+    async function updateWantedCatedraOptions(targetCatedra = null) {
+      const catSelect = $('wantedCatedra');
+      const loader = $('wantedCatedraLoading');
+      if (!catSelect) return;
+
+      const courseName = $('wantedName')?.value.trim() || '';
+      if (!courseName) {
+        catSelect.innerHTML = '<option value="">Seleccionar</option>';
+        catSelect.value = '';
+        syncSelectPlaceholder(catSelect);
+        return;
+      }
+
+      const courseType = $('wantedType')?.value || '';
+      const collection = collectionForCourseType(courseType);
+
+      if (courseCatalogDb && courseName) {
+        if (!courseCatalogItems[collection] || Object.keys(courseCatalogItems).length < 4) {
+          if (loader) loader.classList.remove('hidden');
+          try {
+            await preloadAllCourseCatalogs();
+          } catch (e) {
+            console.warn('Error precargando cátedras', e);
+          } finally {
+            if (loader) loader.classList.add('hidden');
+          }
+        }
+      }
+
+      const catedras = getCatedrasForCourseName(courseName, courseType);
+      catSelect.innerHTML = '';
+
+      if (catedras.length === 1) {
+        const singleCat = catedras[0];
+        catSelect.add(new Option(formatCatedra(singleCat), singleCat));
+        catSelect.value = singleCat;
+      } else if (catedras.length > 1) {
+        catSelect.add(new Option('Seleccionar', ''));
+        catedras.forEach(catName => {
+          catSelect.add(new Option(formatCatedra(catName), catName));
+        });
+
+        if (targetCatedra) {
+          const match = catedras.find(c => c.toLowerCase() === targetCatedra.toLowerCase());
+          catSelect.value = match || '';
+        } else {
+          catSelect.value = '';
+        }
+      } else {
+        catSelect.add(new Option('Seleccionar', ''));
+        if (targetCatedra) {
+          catSelect.add(new Option(formatCatedra(targetCatedra), targetCatedra));
+          catSelect.value = targetCatedra;
+        } else {
+          catSelect.value = '';
+        }
+      }
+      syncSelectPlaceholder(catSelect);
+    }
+
+    async function refreshCourseSearch(form = 'wanted', clearValue = false) {
+      const input = $('wantedName');
+      const type = $('wantedType').value;
       const collection = collectionForCourseType(type);
 
       if (clearValue) input.value = '';
@@ -645,8 +1225,10 @@
 
       try {
         await loadCourseCatalog(collection);
-        // Dispara la actualización visual del dropdown si está activo
-        input.dispatchEvent(new Event('input'));
+        const dropdown = $('wantedDropdown');
+        if (dropdown && !dropdown.classList.contains('hidden') && document.activeElement === input) {
+          input.dispatchEvent(new Event('input'));
+        }
       } catch (error) {
         console.warn(`No se pudo cargar la colección ${collection}.`, error);
       }
@@ -655,26 +1237,29 @@
     function setupDropdown(inputId, dropdownId, typeId) {
       const input = $(inputId);
       const dropdown = $(dropdownId);
+      if (!input || !dropdown) return;
       
       const updateList = () => {
-        const type = $(typeId).value;
-        const collection = collectionForCourseType(type);
-        const names = courseCatalogCache[collection] || [];
-        const query = normalizedCourseName(input.value);
-        
-        const filtered = query === '' ? names : names.filter(n => normalizedCourseName(n).includes(query));
-        const label = COURSE_COLLECTION_LABELS[collection];
-        const title = label.charAt(0).toUpperCase() + label.slice(1);
+        if (document.activeElement !== input) {
+          dropdown.classList.add('hidden');
+          dropdown.classList.remove('flex');
+          return;
+        }
 
-        // Cabecera Naranja
-        let html = `<div class="bg-[#f97316] text-white font-bold text-[13px] px-4 py-2.5 shrink-0 shadow-sm z-10 relative">${title}</div>`;
-        
-        if (filtered.length === 0) {
-          html += `<div class="px-4 py-4 text-sm text-gray-500 italic bg-slate-50">No hay coincidencias. Podés escribir el nombre manualmente.</div>`;
+        const type = $(typeId).value;
+        const query = input.value;
+        const matches = searchCatalogCourses(query, type);
+
+        let html = '';
+        if (matches.length === 0) {
+          html += `<div class="px-4 py-3.5 text-sm text-gray-400 italic bg-slate-50">No hay coincidencias. Podés escribir el nombre manualmente.</div>`;
         } else {
-          html += `<div class="overflow-y-auto flex-1 max-h-56 bg-white">`;
-          filtered.forEach(n => {
-            html += `<div class="px-4 py-3 text-[14px] text-dark hover:bg-orange-50 cursor-pointer border-b border-gray-50 last:border-0 transition-colors" data-dropdown-val="${escapeHTML(n)}">${escapeHTML(n)}</div>`;
+          html += `<div class="overflow-y-auto flex-1 max-h-56 bg-white divide-y divide-gray-50">`;
+          matches.forEach(m => {
+            html += `<div class="px-4 py-3 text-[14px] text-dark hover:bg-orange-50 cursor-pointer transition-colors flex items-center justify-between" data-dropdown-val="${escapeHTML(m.name)}" data-dropdown-type="${escapeHTML(m.type)}" data-dropdown-catedra="${escapeHTML(m.matchedCatedra || '')}">
+              <span class="font-medium text-dark leading-tight truncate pr-2">${escapeHTML(m.name)}</span>
+              ${m.badge ? `<span class="text-[11px] font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded shrink-0">${escapeHTML(m.badge)}</span>` : ''}
+            </div>`;
           });
           html += `</div>`;
         }
@@ -684,24 +1269,93 @@
       };
 
       input.addEventListener('input', updateList);
-      input.addEventListener('focus', () => {
-        if (courseCatalogCache[collectionForCourseType($(typeId).value)]) updateList();
+      input.addEventListener('focus', () => updateList());
+    }
+
+    function updateClearBtn(inputId, btnId) {
+      const input = $(inputId);
+      const btn = $(btnId);
+      if (!input || !btn) return;
+      btn.classList.toggle('hidden', !input.value.trim());
+    }
+
+    function setupClearButton(inputId, btnId, onClear) {
+      const input = $(inputId);
+      const btn = $(btnId);
+      if (!input || !btn) return;
+
+      input.addEventListener('input', () => updateClearBtn(inputId, btnId));
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        input.value = '';
+        updateClearBtn(inputId, btnId);
+        input.focus();
+        if (typeof onClear === 'function') onClear();
+        input.dispatchEvent(new Event('input'));
       });
     }
 
+    // Inicializar estilos de placeholder en todos los selects
+    document.querySelectorAll('select').forEach(sel => {
+      syncSelectPlaceholder(sel);
+      sel.addEventListener('change', () => syncSelectPlaceholder(sel));
+    });
+
     // Inicializar dropdowns customizados
     setupDropdown('wantedName', 'wantedDropdown', 'wantedType');
-    setupDropdown('completedName', 'completedDropdown', 'completedType');
+
+    // Inicializar botones de borrado rápido
+    setupClearButton('wantedName', 'wantedNameClear', () => {
+      $('wantedType').value = '';
+      syncSelectPlaceholder($('wantedType'));
+      updateWantedCatedraOptions('');
+    });
 
     // Cierre global para dropdowns custom
     document.addEventListener('click', e => {
       const dropdownItem = e.target.closest('[data-dropdown-val]');
       if (dropdownItem) {
         const dropdown = dropdownItem.closest('.custom-dropdown');
-        const inputId = dropdown.id === 'wantedDropdown' ? 'wantedName' : 'completedName';
-        $(inputId).value = dropdownItem.dataset.dropdownVal;
-        dropdown.classList.add('hidden');
-        dropdown.classList.remove('flex');
+        if (!dropdown) return;
+
+        const row = dropdown.closest('.completed-row');
+        if (row) {
+          const input = row.querySelector('.row-name');
+          const typeInput = row.querySelector('.row-type');
+          const clearBtn = row.querySelector('.row-clear');
+          
+          input.value = dropdownItem.dataset.dropdownVal;
+          dropdown.classList.add('hidden');
+          dropdown.classList.remove('flex');
+
+          let autoType = dropdownItem.dataset.dropdownType || detectCourseType(input.value) || 'obligatoria';
+          if (autoType === 'horasdeinv') {
+            const norm = normalizedCourseName(input.value);
+            autoType = norm.includes('seminario') ? 'seminario' : 'taller';
+          }
+          if (typeInput) typeInput.value = autoType;
+
+          const matchedCatedra = dropdownItem.dataset.dropdownCatedra || '';
+          updateRowCatedraOptions(row, matchedCatedra);
+          if (clearBtn) clearBtn.classList.remove('hidden');
+          return;
+        }
+
+        if (dropdown.id === 'wantedDropdown') {
+          $('wantedName').value = dropdownItem.dataset.dropdownVal;
+          dropdown.classList.add('hidden');
+          dropdown.classList.remove('flex');
+          let autoType = dropdownItem.dataset.dropdownType || detectCourseType($('wantedName').value) || 'obligatoria';
+          if (autoType === 'taller' || autoType === 'seminario' || autoType === 'horasdeinv') autoType = 'investigacion';
+          if ($('wantedType')) {
+            $('wantedType').value = autoType;
+          }
+          const matchedCatedra = dropdownItem.dataset.dropdownCatedra || '';
+          updateWantedCatedraOptions(matchedCatedra);
+          updateClearBtn('wantedName', 'wantedNameClear');
+          return;
+        }
         return;
       }
 
@@ -820,7 +1474,7 @@
         <div>
           <div class="flex items-center justify-between gap-3 mb-2">
             <div class="flex items-center gap-2 min-w-0">
-              <span class="material-symbols-outlined text-primary text-[20px] shrink-0">${icon}</span>
+              ${icon ? `<span class="material-symbols-outlined text-primary text-[20px] shrink-0">${icon}</span>` : ''}
               <span class="text-sm font-bold text-dark truncate">${title}</span>
             </div>
             <span class="text-xs font-black text-gray-500 shrink-0">${value}${suffix} / ${target}${suffix}</span>
@@ -840,8 +1494,8 @@
       const progress = calcProgress();
       $('requirementsGrid').innerHTML = [
         requirementCard('school', 'Obligatorias', progress.mandatory, 16),
-        requirementCard('interests', 'Sociologías especiales', progress.specialBase, 3),
-        requirementCard('psychology', 'Teorías sociológicas', progress.theoryBase, 3),
+        requirementCard('', 'Sociologías especiales', progress.specialBase, 3),
+        requirementCard('', 'Teorías sociológicas', progress.theoryBase, 3),
         requirementCard('add_circle', 'Adicionales esp./teoría', progress.extra, 3),
         requirementCard('biotech', 'Investigación', progress.researchHours, 200, ' h')
       ].join('');
@@ -856,9 +1510,10 @@
       $('wantedCoursesList').innerHTML = state.wanted.length ? state.wanted.map(c => `
         <article class="group rounded-2xl border border-gray-200 p-4 hover:border-primary/40 hover:shadow-md transition-all bg-white">
           <div class="flex justify-between gap-3">
-            <div class="min-w-0">
+            <div class="min-w-0 flex-1">
               <span class="inline-flex px-2.5 py-1 rounded-full text-[11px] font-black ${typeClasses(c.type)}">${escapeHTML(typeLabel(c.type, c.subtype))}</span>
               <h3 class="font-bold text-dark mt-2 leading-tight">${escapeHTML(c.name)}</h3>
+              ${c.catedra && c.catedra !== 'Única' && c.catedra !== 'Cátedra única' ? `<p class="text-xs text-gray-500 font-semibold mt-1">${escapeHTML(formatCatedra(c.catedra))}</p>` : ''}
               <p class="text-sm text-gray-500 mt-1">${escapeHTML(c.note || 'Sin nota personal')}</p>
             </div>
             <button type="button" data-remove-wanted="${escapeHTML(c.id)}" title="Quitar de la lista" class="w-9 h-9 shrink-0 rounded-xl text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors">
@@ -875,8 +1530,8 @@
 
       const groupsConfig = [
         { id: 'obligatoria', title: 'Obligatorias', icon: 'school' },
-        { id: 'especial', title: 'Especiales', icon: 'interests' },
-        { id: 'teoria', title: 'Teorías', icon: 'psychology' },
+        { id: 'especial', title: 'Especiales', icon: '' },
+        { id: 'teoria', title: 'Teorías', icon: '' },
         { id: 'investigacion', title: 'Horas de investigación', icon: 'biotech' }
       ];
 
@@ -886,15 +1541,18 @@
         
         let itemsHTML = '';
         if (items.length) {
-            itemsHTML = items.map(c => `
+            itemsHTML = items.map(c => {
+                const hasCatedra = c.catedra && c.catedra !== 'Única' && c.catedra !== 'Cátedra única';
+                const catPart = hasCatedra ? `<span class="font-semibold text-gray-600">${escapeHTML(formatCatedra(c.catedra))}</span>` : '';
+                const typePart = c.type === 'investigacion' ? escapeHTML(typeLabel(c.type, c.subtype)) : '';
+                const metaText = (typePart && catPart) ? `${typePart} · ${catPart}` : (typePart || catPart);
+
+                return `
                 <div class="px-4 sm:px-5 md:px-7 py-3 md:py-4 hover:bg-slate-50 transition-colors bg-white">
-                  <div class="flex items-center gap-3 md:gap-4 min-w-0">
-                    <div class="w-10 h-10 rounded-xl ${typeClasses(c.type)} flex items-center justify-center shrink-0">
-                      <span class="material-symbols-outlined text-lg">${typeIcon(c.type)}</span>
-                    </div>
+                  <div class="flex items-center justify-between gap-3 md:gap-4 min-w-0">
                     <div class="min-w-0 flex-1">
                       <p class="font-bold text-dark leading-tight sm:truncate">${escapeHTML(c.name)}</p>
-                      <p class="text-xs text-gray-400 mt-1">${escapeHTML(typeLabel(c.type, c.subtype))}</p>
+                      ${metaText ? `<p class="text-xs text-gray-400 mt-1">${metaText}</p>` : ''}
                     </div>
                     <button type="button" data-edit-completed="${escapeHTML(c.id)}" class="hidden sm:flex group/edit items-center gap-2 rounded-xl px-2 py-1.5 hover:bg-orange-50 transition-colors" title="Editar registro y nota">
                       <div class="text-right shrink-0">
@@ -910,7 +1568,8 @@
                     <span class="text-xs font-black uppercase tracking-wide text-gray-400">Nota${c.type === 'investigacion' ? ` · ${c.hours || 0} h` : ''}</span>
                     <span class="flex items-center gap-1.5"><span class="text-xl font-black text-dark">${Number.isFinite(Number(c.grade)) ? escapeHTML(c.grade) : '—'}</span><span class="text-xs text-gray-400">/10</span><span class="material-symbols-outlined text-lg text-primary">edit</span></span>
                   </button>
-                </div>`).join('');
+                </div>`;
+            }).join('');
         } else {
             itemsHTML = `<div class="px-4 sm:px-5 md:px-7 py-5 text-sm text-gray-400 text-center italic bg-white">No hay registros cargados en esta categoría.</div>`;
         }
@@ -919,9 +1578,11 @@
           <div class="border-b border-gray-100 last:border-0">
             <button type="button" data-toggle-group="${g.id}" class="w-full flex items-center justify-between px-4 sm:px-5 md:px-7 py-4 hover:bg-white transition-colors outline-none focus-visible:bg-white">
               <div class="flex items-center gap-3">
+                ${g.icon ? `
                 <div class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${typeClasses(g.id)}">
                   <span class="material-symbols-outlined text-[18px]">${g.icon}</span>
                 </div>
+                ` : ''}
                 <h3 class="font-bold text-dark text-left">${g.title}</h3>
                 <span class="text-xs font-bold text-gray-500 bg-gray-200/60 px-2 py-0.5 rounded-full min-w-[24px] text-center">${items.length}</span>
               </div>
@@ -1039,29 +1700,29 @@
       if (planTreeEl) planTreeEl.innerHTML = html;
     }
 
-    function syncCompletedTypeFields() {
-      const val = $('completedType').value;
-      const research = val === 'taller' || val === 'seminario';
-      $('gradeField').classList.remove('hidden');
-      $('researchInfo').classList.toggle('hidden', !research);
-      $('researchHoursLabel').textContent = val === 'seminario' ? '50 horas' : '100 horas';
-    }
-
-    function openCompletedEditor(id = '') {
+    async function openCompletedEditor(id = '') {
+      await preloadAllCourseCatalogs();
       const course = id ? state.completed.find(c => c.id === id) : null;
       $('completedEditId').value = course?.id || '';
-      $('completedModalTitle').textContent = course ? 'Editar materia realizada' : 'Agregar materia realizada';
-      $('completedName').value = course?.name || '';
-      $('completedGrade').value = course?.grade ?? '';
-      if (!course) $('completedType').value = 'obligatoria';
-      else if (course.type === 'investigacion') $('completedType').value = course.subtype === 'seminario' ? 'seminario' : 'taller';
-      else $('completedType').value = course.type;
-      $('deleteCompletedBtn').classList.toggle('hidden', !course);
-      syncCompletedTypeFields();
-      refreshCourseSearch('completed');
-      
+      $('completedModalTitle').textContent = course ? 'Editar materia realizada' : 'Cargar materias realizadas';
+
+      const container = $('completedRowsContainer');
+      if (!container) return;
+      container.innerHTML = '';
+
+      if (course) {
+        $('completedAddRowBtnContainer')?.classList.add('hidden');
+        $('deleteCompletedBtn')?.classList.remove('hidden');
+        const row = createCompletedRow(course, true);
+        container.appendChild(row);
+      } else {
+        $('completedAddRowBtnContainer')?.classList.remove('hidden');
+        $('deleteCompletedBtn')?.classList.add('hidden');
+        const row = createCompletedRow();
+        container.appendChild(row);
+      }
+
       openModal('completedModal');
-      // No autofocus
     }
 
     document.addEventListener('click', e => {
@@ -1103,60 +1764,193 @@
 
     $('addWantedBtn').addEventListener('click', () => {
       $('wantedForm').reset();
+      $('wantedType').value = '';
+      updateClearBtn('wantedName', 'wantedNameClear');
       refreshCourseSearch('wanted');
+      updateWantedCatedraOptions('');
+      preloadAllCourseCatalogs();
       openModal('wantedModal');
       // No autofocus
     });
 
     $('wantedForm').addEventListener('submit', e => {
       e.preventDefault();
-      state.wanted.unshift({
+      const nameVal = $('wantedName').value.trim();
+      if (!nameVal) {
+        showToast('Por favor, ingresá una materia.');
+        $('wantedName').focus();
+        return;
+      }
+      let typeVal = $('wantedType')?.value || detectCourseType(nameVal) || 'obligatoria';
+      if (typeVal === 'taller' || typeVal === 'seminario' || typeVal === 'horasdeinv') typeVal = 'investigacion';
+
+      const catedraVal = $('wantedCatedra').value.trim();
+      const catOptions = $('wantedCatedra').options;
+      if (catOptions.length > 1 && !catedraVal) {
+        showToast('Por favor, seleccioná una cátedra.');
+        $('wantedCatedra').focus();
+        return;
+      }
+      const item = {
         id: `w-${Date.now()}`,
-        name: $('wantedName').value.trim(),
-        type: $('wantedType').value,
+        name: nameVal,
+        type: typeVal,
         note: $('wantedNote').value.trim()
-      });
+      };
+      if (catedraVal) {
+        item.catedra = catedraVal;
+      }
+      state.wanted.unshift(item);
       saveState(); closeModal('wantedModal'); render(); showToast('Materia agregada a “Quiero cursar”.');
     });
 
     $('addCompletedBtn').addEventListener('click', () => openCompletedEditor());
-    $('wantedType').addEventListener('change', () => refreshCourseSearch('wanted', true));
-    $('completedType').addEventListener('change', () => {
-      syncCompletedTypeFields();
-      refreshCourseSearch('completed', true);
+
+    let wantedNameTimer = null;
+    $('wantedName').addEventListener('input', () => {
+      clearTimeout(wantedNameTimer);
+      wantedNameTimer = setTimeout(() => {
+        let autoType = detectCourseType($('wantedName').value.trim()) || 'obligatoria';
+        if (autoType === 'taller' || autoType === 'seminario' || autoType === 'horasdeinv') autoType = 'investigacion';
+        if ($('wantedType')) {
+          $('wantedType').value = autoType;
+        }
+        updateWantedCatedraOptions();
+      }, 300);
+    });
+    $('completedAddRowBtn')?.addEventListener('click', () => {
+      const row = createCompletedRow();
+      $('completedRowsContainer')?.appendChild(row);
+      const nameInput = row.querySelector('.row-name');
+      if (nameInput) nameInput.focus();
     });
 
     $('completedForm').addEventListener('submit', e => {
       e.preventDefault();
       const editId = $('completedEditId').value;
-      const typeValue = $('completedType').value;
-      const research = typeValue === 'taller' || typeValue === 'seminario';
-      const item = {
-        id: editId || `c-${Date.now()}`,
-        name: $('completedName').value.trim(),
-        type: research ? 'investigacion' : typeValue
-      };
-      
-      const gradeVal = $('completedGrade').value.trim();
-      if (gradeVal !== '') {
-        item.grade = Number(gradeVal);
-      }
-      
-      if (research) {
-        item.subtype = typeValue;
-        item.hours = typeValue === 'seminario' ? 50 : 100;
-      }
-      
-      expandedGroups.add(item.type);
+      const container = $('completedRowsContainer');
+      const rows = Array.from(container.querySelectorAll('.completed-row'));
 
       if (editId) {
+        // Modo edición individual
+        const row = rows[0];
+        if (!row) return;
+
+        const name = row.querySelector('.row-name').value.trim();
+        if (!name) {
+          showToast('Por favor, ingresá el nombre de la materia.');
+          row.querySelector('.row-name').focus();
+          return;
+        }
+
+        const typeValue = row.querySelector('.row-type')?.value || detectCourseType(name) || 'obligatoria';
+        const catedraVal = row.querySelector('.row-catedra').value.trim();
+        const catOptions = row.querySelector('.row-catedra').options;
+        if (catOptions.length > 1 && !catedraVal) {
+          showToast('Por favor, seleccioná una cátedra.');
+          row.querySelector('.row-catedra').focus();
+          return;
+        }
+
+        const gradeVal = row.querySelector('.row-grade').value.trim();
+        let parsedGrade = undefined;
+        if (gradeVal !== '') {
+          const num = Number(gradeVal.replace(',', '.'));
+          if (isNaN(num) || num < 0 || num > 10) {
+            showToast('La nota debe ser un número entre 0 y 10.');
+            row.querySelector('.row-grade').focus();
+            return;
+          }
+          parsedGrade = num;
+        }
+
+        const research = typeValue === 'taller' || typeValue === 'seminario';
+        const item = {
+          id: editId,
+          name,
+          type: research ? 'investigacion' : typeValue
+        };
+        if (catedraVal) item.catedra = catedraVal;
+        if (parsedGrade !== undefined) item.grade = parsedGrade;
+        if (research) {
+          item.subtype = typeValue;
+          item.hours = typeValue === 'seminario' ? 50 : 100;
+        }
+
+        expandedGroups.add(item.type);
         const idx = state.completed.findIndex(c => c.id === editId);
         if (idx >= 0) state.completed[idx] = item;
-      } else {
-        state.completed.unshift(item);
+
+        saveState();
+        closeModal('completedModal');
+        render();
+        showToast('Materia realizada actualizada.');
+        return;
       }
-      saveState(); closeModal('completedModal'); render();
-      showToast(editId ? 'Materia realizada actualizada.' : 'Materia realizada agregada.');
+
+      // Modo carga múltiple
+      const rowsWithData = rows.filter(r => r.querySelector('.row-name').value.trim() !== '');
+      if (rowsWithData.length === 0) {
+        showToast('Por favor, ingresá al menos una materia.');
+        rows[0]?.querySelector('.row-name')?.focus();
+        return;
+      }
+
+      // Validar cada fila con datos
+      for (const row of rowsWithData) {
+        const name = row.querySelector('.row-name').value.trim();
+        const typeValue = row.querySelector('.row-type')?.value || detectCourseType(name) || 'obligatoria';
+        const typeInput = row.querySelector('.row-type');
+        if (typeInput) typeInput.value = typeValue;
+
+        const catedraVal = row.querySelector('.row-catedra').value.trim();
+        const catOptions = row.querySelector('.row-catedra').options;
+        if (catOptions.length > 1 && !catedraVal) {
+          showToast(`Por favor, seleccioná una cátedra para "${name}".`);
+          row.querySelector('.row-catedra').focus();
+          return;
+        }
+
+        const gradeVal = row.querySelector('.row-grade').value.trim();
+        if (gradeVal !== '') {
+          const num = Number(gradeVal.replace(',', '.'));
+          if (isNaN(num) || num < 0 || num > 10) {
+            showToast(`La nota de "${name}" debe ser entre 0 y 10.`);
+            row.querySelector('.row-grade').focus();
+            return;
+          }
+        }
+      }
+
+      // Guardar todos los nuevos registros
+      const newCourses = rowsWithData.map((row, idx) => {
+        const name = row.querySelector('.row-name').value.trim();
+        const typeValue = row.querySelector('.row-type')?.value || detectCourseType(name) || 'obligatoria';
+        const catedraVal = row.querySelector('.row-catedra').value.trim();
+        const gradeVal = row.querySelector('.row-grade').value.trim();
+        const research = typeValue === 'taller' || typeValue === 'seminario';
+
+        const item = {
+          id: `c-${Date.now()}-${idx}-${Math.random().toString(36).slice(2, 6)}`,
+          name,
+          type: research ? 'investigacion' : typeValue
+        };
+        if (catedraVal) item.catedra = catedraVal;
+        if (gradeVal !== '') item.grade = Number(gradeVal.replace(',', '.'));
+        if (research) {
+          item.subtype = typeValue;
+          item.hours = typeValue === 'seminario' ? 50 : 100;
+        }
+
+        expandedGroups.add(item.type);
+        return item;
+      });
+
+      state.completed.unshift(...newCourses);
+      saveState();
+      closeModal('completedModal');
+      render();
+      showToast(newCourses.length === 1 ? 'Materia realizada agregada con éxito.' : `¡Se cargaron ${newCourses.length} materias con éxito!`);
     });
 
     $('deleteCompletedBtn').addEventListener('click', () => {
@@ -1165,6 +1959,641 @@
       state.completed = state.completed.filter(c => c.id !== id);
       saveState(); closeModal('completedModal'); render(); showToast('Registro eliminado.');
     });
+
+    // ==========================================
+    // IMPORTADOR DE HISTORIA ACADÉMICA (SIU GUARANÍ)
+    // ==========================================
+    let siuImportData = {
+      allCourses: [],
+      autoAssigned: [],
+      manualSelection: [],
+      currentIndex: 0
+    };
+
+    function showSiuStep(step) {
+      const steps = ['Upload', 'Loading', 'Catedras', 'Success'];
+      steps.forEach(s => {
+        const el = $(`siuStep${s}`);
+        if (el) el.classList.toggle('hidden', s.toLowerCase() !== step.toLowerCase());
+      });
+    }
+
+    function normalizeSiuCourseName(name) {
+      return String(name || '')
+        .trim()
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/\biii\b/gi, '3')
+        .replace(/\bii\b/gi, '2')
+        .replace(/\bi\b/gi, '1')
+        .replace(/\biv\b/gi, '4')
+        .replace(/\s+/g, ' ');
+    }
+
+    function findCatedrasForImportCourse(courseName, preferredType) {
+      if (!courseName) return [];
+      const norm = normalizeSiuCourseName(courseName);
+
+      if (preferredType) {
+        const col = collectionForCourseType(preferredType);
+        const list = courseCatalogItems[col] || [];
+        const match = list.find(c => normalizeSiuCourseName(c.name) === norm);
+        if (match && Array.isArray(match.catedras) && match.catedras.length) {
+          return match.catedras;
+        }
+      }
+
+      for (const col of Object.values(COURSE_COLLECTIONS)) {
+        const list = courseCatalogItems[col] || [];
+        const match = list.find(c => normalizeSiuCourseName(c.name) === norm);
+        if (match && Array.isArray(match.catedras) && match.catedras.length) {
+          return match.catedras;
+        }
+      }
+
+      return [];
+    }
+
+    function parseSiuExcelData(rows) {
+      if (!Array.isArray(rows) || !rows.length) return [];
+
+      let headerRowIndex = -1;
+      let colMateria = 1;
+      let colTipo = 2;
+      let colNota = 3;
+      let colResultado = 4;
+
+      for (let i = 0; i < Math.min(rows.length, 25); i++) {
+        const row = rows[i] || [];
+        const lowerRow = row.map(cell => String(cell || '').trim().toLowerCase());
+        const mIdx = lowerRow.findIndex(c => c.includes('materia') || c.includes('actividad') || c.includes('asignatura'));
+        const rIdx = lowerRow.findIndex(c => c.includes('resultado') || c.includes('nota') || c.includes('calificaci'));
+        if (mIdx !== -1 && rIdx !== -1) {
+          headerRowIndex = i;
+          colMateria = mIdx;
+          const tIdx = lowerRow.findIndex(c => c.includes('tipo'));
+          if (tIdx !== -1) colTipo = tIdx;
+          const nIdx = lowerRow.findIndex(c => c.includes('nota') || c.includes('calificaci'));
+          if (nIdx !== -1) colNota = nIdx;
+          const resIdx = lowerRow.findIndex(c => c.includes('resultado'));
+          if (resIdx !== -1) colResultado = resIdx;
+          break;
+        }
+      }
+
+      if (headerRowIndex === -1) {
+        headerRowIndex = 9;
+      }
+
+      const courses = [];
+      for (let i = headerRowIndex + 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || !row.length) continue;
+        const firstCell = String(row[0] || '').trim().toLowerCase();
+        if (firstCell.startsWith('promedio') || firstCell.startsWith('título') || firstCell.startsWith('titulo') || firstCell.startsWith('crédito') || firstCell.startsWith('credito')) {
+          break;
+        }
+
+        const rawMateria = String(row[colMateria] || '').trim();
+        if (!rawMateria || rawMateria.toLowerCase().startsWith('promedio')) break;
+
+        const rawTipo = String(row[colTipo] || '').trim();
+        const rawNota = String(row[colNota] || '').trim();
+        const rawResultado = String(row[colResultado] || '').trim();
+
+        // Check approval
+        const isApproved = /^(aprobado|aprobada|a|promocion|promoción)$/i.test(rawResultado) ||
+                           /^(aprobado|aprobada|promocion|promoción)$/i.test(rawTipo) ||
+                           /aprobado/i.test(rawNota);
+        if (!isApproved) continue;
+
+        // Filter CBC
+        if (/cbc/i.test(rawMateria) || /ubaxxi/i.test(rawMateria) || /ciclo\s*b[aá]sico/i.test(rawMateria)) {
+          continue;
+        }
+
+        // Filter Idioma requirement
+        if (/^idioma/i.test(rawMateria) || /\(981\)/.test(rawMateria)) {
+          continue;
+        }
+
+        const match = rawMateria.match(/^(.*?)(?:\s*\(([^)]+)\))?$/);
+        const cleanName = match ? match[1].trim() : rawMateria;
+        const code = match && match[2] ? match[2].trim() : '';
+
+        if (/^cbc/i.test(code)) continue;
+
+        let grade = null;
+        let isResearch = false;
+        let researchHours = 0;
+
+        const researchNotaMatch = rawNota.match(/^(\d+)\s*\((?:Aprobado|A)\)/i);
+        if (researchNotaMatch) {
+          const h = parseInt(researchNotaMatch[1], 10);
+          if (h === 50 || h === 100) {
+            isResearch = true;
+            researchHours = h;
+          }
+        }
+
+        const numGradeMatch = rawNota.match(/^(\d+(?:\.\d+)?)\s*\(/);
+        if (numGradeMatch) {
+          const g = parseFloat(numGradeMatch[1]);
+          if (g <= 10) grade = g;
+        } else if (/^\d+(?:\.\d+)?$/.test(rawNota)) {
+          const g = parseFloat(rawNota);
+          if (g <= 10) grade = g;
+        }
+
+        courses.push({
+          original: rawMateria,
+          cleanName,
+          code,
+          grade,
+          isResearch,
+          researchHours
+        });
+      }
+
+      return courses.reverse();
+    }
+
+    async function processSiuCourses(rawCourses) {
+      if (courseCatalogDb) {
+        try {
+          await preloadAllCourseCatalogs();
+        } catch (e) {
+          console.warn('Error precargando catálogos para importación SIU', e);
+        }
+      }
+
+      const allParsedCourses = [];
+
+      for (const item of rawCourses) {
+        let type = 'especial';
+        let name = item.cleanName;
+        let subtype = undefined;
+        let hours = undefined;
+        let grade = item.grade;
+
+        const normClean = normalizeSiuCourseName(item.cleanName);
+        const planByCode = PLAN_ESTUDIOS.find(p => !p.isGroup && p.id === item.code);
+        const planByName = PLAN_ESTUDIOS.find(p => !p.isGroup && normalizeSiuCourseName(p.name) === normClean);
+        const planMatch = planByCode || planByName;
+
+        if (planMatch) {
+          type = 'obligatoria';
+          name = planMatch.name;
+        } else if (item.isResearch || item.cleanName.toLowerCase().includes('horas de investigacion') || item.cleanName.toLowerCase().includes('taller de inv') || item.cleanName.toLowerCase().includes('seminario')) {
+          type = 'investigacion';
+          subtype = (item.researchHours === 100 || item.cleanName.toLowerCase().includes('taller')) ? 'taller' : 'seminario';
+          hours = item.researchHours || (subtype === 'taller' ? 100 : 50);
+          grade = null;
+        } else {
+          const teoriasList = courseCatalogItems['teorias'] || [];
+          const teoriaMatch = teoriasList.find(t => normalizeSiuCourseName(t.name) === normClean);
+          if (teoriaMatch) {
+            type = 'teoria';
+            name = teoriaMatch.name;
+          } else {
+            const especialesList = courseCatalogItems['especiales'] || [];
+            const especialMatch = especialesList.find(e => normalizeSiuCourseName(e.name) === normClean);
+            if (especialMatch) {
+              type = 'especial';
+              name = especialMatch.name;
+            } else {
+              const detected = detectCourseType(name);
+              if (detected) type = detected;
+            }
+          }
+        }
+
+        const catedras = findCatedrasForImportCourse(name, type);
+
+        allParsedCourses.push({
+          name,
+          type,
+          subtype,
+          hours,
+          grade,
+          catedras,
+          selectedCatedra: ''
+        });
+      }
+
+      // 1. Clasificar materias: nuevas, para actualizar (si cambia la nota/horas o falta cátedra), o ya al día
+      const coursesToProcess = [];
+      let alreadyLoadedCount = 0;
+
+      for (const course of allParsedCourses) {
+        const norm = normalizeSiuCourseName(course.name);
+        const existing = state.completed.find(c => normalizeSiuCourseName(c.name) === norm);
+
+        if (!existing) {
+          course.isUpdate = false;
+          coursesToProcess.push(course);
+        } else {
+          const hasExistingGrade = existing.grade !== undefined && existing.grade !== null && existing.grade !== '';
+          const hasFileGrade = course.grade !== undefined && course.grade !== null && course.grade !== '';
+
+          const gExist = hasExistingGrade ? Number(existing.grade) : null;
+          const gFile = hasFileGrade ? Number(course.grade) : null;
+
+          const isGradeDifferent = (gExist !== null && gFile !== null && Math.abs(gExist - gFile) > 0.01) ||
+                                   (gExist === null && gFile !== null);
+
+          const hExist = existing.hours ? Number(existing.hours) : null;
+          const hFile = course.hours ? Number(course.hours) : null;
+          const isHoursDifferent = Boolean(hExist && hFile && hExist !== hFile);
+
+          const isCatedraMissing = (!existing.catedra || !existing.catedra.trim()) && course.catedras.length > 0;
+
+          if (isGradeDifferent || isHoursDifferent || isCatedraMissing) {
+            course.isUpdate = true;
+            course.oldGrade = gExist;
+            course.oldHours = hExist;
+            course.oldCatedra = existing.catedra || '';
+            course.existingId = existing.id;
+            if (course.oldCatedra && course.catedras.includes(course.oldCatedra)) {
+              course.selectedCatedra = course.oldCatedra;
+            }
+            coursesToProcess.push(course);
+          } else {
+            alreadyLoadedCount++;
+          }
+        }
+      }
+
+      if (coursesToProcess.length === 0) {
+        showToast(`Tu perfil ya está al día. Las ${alreadyLoadedCount} materias del archivo ya se encuentran cargadas con las mismas notas y cátedras.`);
+        showSiuStep('upload');
+        return;
+      }
+
+      // 2. Separar entre asignación automática (única/sin cátedra) y wizard manual (múltiples cátedras)
+      const autoAssigned = [];
+      const manualSelection = [];
+
+      for (const course of coursesToProcess) {
+        if (course.catedras.length === 1) {
+          course.selectedCatedra = course.catedras[0];
+          autoAssigned.push(course);
+        } else if (course.catedras.length === 0) {
+          course.selectedCatedra = course.oldCatedra || '';
+          autoAssigned.push(course);
+        } else {
+          manualSelection.push(course);
+        }
+      }
+
+      siuImportData = {
+        allCourses: coursesToProcess,
+        autoAssigned,
+        manualSelection,
+        currentIndex: 0,
+        alreadyLoadedCount
+      };
+
+      if (manualSelection.length > 0) {
+        showSiuStep('catedras');
+        renderSiuWizardCard();
+      } else {
+        showSiuStep('success');
+        renderSiuSuccessSummary();
+      }
+    }
+
+    function renderSiuWizardCard() {
+      const { manualSelection, currentIndex, autoAssigned } = siuImportData;
+      const course = manualSelection[currentIndex];
+      if (!course) return;
+
+      const total = manualSelection.length;
+      $('siuWizardProgressText').textContent = `Materia ${currentIndex + 1} de ${total}`;
+      const pct = Math.round(((currentIndex + 1) / total) * 100);
+      $('siuWizardProgressBar').style.width = `${pct}%`;
+
+      $('siuCurrentSubjectName').textContent = course.name;
+      
+      const typeBadge = $('siuCurrentSubjectType');
+      typeBadge.textContent = typeLabel(course.type, course.subtype);
+      typeBadge.className = `inline-flex px-2.5 py-0.5 rounded-full text-xs font-bold ${typeClasses(course.type)}`;
+
+      const gradeBadge = $('siuCurrentSubjectGrade');
+      if (course.isUpdate && course.oldGrade !== null && course.oldGrade !== undefined && course.grade !== null && course.grade !== undefined) {
+        gradeBadge.innerHTML = `<span class="line-through text-gray-400 mr-1.5 font-medium">${course.oldGrade}</span><span class="text-primary font-black text-sm">Nota: ${course.grade}</span>`;
+        gradeBadge.classList.remove('hidden');
+      } else if (course.grade !== null && course.grade !== undefined) {
+        gradeBadge.textContent = `Nota: ${course.grade}`;
+        gradeBadge.classList.remove('hidden');
+      } else if (course.hours) {
+        gradeBadge.textContent = `${course.hours} horas`;
+        gradeBadge.classList.remove('hidden');
+      } else {
+        gradeBadge.textContent = 'Aprobada';
+        gradeBadge.classList.remove('hidden');
+      }
+
+      const container = $('siuCatedrasOptionsContainer');
+      container.innerHTML = '';
+
+      course.catedras.forEach(cat => {
+        const isSelected = course.selectedCatedra === cat;
+        const isPrevious = Boolean(course.isUpdate && course.oldCatedra === cat);
+        const card = document.createElement('div');
+        card.setAttribute('role', 'button');
+        card.setAttribute('tabindex', '0');
+        card.className = `siu-cat-option flex items-center justify-between p-3.5 border-2 rounded-2xl cursor-pointer transition-all ${
+          isSelected 
+            ? 'border-primary bg-orange-50/50 shadow-sm text-primary font-bold' 
+            : 'border-gray-200 bg-white hover:border-gray-300 text-dark'
+        }`;
+        card.innerHTML = `
+          <div class="flex items-center gap-2">
+            <span class="siu-cat-title text-sm md:text-base ${isSelected ? 'font-black text-primary' : 'font-semibold text-dark'}">${escapeHTML(formatCatedra(cat))}</span>
+            ${isPrevious ? '<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">Actual en perfil</span>' : ''}
+          </div>
+          <span class="siu-cat-icon material-symbols-outlined text-xl ${isSelected ? 'text-primary' : 'text-gray-300'}">${isSelected ? 'check_circle' : 'radio_button_unchecked'}</span>
+        `;
+
+        card.addEventListener('click', () => {
+          course.selectedCatedra = cat;
+          container.querySelectorAll('.siu-cat-option').forEach(c => {
+            c.className = 'siu-cat-option flex items-center justify-between p-3.5 border-2 rounded-2xl cursor-pointer transition-all border-gray-200 bg-white hover:border-gray-300 text-dark';
+            const icon = c.querySelector('.siu-cat-icon');
+            if (icon) {
+              icon.textContent = 'radio_button_unchecked';
+              icon.className = 'siu-cat-icon material-symbols-outlined text-xl text-gray-300';
+            }
+            const title = c.querySelector('.siu-cat-title');
+            if (title) title.className = 'siu-cat-title text-sm md:text-base font-semibold text-dark';
+          });
+          card.className = 'siu-cat-option flex items-center justify-between p-3.5 border-2 rounded-2xl cursor-pointer transition-all border-primary bg-orange-50/50 shadow-sm text-primary font-bold';
+          const activeIcon = card.querySelector('.siu-cat-icon');
+          if (activeIcon) {
+            activeIcon.textContent = 'check_circle';
+            activeIcon.className = 'siu-cat-icon material-symbols-outlined text-xl text-primary';
+          }
+          const activeTitle = card.querySelector('.siu-cat-title');
+          if (activeTitle) activeTitle.className = 'siu-cat-title text-sm md:text-base font-black text-primary';
+        });
+
+        container.appendChild(card);
+      });
+
+      const autoNotice = $('siuAutoAssignedNotice');
+      const autoText = $('siuAutoAssignedText');
+      if (autoAssigned.length > 0) {
+        autoNotice.classList.remove('hidden');
+        autoText.textContent = `${autoAssigned.length} materia${autoAssigned.length > 1 ? 's' : ''} con cátedra única se asign${autoAssigned.length > 1 ? 'aron' : 'ó'} automáticamente.`;
+      } else {
+        autoNotice.classList.add('hidden');
+      }
+
+      $('siuWizardPrevBtn').disabled = (currentIndex === 0);
+      $('siuWizardNextBtn').innerHTML = (currentIndex === total - 1)
+        ? `<span>Finalizar</span><span class="material-symbols-outlined text-base">check</span>`
+        : `<span>Siguiente</span><span class="material-symbols-outlined text-base">arrow_forward</span>`;
+    }
+
+    function renderSiuSuccessSummary() {
+      const { allCourses, alreadyLoadedCount } = siuImportData;
+      const count = allCourses.length;
+      const newCount = allCourses.filter(c => !c.isUpdate).length;
+      const updateCount = allCourses.filter(c => c.isUpdate).length;
+
+      let title = '';
+      if (newCount > 0 && updateCount > 0) {
+        title = `¡${newCount} ${newCount > 1 ? 'materias nuevas' : 'materia nueva'} y ${updateCount} para actualizar!`;
+      } else if (updateCount > 0) {
+        title = `¡Se detectaron ${updateCount} ${updateCount > 1 ? 'materias para actualizar' : 'materia para actualizar'}!`;
+      } else {
+        title = `¡Se detectaron ${count} ${count > 1 ? 'materias nuevas' : 'materia nueva'} para agregar!`;
+      }
+      $('siuSummaryTotal').textContent = title;
+
+      const mand = allCourses.filter(c => c.type === 'obligatoria').length;
+      const esp = allCourses.filter(c => c.type === 'especial').length;
+      const teo = allCourses.filter(c => c.type === 'teoria').length;
+      const inv = allCourses.filter(c => c.type === 'investigacion');
+      const invHours = inv.reduce((sum, c) => sum + (c.hours || 0), 0);
+
+      const parts = [];
+      if (newCount > 0) parts.push(`${newCount} nueva${newCount > 1 ? 's' : ''}`);
+      if (updateCount > 0) parts.push(`${updateCount} con nota/cátedra actualizada${updateCount > 1 ? 's' : ''}`);
+      if (mand) parts.push(`${mand} obligatoria${mand > 1 ? 's' : ''}`);
+      if (esp) parts.push(`${esp} especial${esp > 1 ? 'es' : ''}`);
+      if (teo) parts.push(`${teo} teoría${teo > 1 ? 's' : ''}`);
+      if (inv.length) parts.push(`${invHours} h de investigación`);
+      if (alreadyLoadedCount > 0) parts.push(`${alreadyLoadedCount} ya estaban al día`);
+
+      $('siuSummaryDetails').textContent = parts.join(' · ');
+
+      const listContainer = $('siuSummaryList');
+      listContainer.innerHTML = allCourses.map(c => `
+        <div class="flex items-center justify-between py-2.5 px-3 hover:bg-slate-50 transition-colors">
+          <div class="flex items-center gap-2.5 min-w-0 pr-2">
+            <span class="inline-flex px-2 py-0.5 rounded text-[11px] font-bold ${typeClasses(c.type)} shrink-0">
+              ${typeLabel(c.type, c.subtype)}
+            </span>
+            <span class="font-bold text-dark text-xs md:text-sm truncate" title="${escapeHTML(c.name)}">${escapeHTML(c.name)}</span>
+            ${c.isUpdate ? '<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 shrink-0">Actualización</span>' : ''}
+          </div>
+          <div class="flex items-center gap-2.5 shrink-0">
+            ${c.selectedCatedra ? `<span class="text-xs text-gray-500 font-semibold bg-gray-50 border border-gray-200 px-2 py-0.5 rounded">${escapeHTML(formatCatedra(c.selectedCatedra))}</span>` : ''}
+            <span class="font-bold text-xs ${c.grade !== null && c.grade !== undefined ? 'text-primary' : 'text-emerald-700'} bg-gray-50 border border-gray-200 px-2 py-0.5 rounded">
+              ${c.isUpdate && c.oldGrade !== null && c.oldGrade !== undefined && c.grade !== null && c.grade !== undefined 
+                ? `<span class="line-through text-gray-400 mr-1 font-normal">${c.oldGrade}</span>${c.grade}` 
+                : (c.grade !== null && c.grade !== undefined ? `Nota: ${c.grade}` : `${c.hours} h`)}
+            </span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function handleSiuFile(file) {
+      if (!file) return;
+      const name = file.name || '';
+      const ext = name.split('.').pop().toLowerCase();
+      if (ext !== 'xls' && ext !== 'xlsx') {
+        showToast('Por favor, subí un archivo de Excel (.xls o .xlsx).');
+        return;
+      }
+
+      showSiuStep('loading');
+
+      const reader = new FileReader();
+      reader.onload = async e => {
+        try {
+          if (typeof XLSX === 'undefined') {
+            throw new Error('SheetJS no está disponible');
+          }
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+
+          const parsedCourses = parseSiuExcelData(rows);
+          if (!parsedCourses.length) {
+            showToast('No se encontraron materias aprobadas en el archivo.');
+            showSiuStep('upload');
+            return;
+          }
+
+          await processSiuCourses(parsedCourses);
+        } catch (err) {
+          console.error('Error procesando archivo SIU', err);
+          showToast('Hubo un error al procesar el archivo. Verificá que sea el descargado de SIU Guaraní.');
+          showSiuStep('upload');
+        }
+      };
+      reader.onerror = () => {
+        showToast('Error al leer el archivo seleccionado.');
+        showSiuStep('upload');
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    const openImportBtn = $('openImportSiuBtn');
+    if (openImportBtn) {
+      openImportBtn.addEventListener('click', () => {
+        const fi = $('siuFileInput');
+        if (fi) fi.value = '';
+        showSiuStep('upload');
+        openModal('importSiuModal');
+      });
+    }
+
+    const dropzone = $('siuDropzone');
+    const fileInput = $('siuFileInput');
+
+    if (dropzone && fileInput) {
+      dropzone.addEventListener('click', () => fileInput.click());
+
+      ['dragenter', 'dragover'].forEach(eventName => {
+        dropzone.addEventListener(eventName, e => {
+          e.preventDefault();
+          e.stopPropagation();
+          dropzone.classList.add('border-primary', 'bg-orange-50/50');
+        });
+      });
+
+      ['dragleave', 'drop'].forEach(eventName => {
+        dropzone.addEventListener(eventName, e => {
+          e.preventDefault();
+          e.stopPropagation();
+          dropzone.classList.remove('border-primary', 'bg-orange-50/50');
+        });
+      });
+
+      dropzone.addEventListener('drop', e => {
+        const files = e.dataTransfer.files;
+        if (files && files.length) {
+          handleSiuFile(files[0]);
+        }
+      });
+
+      fileInput.addEventListener('change', e => {
+        if (e.target.files && e.target.files.length) {
+          handleSiuFile(e.target.files[0]);
+        }
+      });
+    }
+
+    const nextWizardBtn = $('siuWizardNextBtn');
+    if (nextWizardBtn) {
+      nextWizardBtn.addEventListener('click', () => {
+        const { manualSelection, currentIndex } = siuImportData;
+        const course = manualSelection[currentIndex];
+        if (!course) return;
+
+        if (!course.selectedCatedra) {
+          showToast('Por favor, seleccioná una cátedra para continuar.');
+          return;
+        }
+
+        if (currentIndex < manualSelection.length - 1) {
+          siuImportData.currentIndex++;
+          renderSiuWizardCard();
+        } else {
+          showSiuStep('success');
+          renderSiuSuccessSummary();
+        }
+      });
+    }
+
+    const prevWizardBtn = $('siuWizardPrevBtn');
+    if (prevWizardBtn) {
+      prevWizardBtn.addEventListener('click', () => {
+        if (siuImportData.currentIndex > 0) {
+          siuImportData.currentIndex--;
+          renderSiuWizardCard();
+        }
+      });
+    }
+
+    const confirmImportBtn = $('siuConfirmImportBtn');
+    if (confirmImportBtn) {
+      confirmImportBtn.addEventListener('click', () => {
+        const { allCourses } = siuImportData;
+        if (!allCourses || !allCourses.length) return;
+
+        let addedCount = 0;
+        let updatedCount = 0;
+
+        allCourses.forEach(course => {
+          const norm = normalizeSiuCourseName(course.name);
+          const existingIndex = state.completed.findIndex(c => normalizeSiuCourseName(c.name) === norm);
+
+          const item = {
+            id: (existingIndex >= 0 && state.completed[existingIndex].id) 
+              ? state.completed[existingIndex].id 
+              : `c-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+            name: course.name,
+            type: course.type
+          };
+
+          if (course.selectedCatedra) {
+            item.catedra = course.selectedCatedra;
+          }
+
+          if (course.grade !== null && course.grade !== undefined) {
+            item.grade = Number(course.grade);
+          }
+
+          if (course.type === 'investigacion') {
+            item.subtype = course.subtype;
+            item.hours = course.hours;
+          }
+
+          if (existingIndex >= 0) {
+            state.completed[existingIndex] = item;
+            updatedCount++;
+          } else {
+            state.completed.push(item);
+            addedCount++;
+          }
+
+          expandedGroups.add(course.type);
+        });
+
+        saveState();
+        closeModal('importSiuModal');
+        render();
+
+        let msg = '';
+        if (addedCount > 0 && updatedCount > 0) {
+          msg = `¡Se agregaron ${addedCount} materias y se actualizaron ${updatedCount} en tu perfil!`;
+        } else if (updatedCount > 0) {
+          msg = `¡Se actualiz${updatedCount > 1 ? 'aron' : 'ó'} con éxito ${updatedCount} ${updatedCount > 1 ? 'materias' : 'materia'} en tu perfil!`;
+        } else {
+          msg = `¡Se agregar${addedCount > 1 ? 'on' : 'ó'} con éxito ${addedCount} ${addedCount > 1 ? 'materias' : 'materia'} a tu perfil!`;
+        }
+        showToast(msg);
+      });
+    }
 
     if (profileAuth) {
       profileAuth.onAuthStateChanged(handleProfileAuthState);
