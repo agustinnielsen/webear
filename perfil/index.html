@@ -24,6 +24,7 @@
     };
   </script>
   <style>
+    [hidden] { display: none !important; }
     html { scroll-behavior: smooth; }
     body { min-height: 100vh; overflow-x: hidden; }
     button, select, input, textarea { touch-action: manipulation; }
@@ -108,7 +109,26 @@
     </div>
   </nav>
 
-  <header class="bg-gradient-to-br from-[#ff7d29] via-[#ff8a3d] to-[#ffad70] text-white px-4 md:px-8 pt-6 sm:pt-8 pb-8 sm:pb-12">
+  <section id="profileAccess" class="max-w-xl mx-auto px-4 py-12 sm:py-20" aria-labelledby="profileAccessTitle">
+    <div class="bg-white border border-gray-100 rounded-3xl shadow-sm p-6 sm:p-10 text-center">
+      <span class="material-symbols-outlined text-primary text-5xl mb-4" aria-hidden="true">account_circle</span>
+      <p id="profileAccessChecking" role="status">Comprobando tu sesión…</p>
+      <div id="profileAccessPrompt" hidden>
+        <h1 id="profileAccessTitle" class="text-2xl sm:text-3xl font-black">Inicia sesión o registrate para acceder a tu perfil</h1>
+        <p class="text-gray-500 mt-3">Consultá tus materias y tu recorrido en la carrera.</p>
+        <div class="flex flex-col sm:flex-row gap-3 mt-6">
+          <button type="button" data-profile-auth="loginModal" class="flex-1 bg-primary text-white font-bold py-3 px-4 rounded-xl hover:bg-primaryDark">Iniciar sesión</button>
+          <button type="button" data-profile-auth="registerModal" class="flex-1 border border-primary text-primary font-bold py-3 px-4 rounded-xl hover:bg-orange-50">Registrarme</button>
+        </div>
+      </div>
+      <div id="profileAccessProblem" hidden>
+        <p role="alert">No pudimos cargar tu perfil. Revisá tu conexión e intentá de nuevo.</p>
+        <button id="profileAccessRetry" type="button" class="mt-5 bg-primary text-white font-bold py-3 px-6 rounded-xl">Reintentar</button>
+      </div>
+    </div>
+  </section>
+
+  <header id="profileHeader" hidden class="bg-gradient-to-br from-[#ff7d29] via-[#ff8a3d] to-[#ffad70] text-white px-4 md:px-8 pt-6 sm:pt-8 pb-8 sm:pb-12">
     <div class="max-w-7xl mx-auto flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-6">
       <div class="flex items-center gap-4 min-w-0">
         <div id="profileAvatar" class="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-2xl sm:rounded-3xl bg-white text-primary flex items-center justify-center text-2xl sm:text-3xl md:text-4xl font-black shadow-xl border-4 border-white/30 shrink-0">U</div>
@@ -121,7 +141,7 @@
     </div>
   </header>
 
-  <main class="max-w-7xl mx-auto px-3.5 sm:px-4 md:px-8 py-5 sm:py-7 md:py-10">
+  <main id="profileContent" hidden class="max-w-7xl mx-auto px-3.5 sm:px-4 md:px-8 py-5 sm:py-7 md:py-10">
     <div class="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-6 md:gap-8 items-start">
       <div class="order-2 xl:order-1 space-y-5 md:space-y-7">
         
@@ -227,6 +247,87 @@
       </aside>
     </div>
   </main>
+
+        <div class="modal fixed inset-0 bg-black/60 z-[2000] items-center justify-center p-4 backdrop-blur-sm" id="loginModal">
+            <div class="bg-white p-8 rounded-3xl w-full max-w-sm shadow-2xl modal-card mobile-safe-bottom relative">
+                <h2 class="text-2xl font-black text-primary text-center mb-6">Iniciar Sesión</h2>
+                <form id="loginForm" class="space-y-4">
+                    <div class="space-y-1">
+                        <label for="loginEmail" class="font-semibold text-sm text-gray-600">Email</label>
+                        <input type="email" id="loginEmail" class="w-full p-3 border rounded-xl focus:border-primary outline-none" required>
+                    </div>
+                    <div class="space-y-1 relative">
+                        <label for="loginPassword" class="font-semibold text-sm text-gray-600">Contraseña</label>
+                        <input type="password" id="loginPassword" class="w-full p-3 border rounded-xl focus:border-primary outline-none pr-10" required>
+                        <button type="button" class="toggle-password-btn absolute right-3 top-9 text-gray-400 hover:text-primary" data-target="loginPassword"><span class="material-symbols-outlined">visibility</span></button>
+                    </div>
+                    <div class="text-right">
+                        <button type="button" id="forgotPasswordBtn" class="text-sm font-semibold text-primary hover:underline">Olvide mi contraseña</button>
+                    </div>
+                    <div id="loginError" class="text-red-500 text-sm text-center bg-red-50 p-2 rounded hidden"></div>
+                    <div class="flex gap-3 pt-4">
+                        <button type="button" id="cancelLogin" class="flex-1 py-3 border text-gray-500 font-bold rounded-xl hover:bg-gray-50" data-close-modal>Cancelar</button>
+                        <button type="submit" class="flex-1 py-3 bg-primary text-white font-bold rounded-xl shadow-md hover:bg-primaryDark">Iniciar sesión</button>
+                    </div>
+                    <div class="pt-6 mt-2 border-t text-center text-sm">
+                        <p class="text-gray-500 mb-1">¿No tienes cuenta?</p>
+                        <a href="#" id="switchToRegister" class="text-primary font-bold hover:underline">Regístrate aquí</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="modal fixed inset-0 bg-black/60 z-[2000] items-center justify-center p-4 backdrop-blur-sm" id="registerModal">
+            <div class="bg-white p-6 md:p-8 rounded-3xl w-full max-w-4xl shadow-2xl modal-card mobile-safe-bottom max-h-[90vh] overflow-y-auto">
+                <div class="flex flex-col md:flex-row gap-8">
+                    <div class="flex-1 space-y-6">
+                        <h2 class="text-2xl font-black text-primary mb-2">Registrarse</h2>
+                        <form id="registerForm" class="space-y-4">
+                            <div class="flex gap-4">
+                                <div class="flex-1 space-y-1"><label class="text-sm font-semibold text-gray-600">Nombre</label><input type="text" id="registerFirstName" class="w-full p-3 border rounded-xl" required></div>
+                                <div class="flex-1 space-y-1"><label class="text-sm font-semibold text-gray-600">Apellido</label><input type="text" id="registerLastName" class="w-full p-3 border rounded-xl" required></div>
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-sm font-semibold text-gray-600">Email</label>
+                                <input type="email" id="registerEmail" class="w-full p-3 border rounded-xl" required>
+                                <p class="text-xs text-amber-600 mt-1">Revisa tu casilla de spam para confirmar tu cuenta.</p>
+                            </div>
+                            <div class="space-y-1 relative">
+                                <label class="text-sm font-semibold text-gray-600">Contraseña</label>
+                                <input type="password" id="registerPassword" class="w-full p-3 border rounded-xl pr-10" required minlength="6">
+                                <button type="button" class="toggle-password-btn absolute right-3 top-9 text-gray-400 hover:text-primary" data-target="registerPassword"><span class="material-symbols-outlined">visibility</span></button>
+                            </div>
+                            <div id="registerError" class="text-red-500 text-sm hidden bg-red-50 p-2 rounded"></div>
+                            <div class="flex gap-3 pt-4">
+                                <button type="button" id="cancelRegister" class="flex-1 py-3 border text-gray-500 font-bold rounded-xl hover:bg-gray-50" data-close-modal>Cancelar</button>
+                                <button type="submit" class="flex-1 py-3 bg-primary text-white font-bold rounded-xl shadow-md hover:bg-primaryDark">Siguiente</button>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="flex-1 bg-amber-50 p-6 rounded-2xl flex flex-col justify-center text-sm text-gray-700 space-y-4">
+                        <h3 class="text-primary text-lg font-bold flex items-center gap-2">⚠️ Importante</h3>
+                        <p>Es importante cuidar a la comunidad académica. A la hora de hacer reseñas se opina sobre el trabajo de personas reales.</p>
+                        <p>Contamos con tu buena fe para que Gino Social sea un herramienta útil y constructiva.</p>
+                        <p>Por esta razón <strong class="text-red-500">pedimos que tus reseñas sean con nombre y apellidos reales</strong>.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fixed inset-0 bg-black/60 z-[2000] items-center justify-center p-4" id="tycModal">
+            <div class="bg-white p-8 rounded-3xl w-full max-w-xl shadow-2xl modal-card mobile-safe-bottom">
+                <h2 class="text-2xl font-black text-primary text-center mb-4">📜 Términos y Condiciones</h2>
+                <p class="text-center text-gray-600 mb-4">Para finalizar, acepta nuestras normas de convivencia.</p>
+                <div class="bg-gray-50 border border-gray-200 rounded-xl overflow-hidden h-64 mb-6 relative" id="tycContainer">
+                    <iframe src="../terminos.html" class="w-full h-full border-0" title="Términos y Condiciones"></iframe>
+                </div>
+                <div class="flex gap-3">
+                    <button type="button" id="cancelTyC" class="flex-1 py-3 border border-red-200 text-red-500 font-bold rounded-xl hover:bg-red-50" data-close-modal>Cancelar</button>
+                    <button type="button" id="acceptTyC" class="flex-1 py-3 bg-gradient-to-r from-primary to-primaryDark text-white font-bold rounded-xl shadow-md hover:shadow-lg">Aceptar y Registrarse</button>
+                </div>
+            </div>
+        </div>
+
 
   <!-- Modal quiero cursar -->
   <div id="wantedModal" class="modal fixed inset-0 bg-black/60 z-50 items-center justify-center p-4 backdrop-blur-sm">
@@ -478,7 +579,7 @@
     </div>
   </div>
 
-  <div id="toast" class="fixed top-16 sm:top-20 left-4 right-4 sm:left-auto sm:right-4 md:right-8 sm:max-w-sm z-[60] translate-x-[120%] opacity-0 transition-all duration-300 px-4 py-3 rounded-xl bg-dark text-white font-bold shadow-2xl text-sm"></div>
+  <div id="toast" class="fixed top-16 sm:top-20 left-4 right-4 sm:left-auto sm:right-4 md:right-8 sm:max-w-sm z-[3000] translate-x-[120%] opacity-0 transition-all duration-300 px-4 py-3 rounded-xl bg-dark text-white font-bold shadow-2xl text-sm"></div>
 
   <script>
     const FIREBASE_CONFIG = {
@@ -532,7 +633,7 @@
     };
 
     const STORAGE_KEY = 'ginoPerfilDirectorio_v3';
-    let state = loadState();
+    let state = cloneDefault();
     let activeProfileUser = null;
     let profileCloudReady = false;
     let profileWriteChain = Promise.resolve();
@@ -732,7 +833,14 @@
       activeProfileUser = user || null;
       profileCloudReady = false;
 
-      if (!user || !courseCatalogDb) return;
+      state = cloneDefault();
+      if (!user || !user.emailVerified) {
+        activeProfileUser = null;
+        setProfileAccess('signedout');
+        return;
+      }
+      setProfileAccess('checking');
+      if (!courseCatalogDb) { setProfileAccess('error'); return; }
 
       try {
         const userDoc = await courseCatalogDb.collection('usuarios').doc(user.uid).get();
@@ -743,14 +851,131 @@
         persistLocalState();
         render();
         profileCloudReady = true;
+        closeAllModals();
+        setProfileAccess('ready');
 
         if (!remoteProfile) syncProfileToCloud();
         
         loadUserReviews(user, revision);
       } catch (error) {
+        if (revision !== authStateRevision) return;
+        setProfileAccess('error');
         console.warn('No se pudo cargar el perfil académico desde Firebase.', error);
       }
     }
+
+
+    let pendingRegistrationData = null;
+    let registrationBusy = false;
+
+    function setProfileAccess(status) {
+      const ready = status === 'ready';
+      $('profileHeader').hidden = !ready;
+      $('profileContent').hidden = !ready;
+      $('profileAccess').hidden = ready;
+      $('profileAccessChecking').hidden = status !== 'checking';
+      $('profileAccessPrompt').hidden = status !== 'signedout';
+      $('profileAccessProblem').hidden = status !== 'error';
+      if (!ready) document.querySelectorAll('.modal.active').forEach(m => {
+        if (!['loginModal', 'registerModal', 'tycModal'].includes(m.id)) closeModal(m.id);
+      });
+    }
+
+    function showAuthError(id, message) {
+      $(id).textContent = message;
+      $(id).classList.toggle('hidden', !message);
+    }
+
+    document.querySelectorAll('[data-profile-auth]').forEach(button => {
+      button.addEventListener('click', () => openModal(button.dataset.profileAuth));
+    });
+    $('switchToRegister').onclick = event => {
+      event.preventDefault(); closeModal('loginModal'); openModal('registerModal');
+    };
+    document.querySelectorAll('.toggle-password-btn').forEach(button => {
+      button.onclick = () => {
+        const input = $(button.dataset.target);
+        input.type = input.type === 'password' ? 'text' : 'password';
+      };
+    });
+    $('profileAccessRetry').onclick = () => {
+      if (profileAuth?.currentUser) handleProfileAuthState(profileAuth.currentUser);
+      else window.location.reload();
+    };
+    $('loginForm').onsubmit = async event => {
+      event.preventDefault();
+      const button = $('loginForm').querySelector('[type="submit"]');
+      if (button.disabled) return;
+      button.disabled = true;
+      showAuthError('loginError', '');
+      try {
+        if (!profileAuth) throw new Error('Acceso no disponible');
+        const cred = await profileAuth.signInWithEmailAndPassword($('loginEmail').value.trim(), $('loginPassword').value);
+        if (!cred.user.emailVerified) {
+          await profileAuth.signOut();
+          showAuthError('loginError', 'Verifica tu email.');
+          return;
+        }
+        $('loginPassword').value = '';
+        closeModal('loginModal');
+      } catch (error) {
+        showAuthError('loginError', error.code === 'auth/network-request-failed' ? 'Revisá tu conexión e intentá de nuevo.' : 'No pudimos iniciar sesión. Revisá tu email y contraseña.');
+      } finally { button.disabled = false; }
+    };
+    $('forgotPasswordBtn').onclick = async () => {
+      const email = $('loginEmail').value.trim();
+      if (!email) {
+        showAuthError('loginError', 'Ingresa tu email para recuperar tu contraseña.');
+        $('loginEmail').focus(); return;
+      }
+      try {
+        await profileAuth.sendPasswordResetEmail(email);
+        showAuthError('loginError', '');
+        showToast('Te enviamos un email para restablecer tu contraseña.');
+      } catch (error) { showAuthError('loginError', 'No pudimos enviar el email de recuperación.'); }
+    };
+    $('registerForm').onsubmit = event => {
+      event.preventDefault();
+      if (registrationBusy || !$('registerForm').reportValidity()) return;
+      showAuthError('registerError', '');
+      pendingRegistrationData = {
+        firstName: $('registerFirstName').value.trim(), lastName: $('registerLastName').value.trim(),
+        email: $('registerEmail').value.trim(), password: $('registerPassword').value
+      };
+      closeModal('registerModal'); openModal('tycModal');
+    };
+    $('acceptTyC').onclick = async () => {
+      if (!pendingRegistrationData || registrationBusy) return;
+      const data = { ...pendingRegistrationData };
+      const button = $('acceptTyC');
+      registrationBusy = true; button.disabled = true; $('cancelTyC').disabled = true;
+      button.textContent = 'Procesando...';
+      try {
+        if (!profileAuth || !courseCatalogDb) throw new Error('Acceso no disponible');
+        const cred = await profileAuth.createUserWithEmailAndPassword(data.email, data.password);
+        await cred.user.updateProfile({ displayName: data.firstName + ' ' + data.lastName });
+        await cred.user.sendEmailVerification();
+        await courseCatalogDb.collection('usuarios').doc(cred.user.uid).set({
+          nombre: data.firstName, apellido: data.lastName, email: data.email,
+          tycAceptados: true, fechaAceptacionTyC: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+        await profileAuth.signOut();
+        registrationBusy = false;
+        closeModal('tycModal');
+        $('registerPassword').value = '';
+        $('loginEmail').value = data.email;
+        showToast('Cuenta creada. Revisa tu email para confirmarla.');
+        openModal('loginModal');
+      } catch (error) {
+        if (profileAuth?.currentUser && !profileAuth.currentUser.emailVerified) await profileAuth.signOut().catch(() => {});
+        registrationBusy = false;
+        closeModal('tycModal'); openModal('registerModal');
+        showAuthError('registerError', error.code === 'auth/email-already-in-use' ? 'El email ya está registrado.' : 'No pudimos completar el registro. Intentá de nuevo.');
+      } finally {
+        registrationBusy = false; button.disabled = false; $('cancelTyC').disabled = false;
+        button.textContent = 'Aceptar y Registrarse';
+      }
+    };
 
     function showToast(message) {
       const el = $('toast');
@@ -761,6 +986,7 @@
     }
 
     function openModal(id) {
+      if (!['loginModal', 'registerModal', 'tycModal'].includes(id) && !profileCloudReady) return;
       $(id).classList.add('active');
       document.querySelectorAll('.custom-dropdown').forEach(d => {
         d.classList.add('hidden');
@@ -768,6 +994,8 @@
       });
     }
     function closeModal(id) {
+      if (registrationBusy && id === 'tycModal') return;
+      if (id === 'tycModal') pendingRegistrationData = null;
       $(id).classList.remove('active');
       document.querySelectorAll('.custom-dropdown').forEach(d => {
         d.classList.add('hidden');
@@ -775,7 +1003,7 @@
       });
     }
     function closeAllModals() {
-      document.querySelectorAll('.modal.active').forEach(m => m.classList.remove('active'));
+      document.querySelectorAll('.modal.active').forEach(m => closeModal(m.id));
       document.querySelectorAll('.custom-dropdown').forEach(d => {
         d.classList.add('hidden');
         d.classList.remove('flex');
@@ -1508,6 +1736,7 @@
       $('profileName').textContent = state.name || 'Usuario';
       $('profileAvatar').textContent = (state.name || 'U').trim().charAt(0).toUpperCase() || 'U';
       $('profileMeta').textContent = `Sociología · UBA · Ingreso ${state.entryYear || '—'} · ${state.completed.length} registros académicos`;
+      $('profileMeta').textContent = `Sociología · UBA · ${state.completed.length} registros académicos`;
 
       const progress = calcProgress();
       $('requirementsGrid').innerHTML = [
@@ -2684,7 +2913,9 @@
     }
 
     if (profileAuth) {
-      profileAuth.onAuthStateChanged(handleProfileAuthState);
+      profileAuth.onAuthStateChanged(handleProfileAuthState, () => setProfileAccess('error'));
+    } else {
+      setProfileAccess('error');
     }
 
     render();
