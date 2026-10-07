@@ -80,6 +80,17 @@
     ::-webkit-scrollbar-track { background: #f1f1f1; }
     ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
     ::-webkit-scrollbar-thumb:hover { background: #ff7d29; }
+    #planTree { width: max-content; display: grid; grid-auto-flow: column; grid-template-rows: repeat(5, auto); column-gap: 24px; row-gap: 16px; align-items: start; }
+    #planTree > .plan-column { display: grid; grid-row: 1 / -1; grid-template-rows: subgrid; row-gap: 16px; align-items: start; }
+    @media (min-width: 768px) { #planTree { column-gap: 32px; } }
+    #planViewport { min-height: 0; }
+    .plan-zoom-toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 20px; background: white; border-bottom: 1px solid #e5e7eb; flex-shrink: 0; }
+    .plan-zoom-control { display: inline-flex; align-items: center; justify-content: center; height: 36px; min-width: 36px; padding: 0 10px; border: 1px solid #e5e7eb; border-radius: 9px; color: #2c3e50; background: white; font-size: 13px; font-weight: 700; }
+    .plan-zoom-control:hover { background: #f8fafc; }
+    .plan-zoom-control:disabled { opacity: .4; cursor: default; }
+    .plan-zoom-control:focus-visible { outline: 2px solid #ff7d29; outline-offset: 2px; }
+    #planZoomReset { min-width: 60px; }
+    #planZoomFit { margin-left: 4px; color: #e66b1d; border-color: #fed7aa; }
   </style>
 </head>
 <body class="bg-slate-50 text-dark font-sans">
@@ -452,7 +463,14 @@
         </div>
         <button data-close-modal class="text-gray-400 hover:text-gray-700 text-3xl h-10 w-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">✕</button>
       </div>
-      <div class="flex-1 overflow-x-auto overflow-y-auto p-5 md:p-8 bg-slate-100/50">
+      <div class="plan-zoom-toolbar" role="group" aria-label="Zoom del mapa">
+        <span class="text-xs text-gray-500 mr-1">Zoom</span>
+        <button id="planZoomOut" class="plan-zoom-control" type="button" aria-label="Alejar mapa" title="Alejar">−</button>
+        <button id="planZoomReset" class="plan-zoom-control" type="button" aria-label="Volver al zoom de 100%" title="Volver al 100%">100%</button>
+        <button id="planZoomIn" class="plan-zoom-control" type="button" aria-label="Acercar mapa" title="Acercar">+</button>
+        <button id="planZoomFit" class="plan-zoom-control" type="button">Ver todo</button>
+      </div>
+      <div id="planViewport" class="flex-1 overflow-x-auto overflow-y-auto p-5 md:p-8 bg-slate-100/50">
         <div id="planTree" class="flex gap-6 md:gap-8 min-w-max pb-8">
           <!-- Las columnas y tarjetas se generan dinámicamente vía JS -->
         </div>
@@ -1408,8 +1426,8 @@
         delete course.grade;
       } else {
         const grade = Number(value);
-        if (!Number.isFinite(grade) || grade < 0 || grade > 10) {
-          showToast('La nota debe estar entre 0 y 10.');
+        if (!Number.isInteger(grade) || grade < 0 || grade > 10) {
+          showToast('La nota debe ser un número entero entre 0 y 10.');
           renderPlan();
           return;
         }
@@ -1610,6 +1628,67 @@
       renderPlan();
     }
 
+    let planZoom = 1;
+    let planZoomFit = false;
+    let planZoomFrame = 0;
+
+    function updatePlanZoomControls() {
+      $('planZoomReset').textContent = Math.round(planZoom * 100) + '%';
+      $('planZoomOut').disabled = planZoom <= .1;
+      $('planZoomIn').disabled = planZoom >= 1.5;
+    }
+
+    function setPlanZoom(value, fit = false) {
+      const viewport = $('planViewport');
+      const previous = planZoom;
+      const centerX = (viewport.scrollLeft + viewport.clientWidth / 2) / previous;
+      const centerY = (viewport.scrollTop + viewport.clientHeight / 2) / previous;
+      planZoom = Math.min(1.5, Math.max(.1, value));
+      planZoomFit = fit;
+      $('planTree').style.zoom = planZoom;
+      viewport.scrollLeft = fit ? 0 : Math.max(0, centerX * planZoom - viewport.clientWidth / 2);
+      viewport.scrollTop = fit ? 0 : Math.max(0, centerY * planZoom - viewport.clientHeight / 2);
+      updatePlanZoomControls();
+    }
+
+    function fitPlanZoom() {
+      const viewport = $('planViewport');
+      const tree = $('planTree');
+      if (!viewport.clientWidth || !viewport.clientHeight) return;
+      const rect = tree.getBoundingClientRect();
+      const width = rect.width / planZoom;
+      const height = rect.height / planZoom;
+      if (!width || !height) return;
+      const padding = getComputedStyle(viewport);
+      const availableWidth = viewport.clientWidth - parseFloat(padding.paddingLeft) - parseFloat(padding.paddingRight) - 4;
+      const availableHeight = viewport.clientHeight - parseFloat(padding.paddingTop) - parseFloat(padding.paddingBottom) - 4;
+      setPlanZoom(Math.min(1, availableWidth / width, availableHeight / height), true);
+    }
+
+    function refreshPlanZoom() {
+      if (planZoomFit && $('planModal').classList.contains('active')) fitPlanZoom();
+      else { $('planTree').style.zoom = planZoom; updatePlanZoomControls(); }
+    }
+
+    $('planZoomOut').addEventListener('click', () => setPlanZoom(planZoom / 1.2));
+    $('planZoomIn').addEventListener('click', () => setPlanZoom(planZoom * 1.2));
+    $('planZoomReset').addEventListener('click', () => setPlanZoom(1));
+    $('planZoomFit').addEventListener('click', fitPlanZoom);
+    new ResizeObserver(() => {
+      cancelAnimationFrame(planZoomFrame);
+      planZoomFrame = requestAnimationFrame(refreshPlanZoom);
+    }).observe($('planViewport'));
+
+    document.addEventListener('keydown', event => {
+      if (event.target.matches('[data-plan-grade]') && !event.ctrlKey && !event.metaKey && ['.', ',', 'e', 'E', '+', '-'].includes(event.key)) event.preventDefault();
+    });
+    document.addEventListener('paste', event => {
+      if (event.target.matches('[data-plan-grade]') && !/^\d*$/.test(event.clipboardData.getData('text').trim())) {
+        event.preventDefault();
+        showToast('La nota debe ser un número entero entre 0 y 10.');
+      }
+    });
+
     function renderPlan() {
       const completedNames = new Set(state.completed.map(c => normalizedCourseName(c.name)));
       
@@ -1619,10 +1698,21 @@
         tiers[subject.tier].push(subject);
       });
 
+      // El orden visual es independiente de los requisitos y niveles del plan.
+      const visualOrder = {
+        3: ['257', '258', '262'],
+        4: ['260', '261', '263'],
+        5: ['266', '264', '265']
+      };
+      Object.entries(visualOrder).forEach(([tier, ids]) => {
+        const positions = new Map(ids.map((id, index) => [id, index]));
+        tiers[tier]?.sort((a, b) => (positions.get(a.id) ?? ids.length) - (positions.get(b.id) ?? ids.length));
+      });
+
       let html = '';
       Object.keys(tiers).sort().forEach(tierNum => {
         html += `
-          <div class="w-72 md:w-80 shrink-0 flex flex-col gap-4 relative">
+          <div class="plan-column w-72 md:w-80 shrink-0 flex flex-col gap-4 relative">
             <div class="flex items-center gap-2 mb-2 px-1">
               <span class="w-6 h-6 rounded-full bg-slate-200 text-slate-700 font-black text-[11px] flex items-center justify-center">${tierNum}</span>
             </div>`;
@@ -1640,21 +1730,13 @@
           });
 
           let cardStyle = '';
-          let icon = '';
-          let statusText = '';
           
           if (isPassed) {
             cardStyle = 'bg-emerald-50 border-emerald-200 shadow-sm';
-            icon = '<span class="material-symbols-outlined text-emerald-500 text-[22px]">check_circle</span>';
-            statusText = '<span class="text-emerald-700 font-bold text-xs uppercase tracking-wide">Aprobada</span>';
           } else if (reqsMet) {
             cardStyle = 'bg-white border-primary/40 shadow-md ring-2 ring-primary/10';
-            icon = '<span class="material-symbols-outlined text-primary text-[22px]">lock_open</span>';
-            statusText = '<span class="text-primary font-bold text-xs uppercase tracking-wide">Desbloqueada</span>';
           } else {
             cardStyle = 'bg-slate-50 border-slate-200 opacity-80';
-            icon = '<span class="material-symbols-outlined text-slate-300 text-[22px]">lock</span>';
-            statusText = '<span class="text-slate-400 font-bold text-xs uppercase tracking-wide">Bloqueada</span>';
           }
 
           html += `
@@ -1662,18 +1744,18 @@
               <div class="flex items-start gap-3 justify-between mb-3">
                 <h4 class="font-black text-dark leading-tight text-[15px] pr-2">${escapeHTML(subj.name)}</h4>
                 ${!subj.isGroup ? `
-                  <label class="shrink-0 mt-0.5 flex items-center justify-center" title="${isPassed ? 'Desmarcar como hecha' : reqsMet ? 'Marcar como hecha' : 'Materia bloqueada'}">
+                  <label class="shrink-0 mt-0.5 flex items-center justify-center" title="${isPassed ? 'Desmarcar como hecha' : reqsMet ? 'Marcar como hecha' : 'Requiere completar las correlativas'}">
                     <input data-plan-completed="${escapeHTML(subj.id)}" type="checkbox" aria-label="${isPassed ? 'Desmarcar como hecha' : 'Marcar como hecha'}" ${isPassed ? 'checked' : ''} ${!isPassed && !reqsMet ? 'disabled' : ''} class="size-5 rounded border-2 ${isPassed ? 'border-emerald-500 accent-emerald-600' : reqsMet ? 'border-primary accent-primary cursor-pointer' : 'border-slate-300 accent-slate-400 cursor-not-allowed'}">
                   </label>
                 ` : ''}
               </div>
-              <div class="flex items-center gap-1.5">${icon}${statusText}</div>
+
 
               ${!subj.isGroup && isPassed ? `
                 <label class="block mt-4 pt-3 border-t border-emerald-200/70">
                   <span class="block text-[10px] font-black uppercase tracking-wider text-emerald-700 mb-1.5">Nota <span class="normal-case font-medium text-emerald-600/70">(opcional)</span></span>
                   <div class="relative w-28">
-                    <input data-plan-grade="${escapeHTML(subj.id)}" type="number" min="0" max="10" step="0.01" value="${Number.isFinite(Number(completedCourse.grade)) ? escapeHTML(completedCourse.grade) : ''}" class="w-full rounded-xl border border-emerald-200 bg-white px-3 py-2 pr-10 text-sm font-bold text-dark outline-none focus:border-primary focus:ring-2 focus:ring-primary/10" placeholder="0–10">
+                    <input data-plan-grade="${escapeHTML(subj.id)}" type="number" min="0" max="10" step="1" inputmode="numeric" value="${Number.isFinite(Number(completedCourse.grade)) ? escapeHTML(completedCourse.grade) : ''}" class="w-full rounded-xl border border-emerald-200 bg-white px-3 py-2 pr-10 text-sm font-bold text-dark outline-none focus:border-primary focus:ring-2 focus:ring-primary/10" placeholder="0–10">
                     <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">/10</span>
                   </div>
                 </label>
@@ -1697,7 +1779,10 @@
       });
       
       const planTreeEl = $('planTree');
-      if (planTreeEl) planTreeEl.innerHTML = html;
+      if (planTreeEl) {
+        planTreeEl.innerHTML = html;
+        requestAnimationFrame(refreshPlanZoom);
+      }
     }
 
     async function openCompletedEditor(id = '') {
@@ -1760,7 +1845,10 @@
       if (planGrade) updatePlanSubjectGrade(planGrade.dataset.planGrade, planGrade.value);
     });
 
-    $('openPlanBtn').addEventListener('click', () => openModal('planModal'));
+    $('openPlanBtn').addEventListener('click', () => {
+      openModal('planModal');
+      requestAnimationFrame(refreshPlanZoom);
+    });
 
     $('addWantedBtn').addEventListener('click', () => {
       $('wantedForm').reset();
