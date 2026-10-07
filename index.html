@@ -583,10 +583,6 @@
                                             <label for="catedra" class="block font-semibold text-dark">Cátedra</label>
                                             <select id="catedra" class="w-full md:w-[80%] p-3 border border-gray-300 rounded-lg focus:border-primary outline-none bg-white" required></select>
                                         </div>
-                                        <div class="space-y-2" id="practico-form-group">
-                                            <label for="practico" class="block font-semibold text-dark">Práctico</label>
-                                            <select id="practico" class="w-full p-3 border border-gray-300 rounded-lg focus:border-primary outline-none bg-white" required></select>
-                                        </div>
                                     </div>
 
                                     <div class="space-y-2">
@@ -1067,6 +1063,7 @@
             }
 
             function mostrarVistaHome() {
+                actualizarBotonesTrayectoriaUI(null);
                 mod('home-view').classList.add('active');
                 mod('materia-view').classList.remove('active');
                 mod('mainNav').classList.remove('solid-bg');
@@ -1300,21 +1297,14 @@
 
                 fCatSel.onchange = () => { updatePracticoFilter(); cargarresenasEnUI(); };
 
-                const pracGroup = mod('practico-form-group');
                 const fPracGroup = mod('practico-filter-group');
 
                 if (m.tipo === 'materias') {
-                    pracGroup.classList.remove('hidden'); fPracGroup.classList.remove('hidden'); mod('practico').required = true;
+                    fPracGroup.classList.remove('hidden');
                 } else {
-                    pracGroup.classList.add('hidden'); fPracGroup.classList.add('hidden'); mod('practico').required = false;
+                    fPracGroup.classList.add('hidden');
                 }
 
-                catSel.onchange = () => {
-                    const sel = catSel.value;
-                    const pSel = mod('practico');
-                    pSel.innerHTML = '<option value="">Selecciona práctico</option>';
-                    m.catedras?.find(x => x.nombre === sel)?.practicos?.forEach(p => pSel.add(new Option(p, p)));
-                };
             }
 
             async function guardarResumen(event) {
@@ -1705,7 +1695,7 @@
                                     <span class="font-bold text-dark">${r.usuarioNombre || 'Anónimo'}</span>
                                     <div class="flex items-center gap-2 text-gray-500"><span>${fecha}</span>${menuHTML}</div>
                                 </div>
-                                <div class="text-gray-700 text-sm">${r.texto}</div>
+                                <div class="text-gray-700 text-sm whitespace-pre-line break-words">${escapeReviewText(r.texto)}</div>
                             </div>`;
                     }).join('');
                 });
@@ -1886,6 +1876,10 @@
                 cargarresenasEnUI();
             }
 
+            function escapeReviewText(text) {
+                return String(text ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
+            }
+
             function cargarresenasEnUI() {
                 const fCat = mod('filterCatedra').value, fPrac = mod('filterPractico').value, fRat = mod('filterRating').value;
                 const res = appState.resenas.filter(r => (!fCat || r.catedra === fCat) && (!fPrac || r.practico === fPrac) && (!fRat || r.calificacionGeneral <= fRat));
@@ -1926,7 +1920,7 @@
                             </div>
                         </div>
                         <div class="text-xl md:text-3xl tracking-widest text-yellow-500 mb-3 md:mb-4">${'★'.repeat(r.calificacionGeneral)}${'☆'.repeat(5-r.calificacionGeneral)}</div>
-                        <p class="text-gray-700 leading-relaxed text-sm md:text-base mb-4 md:mb-6 break-words">${r.texto}</p>
+                        <p class="text-gray-700 leading-relaxed text-sm md:text-base mb-4 md:mb-6 break-words whitespace-pre-line">${escapeReviewText(r.texto)}</p>
                         ${tiposEvaluacionHtml}
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 bg-gray-50 p-4 rounded-xl mb-4 md:mb-6 text-xs md:text-sm">
                             <div class="flex flex-col"><span class="text-gray-500 font-semibold mb-1">Pedagogía</span><span class="font-bold text-dark text-sm md:text-base">${r.claridad}/5</span></div>
@@ -1980,7 +1974,7 @@
                     try {
                         await db.collection('resenas').add({
                             materiaId: appState.materiaSeleccionada.id, materiaNombre: appState.materiaSeleccionada.nombre,
-                            catedra: mod('catedra').value || "Única", practico: mod('practico').value || "Único",
+                            catedra: mod('catedra').value || "Única", practico: "Único",
                             anioCursada: parseInt(mod('anioCursada').value), cursoVerano: mod('cursoVerano').checked,
                             tiposEvaluacion: tiposEvaluacion,
                             tomanAsistencia: mod('tomanAsistencia').value, calificacionGeneral: parseInt(mod('generalRating').dataset.rating),
@@ -2480,7 +2474,6 @@
                     localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify({
                         ...local,
                         name: perfil?.name || local.name || user?.displayName || (user?.email ? user.email.split('@')[0] : 'Usuario'),
-                        entryYear: Number(perfil?.entryYear) || Number(local.entryYear) || new Date().getFullYear(),
                         wanted: Array.isArray(perfil?.wanted) ? perfil.wanted : [],
                         completed: Array.isArray(perfil?.completed) ? perfil.completed : [],
                         reviews: Array.isArray(local.reviews) ? local.reviews : []
@@ -2554,7 +2547,6 @@
                         ...perfilActual,
                         version: perfilActual.version || 1,
                         name: perfilActual.name || user.displayName || (user.email ? user.email.split('@')[0] : 'Usuario'),
-                        entryYear: Number(perfilActual.entryYear) || new Date().getFullYear(),
                         wanted,
                         completed
                     };
@@ -2606,18 +2598,13 @@
                 }
 
                 // Respuesta inmediata; si Firebase falla se revierte al estado anterior.
-                actualizarBotonesTrayectoriaUI(estadoFinal);
+                actualizarBotonesTrayectoriaUI(estadoFinal, true);
 
                 try {
                     await aplicarEstadoMateriaAlPerfil(user, materia, estadoFinal);
-                    const mensajes = {
-                        deseada: 'Materia agregada a “Quiero cursar”.',
-                        cursada: 'Materia agregada a “Materias realizadas”.'
-                    };
-                    mostrarNotificacion(estadoFinal ? mensajes[estadoFinal] : 'Materia quitada de tu trayectoria.', 'success');
                 } catch (error) {
                     console.error('Error al guardar el perfil académico:', error);
-                    actualizarBotonesTrayectoriaUI(estadoAnterior);
+                    if (appState.materiaSeleccionada === materia && mod('materia-view').classList.contains('active')) actualizarBotonesTrayectoriaUI(estadoAnterior);
                     if (error?.message === 'TIPO_NO_SOPORTADO') {
                         mostrarNotificacion('Esta categoría todavía no está contemplada en el perfil académico.', 'info');
                     } else {
@@ -2652,13 +2639,13 @@
                     }
 
                     persistirPerfilAcademicoLocal(perfil, user);
-                    actualizarBotonesTrayectoriaUI(estado);
+                    if (appState.materiaSeleccionada === materia && mod('materia-view').classList.contains('active')) actualizarBotonesTrayectoriaUI(estado);
                 } catch (error) {
                     console.error('Error cargando la trayectoria desde el perfil académico:', error);
                 }
             }
 
-            function actualizarBotonesTrayectoriaUI(estado) {
+            function actualizarBotonesTrayectoriaUI(estado, mostrarAviso = false) {
                 const btnDeseada = mod('btnDeseada');
                 const btnCursada = mod('btnCursada');
                 const statusText = mod('trayectoriaStatusText');
@@ -2689,7 +2676,7 @@
                     iconDeseada.textContent = 'favorite';
                     void iconDeseada.offsetWidth;
                     iconDeseada.classList.add('animate-heart-pulse');
-                    if (statusText) {
+                    if (statusText && mostrarAviso) {
                         statusText.className = "flex items-center gap-1.5 text-xs text-red-600 bg-red-50 border border-red-100 py-1 px-2.5 mb-2.5 rounded-lg font-medium";
                         statusText.innerHTML = '<span class="material-symbols-outlined text-sm">favorite</span> En tu lista de deseadas';
                     }
@@ -2698,7 +2685,7 @@
                     btnCursada.className = baseClasses + "border-green-500 bg-green-500 text-white hover:bg-green-600 hover:border-green-600";
                     void iconCursada.offsetWidth;
                     iconCursada.classList.add('animate-check-spring');
-                    if (statusText) {
+                    if (statusText && mostrarAviso) {
                         statusText.className = "flex items-center gap-1.5 text-xs text-green-700 bg-green-50 border border-green-100 py-1 px-2.5 mb-2.5 rounded-lg font-medium";
                         statusText.innerHTML = '<span class="material-symbols-outlined text-sm">check_circle</span> Marcada como cursada';
                     }
