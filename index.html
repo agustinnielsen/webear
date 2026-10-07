@@ -981,6 +981,7 @@
             let appState = { materias: [], resenas: [], resumenes: [], materiaSeleccionada: null, user: null, currentCategory: 'materias', resumenesCargados: false };
             let pendingRegistrationData = null;
             let respuestasListeners = {};
+            const votosPendientes = new Map();
             let yaCargadas = { materias: false, especiales: false, teorias: false, horasdeinv: false, idiomas: false };
             let pendingDelete = null;
             let pendingReplyDelete = null;
@@ -1030,6 +1031,7 @@
                 configurarSidebar();
 
                 window.addEventListener('hashchange', handleRoute);
+                window.addEventListener('pagehide', detenerTodasLasRespuestas);
                 handleRoute();
 
                 document.addEventListener('click', (e) => {
@@ -1048,6 +1050,7 @@
             }
 
             async function handleRoute() {
+                detenerTodasLasRespuestas();
                 const hash = window.location.hash.replace(/^#\/?/, '');
                 const parts = hash.split('/');
 
@@ -1063,6 +1066,7 @@
             }
 
             function mostrarVistaHome() {
+                detenerTodasLasRespuestas();
                 actualizarBotonesTrayectoriaUI(null);
                 mod('home-view').classList.add('active');
                 mod('materia-view').classList.remove('active');
@@ -1206,6 +1210,7 @@
             }
 
             async function cargarMateriaEspecifica(materiaId, tipo, catedraSeleccionada) {
+                detenerTodasLasRespuestas();
                 let materia = appState.materias.find(m => m.id === materiaId);
                 if (!materia) {
                     try {
@@ -1663,14 +1668,34 @@
             }
             function toggleRespuestas(reviewId) {
                 const c = mod(`replies-container-${reviewId}`);
-                if (c.classList.contains('active')) c.classList.remove('active');
+                if (c.classList.contains('active')) {
+                    c.classList.remove('active');
+                    detenerRespuestas(reviewId);
+                }
                 else { c.classList.add('active'); if (!respuestasListeners[reviewId]) cargarRespuestas(reviewId); }
             }
 
+            function detenerRespuestas(reviewId) {
+                const listener = respuestasListeners[reviewId];
+                if (!listener) return;
+                listener.active = false;
+                delete respuestasListeners[reviewId];
+                if (listener.unsubscribe) listener.unsubscribe();
+            }
+
+            function detenerTodasLasRespuestas() {
+                Object.keys(respuestasListeners).forEach(detenerRespuestas);
+            }
+
             function cargarRespuestas(reviewId) {
+                detenerRespuestas(reviewId);
                 const list = mod(`replies-list-${reviewId}`);
+                if (!list) return;
+                const listener = { active: true, unsubscribe: null };
+                respuestasListeners[reviewId] = listener;
                 list.innerHTML = '<div class="text-center text-gray-400 text-sm py-2">Cargando...</div>';
-                respuestasListeners[reviewId] = db.collection('resenas').doc(reviewId).collection('respuestas').orderBy('fecha', 'asc').onSnapshot(snap => {
+                listener.unsubscribe = db.collection('resenas').doc(reviewId).collection('respuestas').orderBy('fecha', 'asc').onSnapshot(snap => {
+                    if (!listener.active || mod(`replies-list-${reviewId}`) !== list) return;
                     if (snap.empty) { list.innerHTML = '<div class="text-center text-gray-400 text-sm py-2">Aún no hay respuestas.</div>'; return; }
                     list.innerHTML = snap.docs.map(doc => {
                         const r = doc.data(); const rId = doc.id;
@@ -1698,7 +1723,13 @@
                                 <div class="text-gray-700 text-sm whitespace-pre-line break-words">${escapeReviewText(r.texto)}</div>
                             </div>`;
                     }).join('');
+                }, error => {
+                    if (!listener.active) return;
+                    detenerRespuestas(reviewId);
+                    list.innerHTML = '<div class="text-center text-red-500 text-sm py-2">No pudimos cargar las respuestas. Cerrá y volvé a abrir para reintentar.</div>';
+                    console.warn('No se pudieron cargar las respuestas.', error);
                 });
+                if (!listener.active) listener.unsubscribe();
             }
 
             function borrarRespuesta(reviewId, replyId) { pendingReplyDelete = { reviewId, replyId }; abrirModal('deleteReplyModal'); }
@@ -1872,7 +1903,8 @@
 
             async function cargarresenas(id) {
                 const snap = await db.collection('resenas').where('materiaId', '==', id).get();
-                appState.resenas = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a,b) => (b.fecha?.toMillis()||0) - (a.fecha?.toMillis()||0));
+                if (!mod('materia-view').classList.contains('active') || appState.materiaSeleccionada?.id !== id) return;
+                appState.resenas = snap.docs.map(doc => ({ id: doc.id, ...doc.data(), ...(votosPendientes.get(doc.id) || {}) })).sort((a,b) => (b.fecha?.toMillis()||0) - (a.fecha?.toMillis()||0));
                 cargarresenasEnUI();
             }
 
@@ -1881,6 +1913,7 @@
             }
 
             function cargarresenasEnUI() {
+                detenerTodasLasRespuestas();
                 const fCat = mod('filterCatedra').value, fPrac = mod('filterPractico').value, fRat = mod('filterRating').value;
                 const res = appState.resenas.filter(r => (!fCat || r.catedra === fCat) && (!fPrac || r.practico === fPrac) && (!fRat || r.calificacionGeneral <= fRat));
                 mod('resenasList').innerHTML = res.length ? res.map(r => {
@@ -1929,8 +1962,8 @@
                             <div class="flex flex-col"><span class="text-gray-500 font-semibold mb-1">Oferta</span><span class="font-bold text-dark text-sm md:text-base">${r.oferta}/5</span></div>
                         </div>
                         <div class="flex flex-wrap justify-end items-center gap-2 md:gap-3 border-t border-gray-100 pt-3 md:pt-4">
-                            <button class="flex items-center gap-1 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-semibold transition-colors ${r.votes?.[appState.user?.uid]===1?'bg-green-100 text-green-700':'bg-gray-100 text-gray-600 hover:bg-gray-200'}" onclick="handleVote('${r.id}', 1)"><span class="material-symbols-outlined text-sm md:text-base">thumb_up</span> ${r.likes_count||0}</button>
-                            <button class="flex items-center gap-1 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-semibold transition-colors ${r.votes?.[appState.user?.uid]===-1?'bg-red-100 text-red-700':'bg-gray-100 text-gray-600 hover:bg-gray-200'}" onclick="handleVote('${r.id}', -1)"><span class="material-symbols-outlined text-sm md:text-base">thumb_down</span> ${r.dislikes_count||0}</button>
+                            <button id="vote-like-${r.id}" aria-pressed="${r.votes?.[appState.user?.uid]===1}" ${votosPendientes.has(r.id)?'disabled aria-busy="true"':''} class="flex items-center gap-1 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-semibold transition-colors ${r.votes?.[appState.user?.uid]===1?'bg-green-100 text-green-700':'bg-gray-100 text-gray-600 hover:bg-gray-200'}" onclick="handleVote('${r.id}', 1)"><span class="material-symbols-outlined text-sm md:text-base">thumb_up</span> <span id="vote-like-count-${r.id}">${r.likes_count||0}</span></button>
+                            <button id="vote-dislike-${r.id}" aria-pressed="${r.votes?.[appState.user?.uid]===-1}" ${votosPendientes.has(r.id)?'disabled aria-busy="true"':''} class="flex items-center gap-1 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-semibold transition-colors ${r.votes?.[appState.user?.uid]===-1?'bg-red-100 text-red-700':'bg-gray-100 text-gray-600 hover:bg-gray-200'}" onclick="handleVote('${r.id}', -1)"><span class="material-symbols-outlined text-sm md:text-base">thumb_down</span> <span id="vote-dislike-count-${r.id}">${r.dislikes_count||0}</span></button>
                             <button class="flex items-center gap-1 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 border border-gray-200 rounded-full text-xs md:text-sm font-semibold text-gray-600 hover:border-primary hover:text-primary transition-colors" onclick="toggleRespuestas('${r.id}')"><span class="material-symbols-outlined text-sm md:text-base">add_comment</span> ${r.replies_count||'0'}</button>
                         </div>
                         <div class="replies-container bg-gray-50 rounded-xl p-3 md:p-6 mt-3 md:mt-4 border border-gray-100" id="replies-container-${r.id}">
@@ -1947,15 +1980,71 @@
                 if (countEl) countEl.textContent = appState.resenas.length;
             }
 
+            function actualizarVotoEnUI(rid) {
+                const review = appState.resenas.find(r => r.id === rid);
+                if (!review) return;
+                const vote = review.votes?.[appState.user?.uid];
+                const base = 'flex items-center gap-1 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-semibold transition-colors ';
+                [['like', 1, 'bg-green-100 text-green-700', review.likes_count], ['dislike', -1, 'bg-red-100 text-red-700', review.dislikes_count]].forEach(([name, type, colors, count]) => {
+                    const button = mod(`vote-${name}-${rid}`);
+                    if (!button) return;
+                    button.className = base + (vote === type ? colors : 'bg-gray-100 text-gray-600 hover:bg-gray-200');
+                    button.setAttribute('aria-pressed', String(vote === type));
+                    button.setAttribute('aria-busy', String(votosPendientes.has(rid)));
+                    button.disabled = votosPendientes.has(rid);
+                    const counter = mod(`vote-${name}-count-${rid}`);
+                    if (counter) counter.textContent = count || 0;
+                });
+            }
+
             async function handleVote(rid, type) {
-                if (!appState.user) return mostrarNotificacion('Inicia sesión para votar.', 'error');
-                const ref = db.collection('resenas').doc(rid);
-                const data = (await ref.get()).data();
-                const votes = data.votes || {};
-                votes[appState.user.uid] === type ? delete votes[appState.user.uid] : votes[appState.user.uid] = type;
-                const counts = Object.values(votes).reduce((acc, val) => { val === 1 ? acc.l++ : acc.d++; return acc; }, {l:0, d:0});
-                await ref.update({ votes, likes_count: counts.l, dislikes_count: counts.d });
-                cargarresenas(appState.materiaSeleccionada.id);
+                const user = appState.user;
+                if (!user) return mostrarNotificacion('Inicia sesión para votar.', 'error');
+                if (votosPendientes.has(rid) || ![1, -1].includes(type)) return;
+                const review = appState.resenas.find(r => r.id === rid);
+                if (!review) return;
+                const previous = { votes: { ...(review.votes || {}) }, likes_count: review.likes_count || 0, dislikes_count: review.dislikes_count || 0 };
+                const oldVote = previous.votes[user.uid];
+                const nextVote = oldVote === type ? null : type;
+                const votes = { ...previous.votes };
+                if (nextVote === null) delete votes[user.uid];
+                else votes[user.uid] = nextVote;
+                const optimistic = {
+                    votes,
+                    likes_count: Math.max(0, previous.likes_count - (oldVote === 1 ? 1 : 0) + (nextVote === 1 ? 1 : 0)),
+                    dislikes_count: Math.max(0, previous.dislikes_count - (oldVote === -1 ? 1 : 0) + (nextVote === -1 ? 1 : 0))
+                };
+                votosPendientes.set(rid, optimistic);
+                Object.assign(review, optimistic);
+                actualizarVotoEnUI(rid);
+
+                try {
+                    const ref = db.collection('resenas').doc(rid);
+                    const saved = await db.runTransaction(async transaction => {
+                        const snapshot = await transaction.get(ref);
+                        if (!snapshot.exists) throw new Error('La reseña ya no existe.');
+                        const votes = { ...(snapshot.data().votes || {}) };
+                        if (nextVote === null) delete votes[user.uid];
+                        else votes[user.uid] = nextVote;
+                        const counts = Object.values(votes).reduce((acc, value) => {
+                            if (value === 1) acc.likes_count++;
+                            else if (value === -1) acc.dislikes_count++;
+                            return acc;
+                        }, { likes_count: 0, dislikes_count: 0 });
+                        const result = { votes, ...counts };
+                        transaction.update(ref, result);
+                        return result;
+                    });
+                    const current = appState.resenas.find(r => r.id === rid);
+                    if (current) Object.assign(current, saved);
+                } catch (error) {
+                    const current = appState.resenas.find(r => r.id === rid);
+                    if (current) Object.assign(current, previous);
+                    mostrarNotificacion('No pudimos guardar tu voto. Intentá de nuevo.', 'error');
+                } finally {
+                    votosPendientes.delete(rid);
+                    actualizarVotoEnUI(rid);
+                }
             }
 
             function configurarFormulario() {
