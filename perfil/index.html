@@ -198,7 +198,13 @@
             </div>
             <p class="text-sm text-gray-500 mt-1">Tu actividad pública, después de la planificación y el historial académico.</p>
           </div>
-          <div id="reviewsList" class="p-4 sm:p-5 md:p-7 space-y-3"></div>
+          <div id="reviewsList" class="p-4 sm:p-5 md:p-7 space-y-3" aria-live="polite"></div>
+          <div class="px-4 sm:px-5 md:px-7 pb-5 text-center">
+            <p id="reviewsStatus" class="text-sm text-gray-500 mb-3" role="status" hidden></p>
+            <button id="loadMoreReviewsBtn" type="button" hidden class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-orange-200 text-primary font-bold hover:bg-orange-50 disabled:opacity-50 disabled:cursor-wait">
+              <span aria-hidden="true">+</span> Ver 3 más
+            </button>
+          </div>
         </section>
       </div>
 
@@ -626,7 +632,6 @@
 
     const DEFAULT_STATE = {
       name: 'Usuario',
-      entryYear: new Date().getFullYear(),
       wanted: [],
       completed: [],
       reviews: []
@@ -709,7 +714,6 @@
     function createCloudProfileState(user, profile = {}) {
       return {
         name: profile.name || displayNameForUser(user),
-        entryYear: Number(profile.entryYear) || new Date().getFullYear(),
         wanted: Array.isArray(profile.wanted) ? profile.wanted : [],
         completed: normalizeCompleted(profile.completed),
         reviews: []
@@ -726,7 +730,6 @@
       return JSON.parse(JSON.stringify({
         version: 1,
         name: state.name,
-        entryYear: state.entryYear,
         wanted: state.wanted,
         completed
       }));
@@ -762,23 +765,53 @@
       return String(name || '').trim().toLocaleLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     }
 
+    const REVIEW_PAGE_SIZE = 3;
+    let reviewPage = { cursor: null, hasMore: true, loading: false, error: '' };
+
+    function updateReviewPagination() {
+      $('loadMoreReviewsBtn').hidden = !reviewPage.hasMore || (reviewPage.loading && !state.reviews.length);
+      $('loadMoreReviewsBtn').disabled = reviewPage.loading;
+      $('loadMoreReviewsBtn').textContent = reviewPage.error ? 'Reintentar' : '+ Ver 3 más';
+      $('reviewsStatus').hidden = !reviewPage.loading && !reviewPage.error;
+      $('reviewsStatus').textContent = reviewPage.error || (reviewPage.loading ? 'Cargando reseñas…' : '');
+      if (!state.reviews.length) {
+        $('reviewsList').innerHTML = reviewPage.error ? '' : `<div class="text-center text-gray-500 py-8">${reviewPage.loading || reviewPage.hasMore ? 'Cargando reseñas…' : 'Todavía no hiciste reseñas.'}</div>`;
+      }
+    }
+
+    $('loadMoreReviewsBtn').addEventListener('click', () => {
+      if (activeProfileUser && profileCloudReady) loadUserReviews(activeProfileUser, authStateRevision);
+    });
+
     async function loadUserReviews(user, revision) {
+      if (revision !== authStateRevision || activeProfileUser?.uid !== user.uid || reviewPage.loading || !reviewPage.hasMore) return;
+      const page = reviewPage;
+      page.loading = true;
+      page.error = '';
+      updateReviewPagination();
       try {
-        const snapshot = await courseCatalogDb.collection('resenas').where('usuarioId', '==', user.uid).get();
+        let query = courseCatalogDb.collection('resenas')
+          .where('usuarioId', '==', user.uid)
+          .orderBy('fecha', 'desc')
+          .limit(REVIEW_PAGE_SIZE);
+        if (page.cursor) query = query.startAfter(page.cursor);
+        const snapshot = await query.get();
         if (revision !== authStateRevision || activeProfileUser?.uid !== user.uid) return;
         
         const rawReviews = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         let importedCount = 0;
 
-        state.reviews = rawReviews
-          .sort((a, b) => (b.fecha?.toMillis?.() || 0) - (a.fecha?.toMillis?.() || 0))
-          .map(review => ({
+        const loadedIds = new Set(state.reviews.map(review => review.id));
+        state.reviews.push(...rawReviews.filter(review => !loadedIds.has(review.id)).map(review => ({
+            id: review.id,
             materia: review.materiaNombre || 'Materia sin nombre',
             catedra: review.catedra || 'Cátedra única',
             rating: Number(review.calificacionGeneral) || 0,
             date: reviewDateLabel(review.fecha, review.anioCursada),
             text: review.texto || ''
-          }));
+          })));
+        page.cursor = snapshot.docs[snapshot.docs.length - 1] || page.cursor;
+        page.hasMore = snapshot.docs.length === REVIEW_PAGE_SIZE;
 
         // Migración automática inteligente
         rawReviews.forEach(review => {
@@ -824,7 +857,13 @@
 
         render();
       } catch (error) {
+        if (revision !== authStateRevision || activeProfileUser?.uid !== user.uid) return;
+        page.error = 'No pudimos cargar las reseñas. Intentá de nuevo.';
+        if (!state.reviews.length) $('reviewsList').innerHTML = '';
         console.warn('No se pudieron cargar las reseñas del usuario.', error);
+      } finally {
+        page.loading = false;
+        if (revision === authStateRevision && activeProfileUser?.uid === user.uid) updateReviewPagination();
       }
     }
 
@@ -832,6 +871,7 @@
       const revision = ++authStateRevision;
       activeProfileUser = user || null;
       profileCloudReady = false;
+      reviewPage = { cursor: null, hasMore: true, loading: false, error: '' };
 
       state = cloneDefault();
       if (!user || !user.emailVerified) {
@@ -1735,7 +1775,6 @@
     function render() {
       $('profileName').textContent = state.name || 'Usuario';
       $('profileAvatar').textContent = (state.name || 'U').trim().charAt(0).toUpperCase() || 'U';
-      $('profileMeta').textContent = `Sociología · UBA · Ingreso ${state.entryYear || '—'} · ${state.completed.length} registros académicos`;
       $('profileMeta').textContent = `Sociología · UBA · ${state.completed.length} registros académicos`;
 
       const progress = calcProgress();
@@ -1851,8 +1890,9 @@
             </div>
             <div class="text-amber-500 font-black tracking-tight">${'★'.repeat(Math.max(0, Math.min(5, r.rating || 0)))}<span class="text-gray-300">${'★'.repeat(5 - Math.max(0, Math.min(5, r.rating || 0)))}</span></div>
           </div>
-          <p class="text-sm text-gray-700 mt-3 leading-relaxed">${escapeHTML(r.text)}</p>
-        </article>`).join('') : '<div class="text-center text-gray-500 py-8">Todavía no hiciste reseñas.</div>';
+          <p class="text-sm text-gray-700 mt-3 leading-relaxed whitespace-pre-line break-words">${escapeHTML(r.text)}</p>
+        </article>`).join('') : `<div class="text-center text-gray-500 py-8">${reviewPage.loading || reviewPage.hasMore ? 'Cargando reseñas…' : 'Todavía no hiciste reseñas.'}</div>`;
+      updateReviewPagination();
 
       renderPlan();
     }
