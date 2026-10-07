@@ -81,7 +81,9 @@
     ::-webkit-scrollbar-track { background: #f1f1f1; }
     ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
     ::-webkit-scrollbar-thumb:hover { background: #ff7d29; }
-    #planTree { width: max-content; display: grid; grid-auto-flow: column; grid-template-rows: repeat(5, auto); column-gap: 24px; row-gap: 16px; align-items: start; }
+    #planTree { width: max-content; display: grid; grid-auto-flow: column; grid-template-rows: repeat(var(--plan-rows, 5), auto); column-gap: 24px; row-gap: 16px; align-items: start; }
+    .completed-row.is-cbc .row-name-field { grid-column: span 2; }
+    @media (max-width: 767px) { .completed-row.is-cbc .row-name-field { grid-column: auto; } }
     #planTree > .plan-column { display: grid; grid-row: 1 / -1; grid-template-rows: subgrid; row-gap: 16px; align-items: start; }
     @media (min-width: 768px) { #planTree { column-gap: 32px; } }
     #planViewport { min-height: 0; }
@@ -225,6 +227,10 @@
               </div>
             </div>
           </div>
+          <div class="flex items-center gap-2 mt-4 sm:mt-5" role="group" aria-label="Incluir CBC en los promedios">
+            <button id="averagesWithCbc" type="button" aria-pressed="true" class="flex-1 px-3 py-2 rounded-lg text-xs font-bold bg-primary text-white">Con CBC</button>
+            <button id="averagesWithoutCbc" type="button" aria-pressed="false" class="flex-1 px-3 py-2 rounded-lg text-xs font-bold bg-slate-100 text-gray-600">Sin CBC</button>
+          </div>
           <div class="border-t border-gray-100 mt-4 sm:mt-5 pt-4 sm:pt-5 grid grid-cols-2 gap-2.5 sm:gap-3">
             <div class="rounded-xl sm:rounded-2xl bg-slate-50 border border-slate-100 p-3 sm:p-4">
               <p class="text-[10px] font-black uppercase tracking-wider text-gray-400">Promedio UBA</p>
@@ -248,7 +254,7 @@
             <span class="material-symbols-outlined text-lg">account_tree</span> Ver mapa de correlatividades
           </button>
 
-          <p class="text-[11px] text-gray-400 leading-relaxed mt-5 pt-4 border-t border-gray-100">16 obligatorias + 3 especiales + 3 teorías + 3 adicionales entre especiales/teorías + 200 h de investigación. Taller: 100 h · Seminario: 50 h.</p>
+          <p class="text-[11px] text-gray-400 leading-relaxed mt-5 pt-4 border-t border-gray-100">6 del CBC + 16 obligatorias + 3 especiales + 3 teorías + 3 adicionales entre especiales/teorías + 200 h de investigación. Taller: 100 h · Seminario: 50 h.</p>
         </section>
       </aside>
     </div>
@@ -646,12 +652,35 @@
     
     // Inicia con todos los grupos colapsados
     let expandedGroups = new Set();
+    let averagesIncludeCbc = true;
+
+    const CBC_SUBJECTS = [
+      { code: 'CBC16', name: 'Antropología' },
+      { code: 'CBC24', name: 'Sociedad y Estado', aliases: ['Introducción al Conocimiento de la Sociedad y el Estado', 'Introducción al Conocimiento de Sociedad y Estado'] },
+      { code: 'CBC14', name: 'Sociología' },
+      { code: 'CBC40', name: 'Introducción al Pensamiento Científico', aliases: ['Introducción al pensamiento científico (IPC)', 'IPC'] },
+      { code: 'CBC22', name: 'Ciencia Política' },
+      { code: 'CBC21', name: 'Economía' }
+    ];
+
+    function getCbcSubject(value) {
+      const text = typeof value === 'string' ? value : value?.name || value?.cleanName || '';
+      const code = (typeof value === 'object' ? value?.cbcCode || value?.code : '') || text.match(/\((CBC\d+)\)/i)?.[1];
+      if (code) return CBC_SUBJECTS.find(subject => subject.code === String(code).toUpperCase()) || null;
+      const name = normalizedCourseName(text);
+      return CBC_SUBJECTS.find(subject => [subject.name, ...(subject.aliases || [])].some(alias => normalizedCourseName(alias) === name)) || null;
+    }
+
+    function validGrade(value) {
+      return value !== null && value !== undefined && String(value).trim() !== '' && Number.isFinite(Number(value)) && Number(value) >= 0 && Number(value) <= 10;
+    }
 
     const PLAN_ESTUDIOS = [
-      { id: '251', name: 'Sociología General', req: [], tier: 1 },
-      { id: '252', name: 'Filosofía', req: [], tier: 1 },
-      { id: '253', name: 'Historia Social Moderna y Contemporánea', req: [], tier: 1 },
-      { id: '256', name: 'Economía 2', req: [], tier: 1 }, 
+      ...CBC_SUBJECTS.map(subject => ({ id: subject.code, name: subject.name, type: 'cbc', req: [], tier: 0 })),
+      { id: '251', name: 'Sociología General', req: ['CBC'], tier: 1 },
+      { id: '252', name: 'Filosofía', req: ['CBC'], tier: 1 },
+      { id: '253', name: 'Historia Social Moderna y Contemporánea', req: ['CBC'], tier: 1 },
+      { id: '256', name: 'Economía 2', req: ['CBC'], tier: 1 }, 
       { id: '254', name: 'Historia del Conocimiento Sociológico 1', req: ['251', '252'], tier: 2 },
       { id: '255', name: 'Epistemología de las Ciencias Sociales', req: ['252'], tier: 2 },
       { id: '259', name: 'Historia Social Latinoamericana', req: ['253', '256'], tier: 2 },
@@ -673,14 +702,30 @@
     function cloneDefault() { return JSON.parse(JSON.stringify(DEFAULT_STATE)); }
 
     function normalizeCompleted(items) {
+      const cbcRecords = new Map();
       return (Array.isArray(items) ? items : []).map((item, i) => {
         const c = { ...item, id: item.id || `c-${Date.now()}-${i}` };
+        const cbc = getCbcSubject(c);
+        if (cbc) {
+          c.name = cbc.name;
+          c.type = 'cbc';
+          c.cbcCode = cbc.code;
+          delete c.catedra;
+          delete c.subtype;
+          delete c.hours;
+          if (cbcRecords.has(cbc.code)) {
+            const existing = cbcRecords.get(cbc.code);
+            if (!validGrade(existing.grade) && validGrade(c.grade)) existing.grade = c.grade;
+            return null;
+          }
+          cbcRecords.set(cbc.code, c);
+        }
         if (c.type === 'investigacion') {
           if (!c.subtype) c.subtype = Number(c.hours) === 50 ? 'seminario' : 'taller';
           c.hours = c.subtype === 'seminario' ? 50 : 100;
         }
         return c;
-      });
+      }).filter(Boolean);
     }
 
     function loadState() {
@@ -697,6 +742,7 @@
     }
 
     function saveState() {
+      state.completed = normalizeCompleted(state.completed);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
       syncProfileToCloud();
     }
@@ -721,9 +767,9 @@
     }
 
     function cloudProfilePayload() {
-      const completed = state.completed.map(course => {
+      const completed = normalizeCompleted(state.completed).map(course => {
         const item = { ...course };
-        if (item.grade === '' || item.grade === null || item.grade === undefined || !Number.isFinite(Number(item.grade))) delete item.grade;
+        if (!validGrade(item.grade)) delete item.grade;
         else item.grade = Number(item.grade);
         return item;
       });
@@ -1052,11 +1098,12 @@
 
     function typeLabel(type, subtype) {
       if (type === 'investigacion') return subtype === 'seminario' ? 'Seminario de investigación' : 'Taller de investigación';
-      return ({ obligatoria: 'Obligatoria', especial: 'Sociología especial', teoria: 'Teoría sociológica' })[type] || type;
+      return ({ cbc: 'CBC', obligatoria: 'Obligatoria', especial: 'Sociología especial', teoria: 'Teoría sociológica' })[type] || type;
     }
 
     function typeClasses(type) {
       return ({
+        cbc: 'bg-sky-100 text-sky-700',
         obligatoria: 'bg-slate-100 text-slate-700',
         especial: 'bg-purple-100 text-purple-700',
         teoria: 'bg-blue-100 text-blue-700',
@@ -1066,6 +1113,7 @@
 
     function typeIcon(type) {
       return ({
+        cbc: 'foundation',
         obligatoria: 'school',
         especial: 'interests',
         teoria: 'psychology',
@@ -1127,6 +1175,7 @@
 
     function detectCourseType(courseName) {
       if (!courseName) return null;
+      if (getCbcSubject(courseName)) return 'cbc';
       const norm = normalizedCourseName(courseName);
 
       if (PLAN_ESTUDIOS.some(p => !p.isGroup && normalizedCourseName(p.name) === norm)) {
@@ -1167,6 +1216,7 @@
     }
 
     function getCatedrasForCourseName(courseName, preferredType) {
+      if (preferredType === 'cbc' || getCbcSubject(courseName)) return [];
       if (!courseName) return [];
       const norm = normalizedCourseName(courseName);
 
@@ -1190,8 +1240,10 @@
       return [];
     }
 
-    function searchCatalogCourses(query = '', preferredType = '') {
+    function searchCatalogCourses(query = '', preferredType = '', includeCbc = false) {
       const q = normalizedCourseName(query);
+      const cbcMatches = includeCbc ? CBC_SUBJECTS.filter(subject => !q || [subject.name, ...(subject.aliases || []), subject.code].some(name => normalizedCourseName(name).includes(q))).map(subject => ({ name: subject.name, type: 'cbc', badge: 'CBC', matchedCatedra: null })) : [];
+      if (!q && includeCbc && preferredType === 'cbc') return cbcMatches;
       if (q !== '') {
         const collectionsOrder = [
           { col: 'materias', type: 'obligatoria', label: 'Obligatoria' },
@@ -1200,13 +1252,13 @@
           { col: 'horasdeinv', type: 'horasdeinv', label: 'Investigación' }
         ];
 
-        let matches = [];
+        let matches = [...cbcMatches];
         collectionsOrder.forEach(entry => {
           const list = courseCatalogItems[entry.col] || (courseCatalogCache[entry.col] || []).map(n => ({ name: n, catedras: [] }));
           let items = [...list];
           if (entry.col === 'materias') {
             PLAN_ESTUDIOS.forEach(p => {
-              if (!p.isGroup && !items.some(x => normalizedCourseName(x.name) === normalizedCourseName(p.name))) {
+              if (!p.isGroup && p.type !== 'cbc' && !items.some(x => normalizedCourseName(x.name) === normalizedCourseName(p.name))) {
                 items.push({ name: p.name, catedras: [] });
               }
             });
@@ -1237,12 +1289,12 @@
 
       const collection = preferredType ? collectionForCourseType(preferredType) : 'materias';
       const list = courseCatalogItems[collection] || (courseCatalogCache[collection] || []).map(n => ({ name: n }));
-      return list.slice(0, 30).map(c => ({
+      return [...cbcMatches, ...list.slice(0, 30).map(c => ({
         name: c.name,
         type: preferredType || 'obligatoria',
         badge: '',
         matchedCatedra: null
-      }));
+      }))];
     }
 
     function updateRowCatedraOptions(row, targetCatedra = null) {
@@ -1252,6 +1304,16 @@
       if (!catSelect || !nameInput) return;
 
       const courseName = nameInput.value.trim();
+      const cbc = getCbcSubject(courseName);
+      row.classList.toggle('is-cbc', Boolean(cbc));
+      catSelect.parentElement.hidden = Boolean(cbc);
+      catSelect.disabled = Boolean(cbc);
+      if (cbc) {
+        if (typeInput) typeInput.value = 'cbc';
+        catSelect.innerHTML = '<option value=""></option>';
+        catSelect.value = '';
+        return;
+      }
       if (!courseName) {
         catSelect.innerHTML = '<option value="">Seleccionar</option>';
         catSelect.value = '';
@@ -1304,7 +1366,7 @@
       }
 
       const query = input.value.trim();
-      const matches = searchCatalogCourses(query, typeInput?.value || '');
+      const matches = searchCatalogCourses(query, typeInput?.value || '', true);
 
       let html = '';
       if (matches.length === 0) {
@@ -1346,7 +1408,7 @@
 
       row.innerHTML = `
         <input type="hidden" class="row-type" value="${escapeHTML(initType)}">
-        <div class="relative relative-dropdown-container">
+        <div class="row-name-field relative relative-dropdown-container">
           <span class="md:hidden text-xs font-bold text-slate-500 mb-1 block">Materia / actividad</span>
           <div class="relative">
             <input class="row-name w-full p-2.5 md:p-3 pr-8 border border-gray-200 rounded-xl outline-none focus:border-primary text-sm bg-white" placeholder="Buscá una materia…" autocomplete="off" value="${escapeHTML(initName)}">
@@ -1654,7 +1716,23 @@
     });
 
     function getCompletedCourseByPlanSubject(subject) {
+      if (subject.type === 'cbc') return state.completed.find(course => getCbcSubject(course)?.code === subject.id);
       return state.completed.find(course => normalizedCourseName(course.name) === normalizedCourseName(subject.name));
+    }
+
+    function completedCbcCount() {
+      return new Set(state.completed.map(course => getCbcSubject(course)?.code).filter(Boolean)).size;
+    }
+
+    function planRequirementDetails(subject) {
+      return subject.req.map(id => {
+        if (id === 'CBC') {
+          const count = completedCbcCount();
+          return { name: `CBC completo (${count}/6)`, passed: count === 6 };
+        }
+        const required = PLAN_ESTUDIOS.find(item => item.id === id);
+        return { name: required?.name || id, passed: Boolean(required && getCompletedCourseByPlanSubject(required)) };
+      });
     }
 
     function setPlanSubjectCompleted(subjectId, completed) {
@@ -1663,6 +1741,10 @@
 
       const existingCourse = getCompletedCourseByPlanSubject(subject);
       if (completed && existingCourse) return;
+      if (completed && !planRequirementDetails(subject).every(requirement => requirement.passed)) {
+        showToast('Primero completá las correlativas de esta materia.');
+        return;
+      }
 
       if (!completed) {
         if (!existingCourse) return;
@@ -1674,11 +1756,12 @@
       }
 
       state.completed.unshift({
-        id: `c-${Date.now()}`,
+        id: `c-${Date.now()}-${subject.id}`,
         name: subject.name,
-        type: 'obligatoria'
+        type: subject.type || 'obligatoria',
+        ...(subject.type === 'cbc' ? { cbcCode: subject.id } : {})
       });
-      expandedGroups.add('obligatoria');
+      expandedGroups.add(subject.type || 'obligatoria');
       saveState();
       render();
       showToast(`“${subject.name}” fue marcada como hecha.`);
@@ -1718,8 +1801,8 @@
 
     function calcAverages() {
       const grades = state.completed
-        .map(c => Number(c.grade))
-        .filter(n => Number.isFinite(n) && n >= 0 && n <= 10);
+        .filter(c => (averagesIncludeCbc || c.type !== 'cbc') && validGrade(c.grade))
+        .map(c => Number(c.grade));
       if (!grades.length) return { uba: '—', gpa: '—' };
       const mean = arr => arr.reduce((a,b) => a+b, 0) / arr.length;
       return {
@@ -1728,7 +1811,21 @@
       };
     }
 
+    function renderAverages() {
+      const av = calcAverages();
+      $('averageUBA').textContent = av.uba;
+      $('averageGPA').textContent = av.gpa;
+      [['averagesWithCbc', true], ['averagesWithoutCbc', false]].forEach(([id, include]) => {
+        $(id).setAttribute('aria-pressed', String(averagesIncludeCbc === include));
+        $(id).className = 'flex-1 px-3 py-2 rounded-lg text-xs font-bold ' + (averagesIncludeCbc === include ? 'bg-primary text-white' : 'bg-slate-100 text-gray-600');
+      });
+    }
+
+    $('averagesWithCbc').addEventListener('click', () => { averagesIncludeCbc = true; renderAverages(); });
+    $('averagesWithoutCbc').addEventListener('click', () => { averagesIncludeCbc = false; renderAverages(); });
+
     function calcProgress() {
+      const cbc = completedCbcCount();
       const mandatory = state.completed.filter(c => c.type === 'obligatoria').length;
       const special = state.completed.filter(c => c.type === 'especial').length;
       const theory = state.completed.filter(c => c.type === 'teoria').length;
@@ -1738,9 +1835,10 @@
       const extra = Math.min(Math.max(special - 3, 0) + Math.max(theory - 3, 0), 3);
       const researchHours = Math.min(researchHoursRaw, 200);
       const researchUnits = researchHours / 100;
-      const earned = Math.min(mandatory, 16) + specialBase + theoryBase + extra + researchUnits;
-      const total = 27;
+      const earned = cbc + Math.min(mandatory, 16) + specialBase + theoryBase + extra + researchUnits;
+      const total = 33;
       return {
+        cbc,
         percent: Math.min(100, Math.round((earned / total) * 100)),
         earned,
         total,
@@ -1779,6 +1877,7 @@
 
       const progress = calcProgress();
       $('requirementsGrid').innerHTML = [
+        requirementCard('foundation', 'CBC', progress.cbc, 6),
         requirementCard('school', 'Obligatorias', progress.mandatory, 16),
         requirementCard('', 'Sociologías especiales', progress.specialBase, 3),
         requirementCard('', 'Teorías sociológicas', progress.theoryBase, 3),
@@ -1789,9 +1888,7 @@
       $('progressPercent').textContent = progress.percent;
       $('progressRing').style.background = `conic-gradient(#ff7d29 ${progress.percent * 3.6}deg, #f1f5f9 0deg)`;
 
-      const av = calcAverages();
-      $('averageUBA').textContent = av.uba;
-      $('averageGPA').textContent = av.gpa;
+      renderAverages();
 
       $('wantedCoursesList').innerHTML = state.wanted.length ? state.wanted.map(c => `
         <article class="group rounded-2xl border border-gray-200 p-4 hover:border-primary/40 hover:shadow-md transition-all bg-white">
@@ -1815,9 +1912,10 @@
       $('completedCountLabel').textContent = state.completed.length;
 
       const groupsConfig = [
+        { id: 'cbc', title: 'CBC · Ciclo Básico Común', icon: 'foundation' },
         { id: 'obligatoria', title: 'Obligatorias', icon: 'school' },
-        { id: 'especial', title: 'Especiales', icon: '' },
-        { id: 'teoria', title: 'Teorías', icon: '' },
+        { id: 'especial', title: 'Especiales', icon: typeIcon('especial') },
+        { id: 'teoria', title: 'Teorías', icon: typeIcon('teoria') },
         { id: 'investigacion', title: 'Horas de investigación', icon: 'biotech' }
       ];
 
@@ -1862,6 +1960,7 @@
 
         return `
           <div class="border-b border-gray-100 last:border-0">
+          <div>
             <button type="button" data-toggle-group="${g.id}" class="w-full flex items-center justify-between px-4 sm:px-5 md:px-7 py-4 hover:bg-white transition-colors outline-none focus-visible:bg-white">
               <div class="flex items-center gap-3">
                 ${g.icon ? `
@@ -1959,7 +2058,6 @@
     });
 
     function renderPlan() {
-      const completedNames = new Set(state.completed.map(c => normalizedCourseName(c.name)));
       
       const tiers = {};
       PLAN_ESTUDIOS.forEach(subject => {
@@ -1979,24 +2077,19 @@
       });
 
       let html = '';
-      Object.keys(tiers).sort().forEach(tierNum => {
+      Object.keys(tiers).sort((a, b) => Number(a) - Number(b)).forEach(tierNum => {
         html += `
           <div class="plan-column w-72 md:w-80 shrink-0 flex flex-col gap-4 relative">
             <div class="flex items-center gap-2 mb-2 px-1">
-              <span class="w-6 h-6 rounded-full bg-slate-200 text-slate-700 font-black text-[11px] flex items-center justify-center">${tierNum}</span>
+              <span class="${tierNum === '0' ? 'px-3' : 'w-6'} h-6 rounded-full bg-slate-200 text-slate-700 font-black text-[11px] flex items-center justify-center">${tierNum === '0' ? 'CBC' : tierNum}</span>
             </div>`;
             
         tiers[tierNum].forEach(subj => {
           const completedCourse = subj.isGroup ? null : getCompletedCourseByPlanSubject(subj);
           const isPassed = Boolean(completedCourse);
           
-          let reqsMet = true;
-          const reqDetails = subj.req.map(reqId => {
-            const reqSubj = PLAN_ESTUDIOS.find(p => p.id === reqId);
-            const reqPassed = completedNames.has(normalizedCourseName(reqSubj.name));
-            if (!reqPassed) reqsMet = false;
-            return { name: reqSubj.name, passed: reqPassed };
-          });
+          const reqDetails = planRequirementDetails(subj);
+          const reqsMet = reqDetails.every(requirement => requirement.passed);
 
           let cardStyle = '';
           
@@ -2049,14 +2142,15 @@
       
       const planTreeEl = $('planTree');
       if (planTreeEl) {
+        planTreeEl.style.setProperty('--plan-rows', Math.max(...Object.values(tiers).map(subjects => subjects.length)) + 1);
         planTreeEl.innerHTML = html;
         requestAnimationFrame(refreshPlanZoom);
       }
     }
 
     async function openCompletedEditor(id = '') {
-      await preloadAllCourseCatalogs();
       const course = id ? state.completed.find(c => c.id === id) : null;
+      if (!course || course.type !== 'cbc') await preloadAllCourseCatalogs();
       $('completedEditId').value = course?.id || '';
       $('completedModalTitle').textContent = course ? 'Editar materia realizada' : 'Cargar materias realizadas';
 
@@ -2139,6 +2233,10 @@
         return;
       }
       let typeVal = $('wantedType')?.value || detectCourseType(nameVal) || 'obligatoria';
+      if (getCbcSubject(nameVal) || typeVal === 'cbc') {
+        showToast('Las materias del CBC se registran en Materias realizadas.');
+        return;
+      }
       if (typeVal === 'taller' || typeVal === 'seminario' || typeVal === 'horasdeinv') typeVal = 'investigacion';
 
       const catedraVal = $('wantedCatedra').value.trim();
@@ -2349,6 +2447,7 @@
     }
 
     function findCatedrasForImportCourse(courseName, preferredType) {
+      if (preferredType === 'cbc' || getCbcSubject(courseName)) return [];
       if (!courseName) return [];
       const norm = normalizeSiuCourseName(courseName);
 
@@ -2425,8 +2524,9 @@
                            /aprobado/i.test(rawNota);
         if (!isApproved) continue;
 
-        // Filter CBC
-        if (/cbc/i.test(rawMateria) || /ubaxxi/i.test(rawMateria) || /ciclo\s*b[aá]sico/i.test(rawMateria)) {
+        // Aceptar las seis materias conocidas del CBC; omitir otras actividades de ese ciclo.
+        const cbcSubject = getCbcSubject(rawMateria);
+        if (!cbcSubject && (/cbc/i.test(rawMateria) || /ubaxxi/i.test(rawMateria) || /ciclo\s*b[aá]sico/i.test(rawMateria))) {
           continue;
         }
 
@@ -2439,7 +2539,7 @@
         const cleanName = match ? match[1].trim() : rawMateria;
         const code = match && match[2] ? match[2].trim() : '';
 
-        if (/^cbc/i.test(code)) continue;
+        if (/^cbc/i.test(code) && !cbcSubject) continue;
 
         let grade = null;
         let isResearch = false;
@@ -2477,7 +2577,7 @@
     }
 
     async function processSiuCourses(rawCourses) {
-      if (courseCatalogDb) {
+      if (courseCatalogDb && rawCourses.some(course => !getCbcSubject(course))) {
         try {
           await preloadAllCourseCatalogs();
         } catch (e) {
@@ -2495,11 +2595,15 @@
         let grade = item.grade;
 
         const normClean = normalizeSiuCourseName(item.cleanName);
+        const cbc = getCbcSubject(item);
         const planByCode = PLAN_ESTUDIOS.find(p => !p.isGroup && p.id === item.code);
         const planByName = PLAN_ESTUDIOS.find(p => !p.isGroup && normalizeSiuCourseName(p.name) === normClean);
         const planMatch = planByCode || planByName;
 
-        if (planMatch) {
+        if (cbc) {
+          type = 'cbc';
+          name = cbc.name;
+        } else if (planMatch) {
           type = 'obligatoria';
           name = planMatch.name;
         } else if (item.isResearch || item.cleanName.toLowerCase().includes('horas de investigacion') || item.cleanName.toLowerCase().includes('taller de inv') || item.cleanName.toLowerCase().includes('seminario')) {
@@ -2529,6 +2633,7 @@
         const catedras = findCatedrasForImportCourse(name, type);
 
         allParsedCourses.push({
+          ...(cbc ? { cbcCode: cbc.code } : {}),
           name,
           type,
           subtype,
@@ -2545,7 +2650,7 @@
 
       for (const course of allParsedCourses) {
         const norm = normalizeSiuCourseName(course.name);
-        const existing = state.completed.find(c => normalizeSiuCourseName(c.name) === norm);
+        const existing = state.completed.find(c => course.type === 'cbc' ? getCbcSubject(c)?.code === course.cbcCode : normalizeSiuCourseName(c.name) === norm);
 
         if (!existing) {
           course.isUpdate = false;
@@ -2564,9 +2669,10 @@
           const hFile = course.hours ? Number(course.hours) : null;
           const isHoursDifferent = Boolean(hExist && hFile && hExist !== hFile);
 
-          const isCatedraMissing = (!existing.catedra || !existing.catedra.trim()) && course.catedras.length > 0;
+          const isCatedraMissing = course.type !== 'cbc' && (!existing.catedra || !existing.catedra.trim()) && course.catedras.length > 0;
+          const isCbcTypeDifferent = course.type === 'cbc' && (existing.type !== 'cbc' || existing.cbcCode !== course.cbcCode);
 
-          if (isGradeDifferent || isHoursDifferent || isCatedraMissing) {
+          if (isGradeDifferent || isHoursDifferent || isCatedraMissing || isCbcTypeDifferent) {
             course.isUpdate = true;
             course.oldGrade = gExist;
             course.oldHours = hExist;
@@ -2597,7 +2703,7 @@
           course.selectedCatedra = course.catedras[0];
           autoAssigned.push(course);
         } else if (course.catedras.length === 0) {
-          course.selectedCatedra = course.oldCatedra || '';
+          course.selectedCatedra = course.type === 'cbc' ? '' : course.oldCatedra || '';
           autoAssigned.push(course);
         } else {
           manualSelection.push(course);
@@ -2703,7 +2809,9 @@
       const autoText = $('siuAutoAssignedText');
       if (autoAssigned.length > 0) {
         autoNotice.classList.remove('hidden');
-        autoText.textContent = `${autoAssigned.length} materia${autoAssigned.length > 1 ? 's' : ''} con cátedra única se asign${autoAssigned.length > 1 ? 'aron' : 'ó'} automáticamente.`;
+        const withoutCatedra = autoAssigned.filter(course => course.catedras.length === 0).length;
+        const singleCatedra = autoAssigned.length - withoutCatedra;
+        autoText.textContent = [singleCatedra ? `${singleCatedra} con cátedra única` : '', withoutCatedra ? `${withoutCatedra} sin cátedra` : ''].filter(Boolean).join(' · ') + '. Se asignaron automáticamente.';
       } else {
         autoNotice.classList.add('hidden');
       }
@@ -2731,6 +2839,7 @@
       $('siuSummaryTotal').textContent = title;
 
       const mand = allCourses.filter(c => c.type === 'obligatoria').length;
+      const cbc = allCourses.filter(c => c.type === 'cbc').length;
       const esp = allCourses.filter(c => c.type === 'especial').length;
       const teo = allCourses.filter(c => c.type === 'teoria').length;
       const inv = allCourses.filter(c => c.type === 'investigacion');
@@ -2740,6 +2849,7 @@
       if (newCount > 0) parts.push(`${newCount} nueva${newCount > 1 ? 's' : ''}`);
       if (updateCount > 0) parts.push(`${updateCount} con nota/cátedra actualizada${updateCount > 1 ? 's' : ''}`);
       if (mand) parts.push(`${mand} obligatoria${mand > 1 ? 's' : ''}`);
+      if (cbc) parts.push(`${cbc} del CBC`);
       if (esp) parts.push(`${esp} especial${esp > 1 ? 'es' : ''}`);
       if (teo) parts.push(`${teo} teoría${teo > 1 ? 's' : ''}`);
       if (inv.length) parts.push(`${invHours} h de investigación`);
@@ -2762,7 +2872,7 @@
             <span class="font-bold text-xs ${c.grade !== null && c.grade !== undefined ? 'text-primary' : 'text-emerald-700'} bg-gray-50 border border-gray-200 px-2 py-0.5 rounded">
               ${c.isUpdate && c.oldGrade !== null && c.oldGrade !== undefined && c.grade !== null && c.grade !== undefined 
                 ? `<span class="line-through text-gray-400 mr-1 font-normal">${c.oldGrade}</span>${c.grade}` 
-                : (c.grade !== null && c.grade !== undefined ? `Nota: ${c.grade}` : `${c.hours} h`)}
+                : (c.grade !== null && c.grade !== undefined ? `Nota: ${c.grade}` : c.type === 'investigacion' ? `${c.hours} h` : 'Sin nota')}
             </span>
           </div>
         </div>
@@ -2902,9 +3012,10 @@
 
         allCourses.forEach(course => {
           const norm = normalizeSiuCourseName(course.name);
-          const existingIndex = state.completed.findIndex(c => normalizeSiuCourseName(c.name) === norm);
+          const existingIndex = state.completed.findIndex(c => course.type === 'cbc' ? getCbcSubject(c)?.code === course.cbcCode : normalizeSiuCourseName(c.name) === norm);
 
           const item = {
+            ...(course.type === 'cbc' ? { cbcCode: course.cbcCode } : {}),
             id: (existingIndex >= 0 && state.completed[existingIndex].id) 
               ? state.completed[existingIndex].id 
               : `c-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
@@ -2912,7 +3023,7 @@
             type: course.type
           };
 
-          if (course.selectedCatedra) {
+          if (course.selectedCatedra && course.type !== 'cbc') {
             item.catedra = course.selectedCatedra;
           }
 
