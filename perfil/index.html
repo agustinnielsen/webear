@@ -1322,7 +1322,8 @@
       }
 
       const courseType = typeInput?.value || detectCourseType(courseName) || '';
-      const catedras = getCatedrasForCourseName(courseName, courseType);
+      const catedras = [...getCatedrasForCourseName(courseName, courseType)];
+      if (targetCatedra && !catedras.some(cat => cat.toLowerCase() === targetCatedra.toLowerCase())) catedras.push(targetCatedra);
       catSelect.innerHTML = '';
 
       if (catedras.length === 1) {
@@ -1382,9 +1383,65 @@
         html += `</div>`;
       }
 
+      if (row.dataset.searchLoading === 'true') {
+        html += '<div class="px-3.5 py-2.5 shrink-0 text-xs text-gray-500 bg-slate-50" role="status">Buscando materias de la carrera…</div>';
+      } else if (['materias', 'especiales', 'teorias', 'horasdeinv'].some(col => !courseCatalogItems[col])) {
+        html += `<button type="button" data-load-completed-catalogs class="px-3.5 py-2.5 shrink-0 text-xs font-semibold text-primary text-left hover:bg-orange-50 border-t border-gray-100">${row.dataset.searchError === 'true' ? 'Reintentar búsqueda de materias de la carrera' : 'Buscar en materias de la carrera'}</button>`;
+      }
+
       dropdown.innerHTML = html;
       dropdown.classList.remove('hidden');
       dropdown.classList.add('flex');
+    }
+
+    async function loadCompletedSearchCatalogs(row) {
+      if (row.catalogSearchRequest) return row.catalogSearchRequest;
+      row.dataset.searchLoading = 'true';
+      delete row.dataset.searchError;
+      updateRowDropdown(row);
+      row.catalogSearchRequest = Promise.all(['materias', 'especiales', 'teorias', 'horasdeinv'].map(loadCourseCatalog))
+        .catch(() => { row.dataset.searchError = 'true'; })
+        .finally(() => {
+          delete row.dataset.searchLoading;
+          row.catalogSearchRequest = null;
+          if (row.isConnected) updateRowDropdown(row);
+        });
+      return row.catalogSearchRequest;
+    }
+
+    async function prepareCompletedRowCourse(row, targetCatedra = null) {
+      const name = row.querySelector('.row-name').value.trim();
+      const typeInput = row.querySelector('.row-type');
+      const catSelect = row.querySelector('.row-catedra');
+      if (!name || getCbcSubject(name)) {
+        updateRowCatedraOptions(row);
+        return true;
+      }
+
+      // A selected or previously saved subject already identifies its collection.
+      const knownCourse = row.dataset.selectedCourse === name || PLAN_ESTUDIOS.some(p => !p.isGroup && p.name === name);
+      const collections = knownCourse ? [collectionForCourseType(typeInput.value || detectCourseType(name))] : ['materias', 'especiales', 'teorias', 'horasdeinv'];
+      const selectedCatedra = targetCatedra ?? catSelect.value;
+      const request = {};
+      row.courseRequest = request;
+      catSelect.disabled = true;
+      catSelect.setAttribute('aria-busy', 'true');
+      try {
+        await Promise.all(collections.map(loadCourseCatalog));
+        if (!row.isConnected || row.querySelector('.row-name').value.trim() !== name || row.courseRequest !== request) return false;
+        if (!knownCourse) typeInput.value = detectCourseType(name) || 'obligatoria';
+        updateRowCatedraOptions(row, selectedCatedra);
+        return true;
+      } catch {
+        if (row.isConnected && row.courseRequest === request) showToast('No pudimos cargar las cátedras. Volvé a intentarlo.');
+        return false;
+      } finally {
+        if (row.courseRequest === request) {
+          row.courseRequest = null;
+          catSelect.disabled = Boolean(getCbcSubject(row.querySelector('.row-name').value.trim()));
+          catSelect.removeAttribute('aria-busy');
+        }
+      }
     }
 
     function createCompletedRow(data = null, isEdit = false) {
@@ -1405,6 +1462,8 @@
       }
       const initGrade = data?.grade !== undefined && data?.grade !== null ? data.grade : '';
       const initCatedra = data?.catedra || '';
+      row.dataset.originalName = initName;
+      row.dataset.selectedCourse = initName;
 
       row.innerHTML = `
         <input type="hidden" class="row-type" value="${escapeHTML(initType)}">
@@ -1441,23 +1500,31 @@
       let debounceTimer = null;
       nameInput.addEventListener('input', () => {
         const val = nameInput.value.trim();
+        delete row.dataset.selectedCourse;
+        row.courseRequest = null;
+        catSelect.removeAttribute('aria-busy');
         clearBtn.classList.toggle('hidden', !val);
+        typeInput.value = detectCourseType(val) || '';
+        updateRowCatedraOptions(row);
         updateRowDropdown(row);
 
         clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => {
-          if (!val) return;
-          const autoType = detectCourseType(val) || 'obligatoria';
-          typeInput.value = autoType;
-          updateRowCatedraOptions(row);
+        debounceTimer = setTimeout(async () => {
+          if (!row.isConnected || nameInput.value.trim() !== val || !val || row.dataset.selectedCourse) return;
+          // CBC and required-course names are already available locally.
+          if (searchCatalogCourses(val, 'cbc', true).some(course => course.type === 'cbc')) return;
+          if (PLAN_ESTUDIOS.some(course => !course.isGroup && normalizedCourseName(course.name).includes(normalizedCourseName(val)))) return;
+          await loadCompletedSearchCatalogs(row);
+          if (row.isConnected && nameInput.value.trim() === val && !row.dataset.selectedCourse) {
+            typeInput.value = detectCourseType(val) || 'obligatoria';
+            updateRowCatedraOptions(row, catSelect.value);
+          }
         }, 250);
       });
 
       nameInput.addEventListener('focus', () => {
         row.style.zIndex = '30';
-        if (nameInput.value.trim() !== '') {
-          updateRowDropdown(row);
-        }
+        updateRowDropdown(row);
       });
 
       nameInput.addEventListener('blur', () => {
@@ -1472,6 +1539,10 @@
         e.preventDefault();
         e.stopPropagation();
         nameInput.value = '';
+        clearTimeout(debounceTimer);
+        delete row.dataset.selectedCourse;
+        row.courseRequest = null;
+        catSelect.removeAttribute('aria-busy');
         clearBtn.classList.add('hidden');
         typeInput.value = '';
         updateRowCatedraOptions(row, '');
@@ -1481,6 +1552,9 @@
       catSelect.addEventListener('change', () => {
         syncSelectPlaceholder(catSelect);
       });
+      catSelect.addEventListener('focus', () => {
+        if (nameInput.value.trim() && !getCbcSubject(nameInput.value)) prepareCompletedRowCourse(row);
+      });
 
       removeBtn.addEventListener('click', () => {
         const container = $('completedRowsContainer');
@@ -1489,16 +1563,25 @@
           row.remove();
         } else {
           nameInput.value = '';
+          clearTimeout(debounceTimer);
+          delete row.dataset.selectedCourse;
+          row.courseRequest = null;
+          catSelect.removeAttribute('aria-busy');
           clearBtn.classList.add('hidden');
           typeInput.value = '';
-          catSelect.innerHTML = '<option value="">Seleccionar</option>';
-          catSelect.value = '';
-          syncSelectPlaceholder(catSelect);
+          updateRowCatedraOptions(row);
           gradeInput.value = '';
         }
       });
 
-      updateRowCatedraOptions(row, initCatedra);
+      if (data && !getCbcSubject(initName)) {
+        // Keep the saved chair even if the catalog changed; grade editing needs no lookup.
+        if (initCatedra) catSelect.add(new Option(formatCatedra(initCatedra), initCatedra));
+        catSelect.value = initCatedra;
+        syncSelectPlaceholder(catSelect);
+      } else {
+        updateRowCatedraOptions(row, initCatedra);
+      }
 
       return row;
     }
@@ -1662,6 +1745,13 @@
 
     // Cierre global para dropdowns custom
     document.addEventListener('click', e => {
+      const searchCatalogs = e.target.closest('[data-load-completed-catalogs]');
+      if (searchCatalogs) {
+        const row = searchCatalogs.closest('.completed-row');
+        row.querySelector('.row-name').focus();
+        loadCompletedSearchCatalogs(row);
+        return;
+      }
       const dropdownItem = e.target.closest('[data-dropdown-val]');
       if (dropdownItem) {
         const dropdown = dropdownItem.closest('.custom-dropdown');
@@ -1674,6 +1764,7 @@
           const clearBtn = row.querySelector('.row-clear');
           
           input.value = dropdownItem.dataset.dropdownVal;
+          row.dataset.selectedCourse = input.value;
           dropdown.classList.add('hidden');
           dropdown.classList.remove('flex');
 
@@ -1686,6 +1777,7 @@
 
           const matchedCatedra = dropdownItem.dataset.dropdownCatedra || '';
           updateRowCatedraOptions(row, matchedCatedra);
+          if (autoType !== 'cbc') prepareCompletedRowCourse(row, matchedCatedra);
           if (clearBtn) clearBtn.classList.remove('hidden');
           return;
         }
@@ -1959,7 +2051,6 @@
         }
 
         return `
-          <div class="border-b border-gray-100 last:border-0">
           <div>
             <button type="button" data-toggle-group="${g.id}" class="w-full flex items-center justify-between px-4 sm:px-5 md:px-7 py-4 hover:bg-white transition-colors outline-none focus-visible:bg-white">
               <div class="flex items-center gap-3">
@@ -2148,9 +2239,8 @@
       }
     }
 
-    async function openCompletedEditor(id = '') {
+    function openCompletedEditor(id = '') {
       const course = id ? state.completed.find(c => c.id === id) : null;
-      if (!course || course.type !== 'cbc') await preloadAllCourseCatalogs();
       $('completedEditId').value = course?.id || '';
       $('completedModalTitle').textContent = course ? 'Editar materia realizada' : 'Cargar materias realizadas';
 
@@ -2280,132 +2370,150 @@
       if (nameInput) nameInput.focus();
     });
 
-    $('completedForm').addEventListener('submit', e => {
+    $('completedForm').addEventListener('submit', async e => {
       e.preventDefault();
-      const editId = $('completedEditId').value;
-      const container = $('completedRowsContainer');
-      const rows = Array.from(container.querySelectorAll('.completed-row'));
+      const submitBtn = $('completedForm').querySelector('button[type="submit"]');
+      if (submitBtn.disabled) return;
+      submitBtn.disabled = true;
+      try {
+        const editId = $('completedEditId').value;
+        const container = $('completedRowsContainer');
+        const rows = Array.from(container.querySelectorAll('.completed-row'));
+        const names = rows.map(row => row.querySelector('.row-name').value.trim());
 
-      if (editId) {
-        // Modo edición individual
-        const row = rows[0];
-        if (!row) return;
-
-        const name = row.querySelector('.row-name').value.trim();
-        if (!name) {
-          showToast('Por favor, ingresá el nombre de la materia.');
-          row.querySelector('.row-name').focus();
-          return;
+        for (const row of rows) {
+          const name = row.querySelector('.row-name').value.trim();
+          if (name && (name !== row.dataset.originalName || row.courseRequest)) {
+            if (!await prepareCompletedRowCourse(row)) return;
+          }
         }
+        if (!$('completedModal').classList.contains('active') || $('completedEditId').value !== editId
+          || container.querySelectorAll('.completed-row').length !== rows.length
+          || rows.some((row, index) => !row.isConnected || row.querySelector('.row-name').value.trim() !== names[index])) return;
 
-        const typeValue = row.querySelector('.row-type')?.value || detectCourseType(name) || 'obligatoria';
-        const catedraVal = row.querySelector('.row-catedra').value.trim();
-        const catOptions = row.querySelector('.row-catedra').options;
-        if (catOptions.length > 1 && !catedraVal) {
-          showToast('Por favor, seleccioná una cátedra.');
-          row.querySelector('.row-catedra').focus();
-          return;
-        }
+        if (editId) {
+          // Modo edición individual
+          const row = rows[0];
+          if (!row) return;
 
-        const gradeVal = row.querySelector('.row-grade').value.trim();
-        let parsedGrade = undefined;
-        if (gradeVal !== '') {
-          const num = Number(gradeVal.replace(',', '.'));
-          if (isNaN(num) || num < 0 || num > 10) {
-            showToast('La nota debe ser un número entre 0 y 10.');
-            row.querySelector('.row-grade').focus();
+          const name = row.querySelector('.row-name').value.trim();
+          if (!name) {
+            showToast('Por favor, ingresá el nombre de la materia.');
+            row.querySelector('.row-name').focus();
             return;
           }
-          parsedGrade = num;
+
+          const typeValue = row.querySelector('.row-type')?.value || detectCourseType(name) || 'obligatoria';
+          const catedraVal = row.querySelector('.row-catedra').value.trim();
+          const catOptions = row.querySelector('.row-catedra').options;
+          if (catOptions.length > 1 && !catedraVal) {
+            showToast('Por favor, seleccioná una cátedra.');
+            row.querySelector('.row-catedra').focus();
+            return;
+          }
+
+          const gradeVal = row.querySelector('.row-grade').value.trim();
+          let parsedGrade = undefined;
+          if (gradeVal !== '') {
+            const num = Number(gradeVal.replace(',', '.'));
+            if (isNaN(num) || num < 0 || num > 10) {
+              showToast('La nota debe ser un número entre 0 y 10.');
+              row.querySelector('.row-grade').focus();
+              return;
+            }
+            parsedGrade = num;
+          }
+
+          const research = typeValue === 'taller' || typeValue === 'seminario';
+          const item = {
+            id: editId,
+            name,
+            type: research ? 'investigacion' : typeValue
+          };
+          if (catedraVal) item.catedra = catedraVal;
+          if (parsedGrade !== undefined) item.grade = parsedGrade;
+          if (research) {
+            item.subtype = typeValue;
+            item.hours = typeValue === 'seminario' ? 50 : 100;
+          }
+
+          expandedGroups.add(item.type);
+          const idx = state.completed.findIndex(c => c.id === editId);
+          if (idx >= 0) state.completed[idx] = item;
+
+          saveState();
+          closeModal('completedModal');
+          render();
+          showToast('Materia realizada actualizada.');
+          return;
         }
 
-        const research = typeValue === 'taller' || typeValue === 'seminario';
-        const item = {
-          id: editId,
-          name,
-          type: research ? 'investigacion' : typeValue
-        };
-        if (catedraVal) item.catedra = catedraVal;
-        if (parsedGrade !== undefined) item.grade = parsedGrade;
-        if (research) {
-          item.subtype = typeValue;
-          item.hours = typeValue === 'seminario' ? 50 : 100;
+        // Modo carga múltiple
+        const rowsWithData = rows.filter(r => r.querySelector('.row-name').value.trim() !== '');
+        if (rowsWithData.length === 0) {
+          showToast('Por favor, ingresá al menos una materia.');
+          rows[0]?.querySelector('.row-name')?.focus();
+          return;
         }
 
-        expandedGroups.add(item.type);
-        const idx = state.completed.findIndex(c => c.id === editId);
-        if (idx >= 0) state.completed[idx] = item;
+        // Validar cada fila con datos
+        for (const row of rowsWithData) {
+          const name = row.querySelector('.row-name').value.trim();
+          const typeValue = row.querySelector('.row-type')?.value || detectCourseType(name) || 'obligatoria';
+          const typeInput = row.querySelector('.row-type');
+          if (typeInput) typeInput.value = typeValue;
 
+          const catedraVal = row.querySelector('.row-catedra').value.trim();
+          const catOptions = row.querySelector('.row-catedra').options;
+          if (catOptions.length > 1 && !catedraVal) {
+            showToast(`Por favor, seleccioná una cátedra para "${name}".`);
+            row.querySelector('.row-catedra').focus();
+            return;
+          }
+
+          const gradeVal = row.querySelector('.row-grade').value.trim();
+          if (gradeVal !== '') {
+            const num = Number(gradeVal.replace(',', '.'));
+            if (isNaN(num) || num < 0 || num > 10) {
+              showToast(`La nota de "${name}" debe ser entre 0 y 10.`);
+              row.querySelector('.row-grade').focus();
+              return;
+            }
+          }
+        }
+
+        // Guardar todos los nuevos registros
+        const newCourses = rowsWithData.map((row, idx) => {
+          const name = row.querySelector('.row-name').value.trim();
+          const typeValue = row.querySelector('.row-type')?.value || detectCourseType(name) || 'obligatoria';
+          const catedraVal = row.querySelector('.row-catedra').value.trim();
+          const gradeVal = row.querySelector('.row-grade').value.trim();
+          const research = typeValue === 'taller' || typeValue === 'seminario';
+
+          const item = {
+            id: `c-${Date.now()}-${idx}-${Math.random().toString(36).slice(2, 6)}`,
+            name,
+            type: research ? 'investigacion' : typeValue
+          };
+          if (catedraVal) item.catedra = catedraVal;
+          if (gradeVal !== '') item.grade = Number(gradeVal.replace(',', '.'));
+          if (research) {
+            item.subtype = typeValue;
+            item.hours = typeValue === 'seminario' ? 50 : 100;
+          }
+
+          expandedGroups.add(item.type);
+          return item;
+        });
+
+        state.completed.unshift(...newCourses);
         saveState();
         closeModal('completedModal');
         render();
-        showToast('Materia realizada actualizada.');
-        return;
+        showToast(newCourses.length === 1 ? 'Materia realizada agregada con éxito.' : `¡Se cargaron ${newCourses.length} materias con éxito!`);
+      } finally {
+        submitBtn.disabled = false;
       }
-
-      // Modo carga múltiple
-      const rowsWithData = rows.filter(r => r.querySelector('.row-name').value.trim() !== '');
-      if (rowsWithData.length === 0) {
-        showToast('Por favor, ingresá al menos una materia.');
-        rows[0]?.querySelector('.row-name')?.focus();
-        return;
-      }
-
-      // Validar cada fila con datos
-      for (const row of rowsWithData) {
-        const name = row.querySelector('.row-name').value.trim();
-        const typeValue = row.querySelector('.row-type')?.value || detectCourseType(name) || 'obligatoria';
-        const typeInput = row.querySelector('.row-type');
-        if (typeInput) typeInput.value = typeValue;
-
-        const catedraVal = row.querySelector('.row-catedra').value.trim();
-        const catOptions = row.querySelector('.row-catedra').options;
-        if (catOptions.length > 1 && !catedraVal) {
-          showToast(`Por favor, seleccioná una cátedra para "${name}".`);
-          row.querySelector('.row-catedra').focus();
-          return;
-        }
-
-        const gradeVal = row.querySelector('.row-grade').value.trim();
-        if (gradeVal !== '') {
-          const num = Number(gradeVal.replace(',', '.'));
-          if (isNaN(num) || num < 0 || num > 10) {
-            showToast(`La nota de "${name}" debe ser entre 0 y 10.`);
-            row.querySelector('.row-grade').focus();
-            return;
-          }
-        }
-      }
-
-      // Guardar todos los nuevos registros
-      const newCourses = rowsWithData.map((row, idx) => {
-        const name = row.querySelector('.row-name').value.trim();
-        const typeValue = row.querySelector('.row-type')?.value || detectCourseType(name) || 'obligatoria';
-        const catedraVal = row.querySelector('.row-catedra').value.trim();
-        const gradeVal = row.querySelector('.row-grade').value.trim();
-        const research = typeValue === 'taller' || typeValue === 'seminario';
-
-        const item = {
-          id: `c-${Date.now()}-${idx}-${Math.random().toString(36).slice(2, 6)}`,
-          name,
-          type: research ? 'investigacion' : typeValue
-        };
-        if (catedraVal) item.catedra = catedraVal;
-        if (gradeVal !== '') item.grade = Number(gradeVal.replace(',', '.'));
-        if (research) {
-          item.subtype = typeValue;
-          item.hours = typeValue === 'seminario' ? 50 : 100;
-        }
-
-        expandedGroups.add(item.type);
-        return item;
-      });
-
-      state.completed.unshift(...newCourses);
-      saveState();
-      closeModal('completedModal');
-      render();
-      showToast(newCourses.length === 1 ? 'Materia realizada agregada con éxito.' : `¡Se cargaron ${newCourses.length} materias con éxito!`);
     });
 
     $('deleteCompletedBtn').addEventListener('click', () => {
