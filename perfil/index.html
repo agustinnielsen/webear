@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
   <title>Perfil · Gino Social</title>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
@@ -27,21 +27,55 @@
     [hidden] { display: none !important; }
     html { scroll-behavior: smooth; }
     body { min-height: 100vh; overflow-x: hidden; }
+    body.modal-open { overflow: hidden; }
+    #profileContent section { scroll-margin-top: 120px; }
+    .profile-topbar { padding-top: env(safe-area-inset-top); }
+    .profile-shortcuts { top: calc(56px + env(safe-area-inset-top)); }
+    .profile-wrap { overflow-wrap: anywhere; }
+    #careerProgressDetails > summary { list-style: none; cursor: pointer; }
+    #careerProgressDetails > summary::-webkit-details-marker { display: none; }
+    #careerProgressDetails[open] .progress-chevron { transform: rotate(180deg); }
+    #careerProgressDetails[open] .progress-show { display: none; }
+    #careerProgressDetails:not([open]) .progress-hide { display: none; }
     button, select, input, textarea { touch-action: manipulation; }
     @media (max-width: 639px) {
       input, select, textarea { font-size: 16px !important; }
-      button, select, input { min-height: 44px; }
+      button, select, input:not([type="checkbox"]):not([type="hidden"]) { min-height: 44px; }
+      [data-close-modal] { min-width: 44px; flex-shrink: 0; }
+      .row-clear, .row-remove, #wantedNameClear, .toggle-password-btn { min-width: 44px; }
+      .row-clear, #wantedNameClear { right: 0; }
+      .row-name, #wantedName { padding-right: 48px; }
       .modal { align-items: flex-end !important; padding: 0 !important; }
       .modal .modal-card {
         width: 100% !important;
         max-width: none !important;
-        max-height: 92svh !important;
+        max-height: 92dvh !important;
         overflow-y: auto;
         border-radius: 1.5rem 1.5rem 0 0 !important;
-        padding: 1.25rem !important;
+        padding: 1.25rem max(1.25rem, env(safe-area-inset-right)) max(1.25rem, env(safe-area-inset-bottom)) max(1.25rem, env(safe-area-inset-left)) !important;
         overscroll-behavior: contain;
       }
       .mobile-safe-bottom { padding-bottom: max(1.25rem, env(safe-area-inset-bottom)); }
+      #planModal { align-items: stretch !important; }
+      #planModal .modal-card {
+        height: 100dvh !important;
+        max-height: 100dvh !important;
+        padding: 0 !important;
+        border-radius: 0 !important;
+        overflow: hidden;
+      }
+      .plan-modal-header { padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) 1rem max(1rem, env(safe-area-inset-left)); }
+      #planModal .plan-zoom-toolbar { padding: 10px 16px; gap: 8px; flex-wrap: nowrap; }
+      #planModal .plan-zoom-control { min-width: 44px; height: 44px; }
+      #planModal #planZoomFit { margin-left: auto; }
+      #planViewport { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
+      #completedForm .completed-form-footer { gap: 8px; }
+      #completedForm .completed-form-actions { gap: 8px; min-width: 0; }
+      #completedForm .completed-form-actions button { padding-left: 12px; padding-right: 12px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      .modal.active, .modal-card { animation: none !important; }
     }
     .modal { display: none; }
     .modal.active { display: flex; animation: fadeIn .18s ease-out; }
@@ -86,7 +120,7 @@
     @media (max-width: 767px) { .completed-row.is-cbc .row-name-field { grid-column: auto; } }
     #planTree > .plan-column { display: grid; grid-row: 1 / -1; grid-template-rows: subgrid; row-gap: 16px; align-items: start; }
     @media (min-width: 768px) { #planTree { column-gap: 32px; } }
-    #planViewport { min-height: 0; }
+    #planViewport { min-height: 0; touch-action: pan-x pan-y; overscroll-behavior: contain; }
     .plan-zoom-toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 20px; background: white; border-bottom: 1px solid #e5e7eb; flex-shrink: 0; }
     .plan-zoom-control { display: inline-flex; align-items: center; justify-content: center; height: 36px; min-width: 36px; padding: 0 10px; border: 1px solid #e5e7eb; border-radius: 9px; color: #2c3e50; background: white; font-size: 13px; font-weight: 700; }
     .plan-zoom-control:hover { background: #f8fafc; }
@@ -98,9 +132,9 @@
 </head>
 <body class="bg-slate-50 text-dark font-sans">
   
-  <nav class="sticky top-0 z-40 bg-primary/95 backdrop-blur-md text-white shadow-lg">
+  <nav class="profile-topbar sticky top-0 z-40 bg-primary/95 backdrop-blur-md text-white shadow-lg" aria-label="Volver a Gino Social">
     <div class="max-w-7xl mx-auto px-4 md:px-8 h-14 sm:h-16 flex items-center justify-between gap-3 sm:gap-4">
-      <a href="../" class="flex items-center gap-2 font-black hover:opacity-90">
+      <a href="../" aria-label="Volver a Gino Social" class="min-h-[44px] min-w-[44px] flex items-center gap-2 font-black hover:opacity-90">
         <span class="material-symbols-outlined">arrow_back</span>
         <span class="hidden sm:inline">Gino Social</span>
       </a>
@@ -135,8 +169,8 @@
       <div class="flex items-center gap-4 min-w-0">
         <div id="profileAvatar" class="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-2xl sm:rounded-3xl bg-white text-primary flex items-center justify-center text-2xl sm:text-3xl md:text-4xl font-black shadow-xl border-4 border-white/30 shrink-0">U</div>
         <div class="min-w-0">
-          <h1 id="profileName" class="text-2xl sm:text-3xl md:text-5xl font-black tracking-tight truncate">Cargando...</h1>
-          <p id="profileMeta" class="text-white/80 mt-1">Sociología · UBA</p>
+          <h1 id="profileName" class="profile-wrap text-2xl sm:text-3xl md:text-5xl font-black tracking-tight sm:truncate">Cargando...</h1>
+          <p id="profileMeta" class="text-sm sm:text-base text-white/80 mt-1">Sociología · UBA</p>
         </div>
       </div>
       <!-- Botón de editar perfil eliminado según lo solicitado -->
@@ -144,6 +178,11 @@
   </header>
 
   <main id="profileContent" hidden class="max-w-7xl mx-auto px-3.5 sm:px-4 md:px-8 py-5 sm:py-7 md:py-10">
+    <nav class="profile-shortcuts sm:hidden sticky z-30 flex gap-1 rounded-xl border border-slate-200 bg-slate-50/95 backdrop-blur-md p-1 mb-4 shadow-sm" aria-label="Secciones del perfil">
+      <a href="#completedSection" class="flex-1 min-h-[44px] flex items-center justify-center text-xs font-bold text-dark rounded-lg hover:bg-white">Realizadas</a>
+      <a href="#wantedSection" class="flex-1 min-h-[44px] flex items-center justify-center text-xs font-bold text-dark rounded-lg hover:bg-white">Quiero cursar</a>
+      <a href="#reviewsSection" class="flex-1 min-h-[44px] flex items-center justify-center text-xs font-bold text-dark rounded-lg hover:bg-white">Reseñas</a>
+    </nav>
     <div class="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-6 md:gap-8 items-start">
       <div class="order-2 xl:order-1 space-y-5 md:space-y-7">
         
@@ -176,7 +215,7 @@
               <p class="text-sm text-gray-500 mt-1"><span id="completedCountLabel">0</span> materias registradas</p>
             </div>
             <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 shrink-0">
-              <button id="openImportSiuBtn" type="button" class="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-orange-200/90 bg-orange-50/70 text-primary font-bold shadow-xs hover:bg-orange-100 hover:border-primary/50 active:scale-[0.98] transition-all flex items-center justify-center gap-2 text-sm whitespace-nowrap">
+              <button id="openImportSiuBtn" type="button" class="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-orange-200/90 bg-orange-50/70 text-primary font-bold shadow-xs hover:bg-orange-100 hover:border-primary/50 active:scale-[0.98] transition-all flex items-center justify-center gap-2 text-sm sm:whitespace-nowrap">
                 <span class="material-symbols-outlined text-lg">upload_file</span>
                 <span>Cargar historia académica</span>
               </button>
@@ -192,13 +231,13 @@
         </section>
 
         <!-- 3. Reseñas -->
-        <section class="bg-white rounded-2xl md:rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+        <section id="reviewsSection" class="bg-white rounded-2xl md:rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
           <div class="p-4 sm:p-5 md:p-7 border-b border-gray-100">
             <div class="flex items-center gap-2">
               <span class="material-symbols-outlined text-primary">rate_review</span>
               <h2 class="text-xl md:text-2xl font-black text-dark">Mis reseñas</h2>
             </div>
-            <p class="text-sm text-gray-500 mt-1">Tu actividad pública, después de la planificación y el historial académico.</p>
+            <p class="text-sm text-gray-500 mt-1">Las opiniones que compartiste con la comunidad.</p>
           </div>
           <div id="reviewsList" class="p-4 sm:p-5 md:p-7 space-y-3" aria-live="polite"></div>
           <div class="px-4 sm:px-5 md:px-7 pb-5 text-center">
@@ -227,34 +266,43 @@
               </div>
             </div>
           </div>
-          <div class="flex items-center gap-2 mt-4 sm:mt-5" role="group" aria-label="Incluir CBC en los promedios">
+          <p class="text-xs font-bold text-gray-500 mt-4 sm:mt-5 mb-2">Promedios</p>
+          <div class="flex items-center gap-2" role="group" aria-label="Incluir CBC en los promedios">
             <button id="averagesWithCbc" type="button" aria-pressed="true" class="flex-1 px-3 py-2 rounded-lg text-xs font-bold bg-primary text-white">Con CBC</button>
             <button id="averagesWithoutCbc" type="button" aria-pressed="false" class="flex-1 px-3 py-2 rounded-lg text-xs font-bold bg-slate-100 text-gray-600">Sin CBC</button>
           </div>
           <div class="border-t border-gray-100 mt-4 sm:mt-5 pt-4 sm:pt-5 grid grid-cols-2 gap-2.5 sm:gap-3">
             <div class="rounded-xl sm:rounded-2xl bg-slate-50 border border-slate-100 p-3 sm:p-4">
-              <p class="text-[10px] font-black uppercase tracking-wider text-gray-400">Promedio UBA</p>
+              <p class="text-[11px] font-black uppercase tracking-wide text-gray-500">Promedio UBA</p>
               <p id="averageUBA" class="text-2xl sm:text-3xl font-black text-dark mt-1">—</p>
             </div>
             <div class="rounded-xl sm:rounded-2xl bg-slate-50 border border-slate-100 p-3 sm:p-4">
-              <p class="text-[10px] font-black uppercase tracking-wider text-gray-400">GPA estimado</p>
+              <p class="text-[11px] font-black uppercase tracking-wide text-gray-500">GPA estimado</p>
               <p class="text-2xl sm:text-3xl font-black text-dark mt-1"><span id="averageGPA">—</span><span class="text-sm text-gray-400">/4</span></p>
             </div>
           </div>
         </section>
 
         <section class="bg-white rounded-2xl md:rounded-3xl shadow-sm border border-gray-100 p-4 sm:p-5 md:p-6">
-          <div class="flex items-center gap-2 mb-5">
-            <span class="material-symbols-outlined text-primary">route</span>
-            <h2 class="font-black text-lg text-dark">Progreso en la carrera</h2>
-          </div>
-          <div id="requirementsGrid" class="space-y-3 sm:space-y-4"></div>
+          <details id="careerProgressDetails" open>
+            <summary class="flex items-center justify-between gap-2 min-h-[44px] rounded-lg focus-visible:outline-primary">
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="material-symbols-outlined text-primary shrink-0">route</span>
+                <div>
+                  <h2 class="font-black text-base sm:text-lg text-dark">Progreso en la carrera</h2>
+                  <p class="sm:hidden text-xs text-gray-500 mt-0.5"><span class="progress-show">Ver detalle</span><span class="progress-hide">Ocultar detalle</span></p>
+                </div>
+              </div>
+              <span class="progress-chevron material-symbols-outlined text-gray-400 transition-transform shrink-0" aria-hidden="true">expand_more</span>
+            </summary>
+            <div id="requirementsGrid" class="space-y-3 sm:space-y-4 mt-4 sm:mt-5"></div>
+            <p class="text-xs text-gray-500 leading-relaxed mt-5 pt-4 border-t border-gray-100">6 del CBC + 16 obligatorias + 3 especiales + 3 teorías + 3 adicionales entre especiales/teorías + 200 h de investigación. Taller: 100 h · Seminario: 50 h.</p>
+          </details>
           
           <button id="openPlanBtn" class="mt-5 w-full px-4 py-3 rounded-xl bg-dark text-white font-black shadow-md hover:bg-slate-800 hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2">
-            <span class="material-symbols-outlined text-lg">account_tree</span> Ver mapa de correlatividades
+            <span class="material-symbols-outlined text-lg shrink-0">account_tree</span> <span>Ver mapa de correlatividades</span>
           </button>
 
-          <p class="text-[11px] text-gray-400 leading-relaxed mt-5 pt-4 border-t border-gray-100">6 del CBC + 16 obligatorias + 3 especiales + 3 teorías + 3 adicionales entre especiales/teorías + 200 h de investigación. Taller: 100 h · Seminario: 50 h.</p>
         </section>
       </aside>
     </div>
@@ -418,11 +466,11 @@
         </div>
 
         <!-- Pie del modal -->
-        <div class="flex items-center justify-between gap-3 pt-4 border-t border-gray-100 mt-4">
+        <div class="completed-form-footer flex items-center justify-between gap-3 pt-4 border-t border-gray-100 mt-4">
           <button id="deleteCompletedBtn" type="button" class="hidden px-3.5 py-2.5 border border-red-200 text-red-600 font-bold rounded-xl hover:bg-red-50 hover:border-red-300 transition-all text-sm shadow-xs" title="Eliminar registro">
             <span class="material-symbols-outlined text-lg align-middle">delete</span>
           </button>
-          <div class="flex items-center justify-end gap-3 ml-auto flex-1 sm:flex-initial">
+          <div class="completed-form-actions flex items-center justify-end gap-3 ml-auto flex-1 sm:flex-initial">
             <button type="button" data-close-modal class="flex-1 sm:flex-initial px-5 py-2.5 border border-gray-200 text-gray-600 font-bold rounded-xl hover:bg-gray-50 hover:text-dark transition-all text-sm shadow-xs">Cancelar</button>
             <button type="submit" class="flex-1 sm:flex-initial px-6 py-2.5 bg-primary text-white font-black rounded-xl hover:bg-primaryDark hover:shadow active:scale-[0.98] transition-all text-sm shadow-sm">Guardar</button>
           </div>
@@ -566,24 +614,25 @@
   <!-- Modal Plan de Estudios (Correlatividades) -->
   <div id="planModal" class="modal fixed inset-0 bg-black/60 z-50 items-center justify-center p-2 sm:p-4 backdrop-blur-sm">
     <div class="modal-card bg-slate-50 w-full h-[95vh] max-w-7xl rounded-3xl shadow-2xl flex flex-col overflow-hidden">
-      <div class="p-5 md:p-6 border-b border-gray-200 bg-white flex items-center justify-between shrink-0">
-        <div>
+      <div class="plan-modal-header p-4 sm:p-5 md:p-6 border-b border-gray-200 bg-white flex items-start justify-between gap-3 shrink-0">
+        <div class="min-w-0">
           <div class="flex items-center gap-2">
             <span class="material-symbols-outlined text-primary">account_tree</span>
             <h2 class="text-xl md:text-2xl font-black text-dark">Plan de Estudios</h2>
           </div>
-          <p class="text-sm text-gray-500 mt-1">Mapa de correlatividades (Res. CD 2024-186). Las materias completadas desbloquean nuevos niveles.</p>
+          <p class="hidden sm:block text-sm text-gray-500 mt-1">Mapa de correlatividades (Res. CD 2024-186). Las materias completadas desbloquean nuevos niveles.</p>
+          <p class="sm:hidden text-xs text-gray-500 mt-1 leading-relaxed">Deslizá para recorrer. Pellizcá con dos dedos para acercar o alejar.</p>
         </div>
-        <button data-close-modal class="text-gray-400 hover:text-gray-700 text-3xl h-10 w-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">✕</button>
+        <button type="button" data-close-modal aria-label="Cerrar mapa" class="text-gray-400 hover:text-gray-700 text-2xl h-11 w-11 shrink-0 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">✕</button>
       </div>
       <div class="plan-zoom-toolbar" role="group" aria-label="Zoom del mapa">
-        <span class="text-xs text-gray-500 mr-1">Zoom</span>
+        <span class="hidden sm:inline text-xs text-gray-500 mr-1">Zoom</span>
         <button id="planZoomOut" class="plan-zoom-control" type="button" aria-label="Alejar mapa" title="Alejar">−</button>
         <button id="planZoomReset" class="plan-zoom-control" type="button" aria-label="Volver al zoom de 100%" title="Volver al 100%">100%</button>
         <button id="planZoomIn" class="plan-zoom-control" type="button" aria-label="Acercar mapa" title="Acercar">+</button>
         <button id="planZoomFit" class="plan-zoom-control" type="button">Ver todo</button>
       </div>
-      <div id="planViewport" class="flex-1 overflow-x-auto overflow-y-auto p-5 md:p-8 bg-slate-100/50">
+      <div id="planViewport" class="flex-1 overflow-x-auto overflow-y-auto p-4 sm:p-5 md:p-8 bg-slate-100/50">
         <div id="planTree" class="flex gap-6 md:gap-8 min-w-max pb-8">
           <!-- Las columnas y tarjetas se generan dinámicamente vía JS -->
         </div>
@@ -1074,6 +1123,7 @@
     function openModal(id) {
       if (!['loginModal', 'registerModal', 'tycModal'].includes(id) && !profileCloudReady) return;
       $(id).classList.add('active');
+      document.body?.classList.add('modal-open');
       document.querySelectorAll('.custom-dropdown').forEach(d => {
         d.classList.add('hidden');
         d.classList.remove('flex');
@@ -1083,6 +1133,7 @@
       if (registrationBusy && id === 'tycModal') return;
       if (id === 'tycModal') pendingRegistrationData = null;
       $(id).classList.remove('active');
+      document.body?.classList.toggle('modal-open', document.querySelectorAll('.modal.active').length > 0);
       document.querySelectorAll('.custom-dropdown').forEach(d => {
         d.classList.add('hidden');
         d.classList.remove('flex');
@@ -1987,11 +2038,11 @@
           <div class="flex justify-between gap-3">
             <div class="min-w-0 flex-1">
               <span class="inline-flex px-2.5 py-1 rounded-full text-[11px] font-black ${typeClasses(c.type)}">${escapeHTML(typeLabel(c.type, c.subtype))}</span>
-              <h3 class="font-bold text-dark mt-2 leading-tight">${escapeHTML(c.name)}</h3>
+              <h3 class="profile-wrap font-bold text-dark mt-2 leading-tight">${escapeHTML(c.name)}</h3>
               ${c.catedra && c.catedra !== 'Única' && c.catedra !== 'Cátedra única' ? `<p class="text-xs text-gray-500 font-semibold mt-1">${escapeHTML(formatCatedra(c.catedra))}</p>` : ''}
-              <p class="text-sm text-gray-500 mt-1">${escapeHTML(c.note || 'Sin nota personal')}</p>
+              <p class="profile-wrap text-sm text-gray-500 mt-1 whitespace-pre-line">${escapeHTML(c.note || 'Sin nota personal')}</p>
             </div>
-            <button type="button" data-remove-wanted="${escapeHTML(c.id)}" title="Quitar de la lista" class="w-9 h-9 shrink-0 rounded-xl text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors">
+            <button type="button" data-remove-wanted="${escapeHTML(c.id)}" aria-label="Quitar ${escapeHTML(c.name)} de Quiero cursar" title="Quitar de la lista" class="w-11 h-11 shrink-0 rounded-xl text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors">
               <span class="material-symbols-outlined text-lg">close</span>
             </button>
           </div>
@@ -2027,23 +2078,19 @@
                 <div class="px-4 sm:px-5 md:px-7 py-3 md:py-4 hover:bg-slate-50 transition-colors bg-white">
                   <div class="flex items-center justify-between gap-3 md:gap-4 min-w-0">
                     <div class="min-w-0 flex-1">
-                      <p class="font-bold text-dark leading-tight sm:truncate">${escapeHTML(c.name)}</p>
-                      ${metaText ? `<p class="text-xs text-gray-400 mt-1">${metaText}</p>` : ''}
+                      <p class="profile-wrap font-bold text-dark leading-snug sm:truncate">${escapeHTML(c.name)}</p>
+                      ${metaText ? `<p class="profile-wrap text-xs text-gray-500 mt-1">${metaText}</p>` : ''}
+                      ${c.type === 'investigacion' ? `<p class="text-xs font-bold text-emerald-600 mt-1">${c.hours || 0} h de investigación</p>` : ''}
                     </div>
-                    <button type="button" data-edit-completed="${escapeHTML(c.id)}" class="hidden sm:flex group/edit items-center gap-2 rounded-xl px-2 py-1.5 hover:bg-orange-50 transition-colors" title="Editar registro y nota">
+                    <button type="button" data-edit-completed="${escapeHTML(c.id)}" aria-label="Editar ${escapeHTML(c.name)} y su nota" class="group/edit shrink-0 min-h-[44px] flex items-center gap-1.5 sm:gap-2 rounded-xl px-2 py-1.5 bg-slate-50 sm:bg-transparent border border-slate-100 sm:border-transparent hover:bg-orange-50 transition-colors" title="Editar registro y nota">
                       <div class="text-right shrink-0">
                         <div class="flex items-baseline justify-end gap-1">
-                          <span class="text-2xl font-black text-dark group-hover/edit:text-primary transition-colors">${Number.isFinite(Number(c.grade)) ? escapeHTML(c.grade) : '—'}</span><span class="text-xs text-gray-400">/10</span>
+                          <span class="text-xl sm:text-2xl font-black text-dark group-hover/edit:text-primary transition-colors">${validGrade(c.grade) ? escapeHTML(c.grade) : '—'}</span><span class="text-xs text-gray-400">/10</span>
                         </div>
-                        ${c.type === 'investigacion' ? `<div class="text-[11px] font-bold text-emerald-600 mt-0.5">${c.hours || 0} h investigación</div>` : ''}
                       </div>
-                      <span class="material-symbols-outlined text-lg text-gray-300 group-hover/edit:text-primary transition-colors">edit</span>
+                      <span class="material-symbols-outlined text-lg text-primary sm:text-gray-400 group-hover/edit:text-primary transition-colors" aria-hidden="true">edit</span>
                     </button>
                   </div>
-                  <button type="button" data-edit-completed="${escapeHTML(c.id)}" class="sm:hidden mt-3 w-full min-h-[44px] flex items-center justify-between gap-3 rounded-xl bg-slate-50 border border-slate-100 px-3 py-2 hover:bg-orange-50 hover:border-orange-100 transition-colors" title="Editar registro y nota">
-                    <span class="text-xs font-black uppercase tracking-wide text-gray-400">Nota${c.type === 'investigacion' ? ` · ${c.hours || 0} h` : ''}</span>
-                    <span class="flex items-center gap-1.5"><span class="text-xl font-black text-dark">${Number.isFinite(Number(c.grade)) ? escapeHTML(c.grade) : '—'}</span><span class="text-xs text-gray-400">/10</span><span class="material-symbols-outlined text-lg text-primary">edit</span></span>
-                  </button>
                 </div>`;
             }).join('');
         } else {
@@ -2052,19 +2099,19 @@
 
         return `
           <div>
-            <button type="button" data-toggle-group="${g.id}" class="w-full flex items-center justify-between px-4 sm:px-5 md:px-7 py-4 hover:bg-white transition-colors outline-none focus-visible:bg-white">
-              <div class="flex items-center gap-3">
+            <button type="button" data-toggle-group="${g.id}" aria-expanded="${isExpanded}" aria-controls="completed-group-${g.id}" class="w-full flex items-center justify-between gap-2 px-4 sm:px-5 md:px-7 py-4 hover:bg-white transition-colors outline-none focus-visible:bg-white">
+              <div class="flex items-center gap-2 sm:gap-3 min-w-0">
                 ${g.icon ? `
                 <div class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${typeClasses(g.id)}">
                   <span class="material-symbols-outlined text-[18px]">${g.icon}</span>
                 </div>
                 ` : ''}
-                <h3 class="font-bold text-dark text-left">${g.title}</h3>
-                <span class="text-xs font-bold text-gray-500 bg-gray-200/60 px-2 py-0.5 rounded-full min-w-[24px] text-center">${items.length}</span>
+                <h3 class="font-bold text-dark text-left leading-snug">${g.title}</h3>
+                <span class="text-xs font-bold text-gray-500 bg-gray-200/60 px-2 py-0.5 rounded-full min-w-[24px] shrink-0 text-center">${items.length}</span>
               </div>
-              <span class="material-symbols-outlined text-gray-400 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}">expand_more</span>
+              <span class="material-symbols-outlined shrink-0 text-gray-400 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}">expand_more</span>
             </button>
-            <div class="${isExpanded ? 'block' : 'hidden'} bg-slate-50 divide-y divide-gray-50 border-t border-gray-100 shadow-inner">
+            <div id="completed-group-${g.id}" class="${isExpanded ? 'block' : 'hidden'} bg-slate-50 divide-y divide-gray-50 border-t border-gray-100 shadow-inner">
               ${itemsHTML}
             </div>
           </div>
@@ -2074,9 +2121,9 @@
       $('reviewsList').innerHTML = state.reviews.length ? state.reviews.map(r => `
         <article class="rounded-2xl border border-gray-100 bg-slate-50 p-4 md:p-5">
           <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
-            <div>
-              <h3 class="font-black text-dark">${escapeHTML(r.materia)}</h3>
-              <p class="text-xs text-gray-400 mt-0.5">${escapeHTML(r.catedra)} · ${escapeHTML(r.date)}</p>
+            <div class="min-w-0">
+              <h3 class="profile-wrap font-black text-dark">${escapeHTML(r.materia)}</h3>
+              <p class="profile-wrap text-xs text-gray-500 mt-0.5">${escapeHTML(r.catedra)} · ${escapeHTML(r.date)}</p>
             </div>
             <div class="text-amber-500 font-black tracking-tight">${'★'.repeat(Math.max(0, Math.min(5, r.rating || 0)))}<span class="text-gray-300">${'★'.repeat(5 - Math.max(0, Math.min(5, r.rating || 0)))}</span></div>
           </div>
@@ -2086,6 +2133,13 @@
 
       renderPlan();
     }
+
+    const profileMobileQuery = window.matchMedia('(max-width: 639px)');
+    $('careerProgressDetails').open = !profileMobileQuery.matches;
+    profileMobileQuery.addEventListener('change', event => { $('careerProgressDetails').open = !event.matches; });
+    document.querySelectorAll('[data-close-modal]').forEach(button => {
+      if (button.textContent.trim() === '✕') button.setAttribute('aria-label', 'Cerrar ventana');
+    });
 
     let planZoom = 1;
     let planZoomFit = false;
@@ -2097,16 +2151,22 @@
       $('planZoomIn').disabled = planZoom >= 1.5;
     }
 
-    function setPlanZoom(value, fit = false) {
+    function setPlanZoom(value, fit = false, anchor = null) {
       const viewport = $('planViewport');
+      const tree = $('planTree');
+      const viewportRect = viewport.getBoundingClientRect();
+      const treeRect = tree.getBoundingClientRect();
       const previous = planZoom;
-      const centerX = (viewport.scrollLeft + viewport.clientWidth / 2) / previous;
-      const centerY = (viewport.scrollTop + viewport.clientHeight / 2) / previous;
+      const clientX = anchor?.clientX ?? viewportRect.left + viewport.clientWidth / 2;
+      const clientY = anchor?.clientY ?? viewportRect.top + viewport.clientHeight / 2;
+      const contentX = anchor?.contentX ?? (clientX - treeRect.left) / previous;
+      const contentY = anchor?.contentY ?? (clientY - treeRect.top) / previous;
       planZoom = Math.min(1.5, Math.max(.1, value));
       planZoomFit = fit;
-      $('planTree').style.zoom = planZoom;
-      viewport.scrollLeft = fit ? 0 : Math.max(0, centerX * planZoom - viewport.clientWidth / 2);
-      viewport.scrollTop = fit ? 0 : Math.max(0, centerY * planZoom - viewport.clientHeight / 2);
+      tree.style.zoom = planZoom;
+      const zoomedRect = tree.getBoundingClientRect();
+      viewport.scrollLeft = fit ? 0 : Math.max(0, viewport.scrollLeft + zoomedRect.left + contentX * planZoom - clientX);
+      viewport.scrollTop = fit ? 0 : Math.max(0, viewport.scrollTop + zoomedRect.top + contentY * planZoom - clientY);
       updatePlanZoomControls();
     }
 
@@ -2137,6 +2197,54 @@
       cancelAnimationFrame(planZoomFrame);
       planZoomFrame = requestAnimationFrame(refreshPlanZoom);
     }).observe($('planViewport'));
+
+    let planPinch = null;
+    let planPinchClickUntil = 0;
+    const planViewport = $('planViewport');
+    function planTouchGeometry(touches) {
+      const [first, second] = touches;
+      return {
+        distance: Math.hypot(second.clientX - first.clientX, second.clientY - first.clientY),
+        clientX: (first.clientX + second.clientX) / 2,
+        clientY: (first.clientY + second.clientY) / 2
+      };
+    }
+    function beginPlanPinch(event) {
+      if (event.touches.length < 2 || !$('planModal').classList.contains('active')) return;
+      event.preventDefault();
+      const point = planTouchGeometry(event.touches);
+      const rect = $('planTree').getBoundingClientRect();
+      planPinch = {
+        distance: Math.max(1, point.distance),
+        zoom: planZoom,
+        contentX: (point.clientX - rect.left) / planZoom,
+        contentY: (point.clientY - rect.top) / planZoom
+      };
+    }
+    planViewport.addEventListener('touchstart', beginPlanPinch, { passive: false });
+    planViewport.addEventListener('touchmove', event => {
+      if (!planPinch || event.touches.length < 2) return;
+      event.preventDefault();
+      const point = planTouchGeometry(event.touches);
+      setPlanZoom(planPinch.zoom * point.distance / planPinch.distance, false, {
+        clientX: point.clientX, clientY: point.clientY,
+        contentX: planPinch.contentX, contentY: planPinch.contentY
+      });
+    }, { passive: false });
+    function endPlanPinch(event) {
+      if (!planPinch) return;
+      planPinch = null;
+      planPinchClickUntil = performance.now() + 350;
+      if (event.touches.length >= 2 && event.type !== 'touchcancel') beginPlanPinch(event);
+    }
+    planViewport.addEventListener('touchend', endPlanPinch, { passive: false });
+    planViewport.addEventListener('touchcancel', endPlanPinch);
+    planViewport.addEventListener('click', event => {
+      if (planPinch || performance.now() < planPinchClickUntil) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    }, true);
 
     document.addEventListener('keydown', event => {
       if (event.target.matches('[data-plan-grade]') && !event.ctrlKey && !event.metaKey && ['.', ',', 'e', 'E', '+', '-'].includes(event.key)) event.preventDefault();
@@ -2197,7 +2305,7 @@
               <div class="flex items-start gap-3 justify-between mb-3">
                 <h4 class="font-black text-dark leading-tight text-[15px] pr-2">${escapeHTML(subj.name)}</h4>
                 ${!subj.isGroup ? `
-                  <label class="shrink-0 mt-0.5 flex items-center justify-center" title="${isPassed ? 'Desmarcar como hecha' : reqsMet ? 'Marcar como hecha' : 'Requiere completar las correlativas'}">
+                  <label class="shrink-0 min-w-[44px] min-h-[44px] -mt-2 -mr-2 flex items-center justify-center" title="${isPassed ? 'Desmarcar como hecha' : reqsMet ? 'Marcar como hecha' : 'Requiere completar las correlativas'}">
                     <input data-plan-completed="${escapeHTML(subj.id)}" type="checkbox" aria-label="${isPassed ? 'Desmarcar como hecha' : 'Marcar como hecha'}" ${isPassed ? 'checked' : ''} ${!isPassed && !reqsMet ? 'disabled' : ''} class="size-5 rounded border-2 ${isPassed ? 'border-emerald-500 accent-emerald-600' : reqsMet ? 'border-primary accent-primary cursor-pointer' : 'border-slate-300 accent-slate-400 cursor-not-allowed'}">
                   </label>
                 ` : ''}
