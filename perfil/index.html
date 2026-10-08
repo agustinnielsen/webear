@@ -110,6 +110,14 @@
     select option[value=""] {
       color: rgba(156, 163, 175, 0.65);
     }
+    .row-name[aria-invalid="true"] {
+      border-color: #ef4444 !important;
+      box-shadow: 0 0 0 2px rgba(239, 68, 68, .1);
+    }
+    [data-plan-grade][aria-invalid="true"] {
+      border-color: #ef4444 !important;
+      box-shadow: 0 0 0 2px rgba(239, 68, 68, .12);
+    }
 
     ::-webkit-scrollbar { width: 8px; }
     ::-webkit-scrollbar-track { background: #f1f1f1; }
@@ -620,7 +628,7 @@
             <span class="material-symbols-outlined text-primary">account_tree</span>
             <h2 class="text-xl md:text-2xl font-black text-dark">Plan de Estudios</h2>
           </div>
-          <p class="hidden sm:block text-sm text-gray-500 mt-1">Mapa de correlatividades (Res. CD 2024-186). Las materias completadas desbloquean nuevos niveles.</p>
+          <p class="hidden sm:block text-sm text-gray-500 mt-1">Mapa de correlatividades (Res. CD 2024-186). Usá la rueda del ratón para acercar o alejar.</p>
           <p class="sm:hidden text-xs text-gray-500 mt-1 leading-relaxed">Deslizá para recorrer. Pellizcá con dos dedos para acercar o alejar.</p>
         </div>
         <button type="button" data-close-modal aria-label="Cerrar mapa" class="text-gray-400 hover:text-gray-700 text-2xl h-11 w-11 shrink-0 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">✕</button>
@@ -702,6 +710,7 @@
     // Inicia con todos los grupos colapsados
     let expandedGroups = new Set();
     let averagesIncludeCbc = true;
+    let planGradeEditorSubjectId = null;
 
     const CBC_SUBJECTS = [
       { code: 'CBC16', name: 'Antropología' },
@@ -722,6 +731,20 @@
 
     function validGrade(value) {
       return value !== null && value !== undefined && String(value).trim() !== '' && Number.isFinite(Number(value)) && Number(value) >= 0 && Number(value) <= 10;
+    }
+
+    function completedCourseKey(value) {
+      const cbc = getCbcSubject(value);
+      if (cbc) return `cbc:${cbc.code}`;
+      const name = typeof value === 'string' ? value : value?.name;
+      const normalized = normalizedCourseName(name);
+      return normalized ? `course:${normalized}` : '';
+    }
+
+    function findCompletedDuplicate(value, excludedId = '') {
+      const key = completedCourseKey(value);
+      if (!key) return null;
+      return state.completed.find(course => course.id !== excludedId && completedCourseKey(course) === key) || null;
     }
 
     const PLAN_ESTUDIOS = [
@@ -751,9 +774,11 @@
     function cloneDefault() { return JSON.parse(JSON.stringify(DEFAULT_STATE)); }
 
     function normalizeCompleted(items) {
-      const cbcRecords = new Map();
-      return (Array.isArray(items) ? items : []).map((item, i) => {
+      const records = new Map();
+      const normalized = [];
+      (Array.isArray(items) ? items : []).forEach((item, i) => {
         const c = { ...item, id: item.id || `c-${Date.now()}-${i}` };
+        c.name = String(c.name || '').trim().replace(/\s+/g, ' ');
         const cbc = getCbcSubject(c);
         if (cbc) {
           c.name = cbc.name;
@@ -762,19 +787,33 @@
           delete c.catedra;
           delete c.subtype;
           delete c.hours;
-          if (cbcRecords.has(cbc.code)) {
-            const existing = cbcRecords.get(cbc.code);
-            if (!validGrade(existing.grade) && validGrade(c.grade)) existing.grade = c.grade;
-            return null;
-          }
-          cbcRecords.set(cbc.code, c);
         }
         if (c.type === 'investigacion') {
           if (!c.subtype) c.subtype = Number(c.hours) === 50 ? 'seminario' : 'taller';
           c.hours = c.subtype === 'seminario' ? 50 : 100;
         }
-        return c;
-      }).filter(Boolean);
+
+        const key = completedCourseKey(c);
+        if (key && records.has(key)) {
+          const existing = records.get(key);
+          if (!validGrade(existing.grade) && validGrade(c.grade)) existing.grade = Number(c.grade);
+          const existingCatedra = String(existing.catedra || '').trim();
+          const incomingCatedra = String(c.catedra || '').trim();
+          const existingHasUsefulCatedra = existingCatedra && !['Única', 'Cátedra única'].includes(existingCatedra);
+          const incomingHasUsefulCatedra = incomingCatedra && !['Única', 'Cátedra única'].includes(incomingCatedra);
+          if (!existingHasUsefulCatedra && incomingHasUsefulCatedra) existing.catedra = c.catedra;
+          if (!existing.type && c.type) existing.type = c.type;
+          if (existing.type === 'investigacion') {
+            if (!existing.subtype && c.subtype) existing.subtype = c.subtype;
+            if (!existing.hours && c.hours) existing.hours = c.hours;
+          }
+          return;
+        }
+
+        if (key) records.set(key, c);
+        normalized.push(c);
+      });
+      return normalized;
     }
 
     function loadState() {
@@ -857,7 +896,13 @@
     }
 
     function normalizedCourseName(name) {
-      return String(name || '').trim().toLocaleLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      return String(name || '')
+        .trim()
+        .toLocaleLowerCase('es')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, ' ')
+        .trim();
     }
 
     const REVIEW_PAGE_SIZE = 3;
@@ -982,14 +1027,16 @@
         if (revision !== authStateRevision || activeProfileUser?.uid !== user.uid) return;
 
         const remoteProfile = userDoc.data()?.perfilAcademico;
+        const remoteCompletedCount = Array.isArray(remoteProfile?.completed) ? remoteProfile.completed.length : 0;
         state = createCloudProfileState(user, remoteProfile || {});
+        const removedDuplicateCount = Math.max(0, remoteCompletedCount - state.completed.length);
         persistLocalState();
         render();
         profileCloudReady = true;
         closeAllModals();
         setProfileAccess('ready');
 
-        if (!remoteProfile) syncProfileToCloud();
+        if (!remoteProfile || removedDuplicateCount > 0) syncProfileToCloud();
         
         loadUserReviews(user, revision);
       } catch (error) {
@@ -1132,6 +1179,7 @@
     function closeModal(id) {
       if (registrationBusy && id === 'tycModal') return;
       if (id === 'tycModal') pendingRegistrationData = null;
+      if (id === 'planModal') planGradeEditorSubjectId = null;
       $(id).classList.remove('active');
       document.body?.classList.toggle('modal-open', document.querySelectorAll('.modal.active').length > 0);
       document.querySelectorAll('.custom-dropdown').forEach(d => {
@@ -1551,6 +1599,7 @@
       let debounceTimer = null;
       nameInput.addEventListener('input', () => {
         const val = nameInput.value.trim();
+        nameInput.removeAttribute('aria-invalid');
         delete row.dataset.selectedCourse;
         row.courseRequest = null;
         catSelect.removeAttribute('aria-busy');
@@ -1891,6 +1940,7 @@
 
       if (!completed) {
         if (!existingCourse) return;
+        if (planGradeEditorSubjectId === subjectId) planGradeEditorSubjectId = null;
         state.completed = state.completed.filter(course => normalizedCourseName(course.name) !== normalizedCourseName(subject.name));
         saveState();
         render();
@@ -1914,6 +1964,7 @@
       const subject = PLAN_ESTUDIOS.find(item => item.id === subjectId && !item.isGroup);
       const course = subject && getCompletedCourseByPlanSubject(subject);
       if (!course) return;
+      if (!course) return false;
 
       const value = gradeValue.trim();
       if (!value) {
@@ -1924,12 +1975,15 @@
           showToast('La nota debe ser un número entero entre 0 y 10.');
           renderPlan();
           return;
+          return false;
         }
         course.grade = grade;
       }
+      planGradeEditorSubjectId = null;
       saveState();
       render();
       showToast(value ? 'Nota guardada.' : 'Nota eliminada.');
+      return true;
     }
 
     function gradeToGPA(g) {
@@ -1995,13 +2049,13 @@
       };
     }
 
-    function requirementCard(icon, title, value, target, suffix='') {
+    function requirementCard(icon, title, value, target, suffix = '', iconClass = 'text-primary') {
       const pct = Math.round(Math.min(1, target ? value / target : 0) * 100);
       return `
         <div>
           <div class="flex items-center justify-between gap-3 mb-2">
             <div class="flex items-center gap-2 min-w-0">
-              ${icon ? `<span class="material-symbols-outlined text-primary text-[20px] shrink-0">${icon}</span>` : ''}
+              ${icon ? `<span class="material-symbols-outlined ${iconClass} text-[20px] shrink-0" aria-hidden="true">${icon}</span>` : ''}
               <span class="text-sm font-bold text-dark truncate">${title}</span>
             </div>
             <span class="text-xs font-black text-gray-500 shrink-0">${value}${suffix} / ${target}${suffix}</span>
@@ -2022,8 +2076,10 @@
       $('requirementsGrid').innerHTML = [
         requirementCard('foundation', 'CBC', progress.cbc, 6),
         requirementCard('school', 'Obligatorias', progress.mandatory, 16),
-        requirementCard('', 'Sociologías especiales', progress.specialBase, 3),
-        requirementCard('', 'Teorías sociológicas', progress.theoryBase, 3),
+        requirementCard(typeIcon('especial'), 'Sociologías especiales', progress.specialBase, 3, '', 'text-purple-600'),
+        requirementCard(typeIcon('teoria'), 'Teorías sociológicas', progress.theoryBase, 3, '', 'text-blue-600'),
+        requirementCard(typeIcon('especial'), 'Sociologías especiales', progress.specialBase, 3),
+        requirementCard(typeIcon('teoria'), 'Teorías sociológicas', progress.theoryBase, 3),
         requirementCard('add_circle', 'Adicionales esp./teoría', progress.extra, 3),
         requirementCard('biotech', 'Investigación', progress.researchHours, 200, ' h')
       ].join('');
@@ -2245,6 +2301,19 @@
         event.stopPropagation();
       }
     }, true);
+    planViewport.addEventListener('wheel', event => {
+      if (!$('planModal').classList.contains('active') || event.target.closest('input, select, textarea, button, label')) return;
+      event.preventDefault();
+      const modeFactor = event.deltaMode === WheelEvent.DOM_DELTA_LINE
+        ? 16
+        : event.deltaMode === WheelEvent.DOM_DELTA_PAGE ? planViewport.clientHeight : 1;
+      const delta = Math.max(-120, Math.min(120, event.deltaY * modeFactor));
+      if (!delta) return;
+      setPlanZoom(planZoom * Math.exp(-delta * .0018), false, {
+        clientX: event.clientX,
+        clientY: event.clientY
+      });
+    }, { passive: false });
 
     document.addEventListener('keydown', event => {
       if (event.target.matches('[data-plan-grade]') && !event.ctrlKey && !event.metaKey && ['.', ',', 'e', 'E', '+', '-'].includes(event.key)) event.preventDefault();
@@ -2286,6 +2355,7 @@
         tiers[tierNum].forEach(subj => {
           const completedCourse = subj.isGroup ? null : getCompletedCourseByPlanSubject(subj);
           const isPassed = Boolean(completedCourse);
+          const isGradeEditorOpen = isPassed && planGradeEditorSubjectId === subj.id;
           
           const reqDetails = planRequirementDetails(subj);
           const reqsMet = reqDetails.every(requirement => requirement.passed);
@@ -2318,9 +2388,36 @@
                   <div class="relative w-28">
                     <input data-plan-grade="${escapeHTML(subj.id)}" type="number" min="0" max="10" step="1" inputmode="numeric" value="${Number.isFinite(Number(completedCourse.grade)) ? escapeHTML(completedCourse.grade) : ''}" class="w-full rounded-xl border border-emerald-200 bg-white px-3 py-2 pr-10 text-sm font-bold text-dark outline-none focus:border-primary focus:ring-2 focus:ring-primary/10" placeholder="0–10">
                     <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">/10</span>
+              ${!subj.isGroup && isPassed ? (isGradeEditorOpen ? `
+                <form data-plan-grade-form="${escapeHTML(subj.id)}" class="mt-4 pt-3 border-t border-emerald-200/70">
+                  <label class="block">
+                    <span class="block text-[10px] font-black uppercase tracking-wider text-emerald-700 mb-1.5">Editar nota <span class="normal-case font-medium text-emerald-600/70">(opcional)</span></span>
+                    <div class="relative w-full">
+                      <input data-plan-grade="${escapeHTML(subj.id)}" type="number" min="0" max="10" step="1" inputmode="numeric" value="${validGrade(completedCourse.grade) ? escapeHTML(completedCourse.grade) : ''}" class="w-full rounded-xl border border-emerald-200 bg-white px-3 py-2.5 pr-10 text-sm font-bold text-dark outline-none focus:border-primary focus:ring-2 focus:ring-primary/10" placeholder="0–10" aria-label="Nota de ${escapeHTML(subj.name)}">
+                      <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">/10</span>
+                    </div>
+                  </label>
+                  <div class="flex gap-2 mt-2.5">
+                    <button type="button" data-plan-cancel-grade class="flex-1 min-h-[40px] px-3 py-2 rounded-xl border border-emerald-200 bg-white text-xs font-bold text-emerald-800 hover:bg-emerald-50">Cancelar</button>
+                    <button type="submit" class="flex-1 min-h-[40px] px-3 py-2 rounded-xl bg-emerald-600 text-white text-xs font-black hover:bg-emerald-700">Guardar</button>
                   </div>
                 </label>
               ` : ''}
+                </form>
+              ` : `
+                <div class="mt-4 pt-3 border-t border-emerald-200/70 flex items-center justify-between gap-3">
+                  <div>
+                    <span class="block text-[10px] font-black uppercase tracking-wider text-emerald-700">Nota</span>
+                    <div class="mt-1 flex items-baseline gap-1">
+                      <span class="text-lg font-black text-dark">${validGrade(completedCourse.grade) ? escapeHTML(completedCourse.grade) : '—'}</span>
+                      <span class="text-xs text-gray-400">${validGrade(completedCourse.grade) ? '/10' : 'Sin nota'}</span>
+                    </div>
+                  </div>
+                  <button type="button" data-plan-edit-grade="${escapeHTML(subj.id)}" aria-label="Editar nota de ${escapeHTML(subj.name)}" title="Editar nota" class="w-11 h-11 shrink-0 rounded-xl border border-emerald-200 bg-white text-emerald-700 hover:bg-emerald-100 transition-colors flex items-center justify-center">
+                    <span class="material-symbols-outlined text-[20px]" aria-hidden="true">edit</span>
+                  </button>
+                </div>
+              `) : ''}
               
               ${subj.req.length > 0 && !isPassed ? `
                 <div class="mt-4 pt-3 border-t border-slate-200/60 space-y-2">
@@ -2387,6 +2484,25 @@
       const editCompleted = e.target.closest('[data-edit-completed]');
       if (editCompleted) openCompletedEditor(editCompleted.dataset.editCompleted);
 
+      const editPlanGrade = e.target.closest('[data-plan-edit-grade]');
+      if (editPlanGrade) {
+        planGradeEditorSubjectId = editPlanGrade.dataset.planEditGrade;
+        renderPlan();
+        requestAnimationFrame(() => {
+          const input = document.querySelector(`[data-plan-grade="${planGradeEditorSubjectId}"]`);
+          input?.focus({ preventScroll: true });
+          input?.select();
+        });
+        return;
+      }
+
+      const cancelPlanGrade = e.target.closest('[data-plan-cancel-grade]');
+      if (cancelPlanGrade) {
+        planGradeEditorSubjectId = null;
+        renderPlan();
+        return;
+      }
+
       const toggleGroup = e.target.closest('[data-toggle-group]');
       if (toggleGroup) {
         const id = toggleGroup.dataset.toggleGroup;
@@ -2397,6 +2513,33 @@
     });
 
     document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAllModals(); });
+    document.addEventListener('keydown', e => {
+      if (e.key !== 'Escape') return;
+      if (planGradeEditorSubjectId && $('planModal').classList.contains('active')) {
+        e.preventDefault();
+        planGradeEditorSubjectId = null;
+        renderPlan();
+        return;
+      }
+      closeAllModals();
+    });
+
+    document.addEventListener('submit', e => {
+      const form = e.target.closest('[data-plan-grade-form]');
+      if (!form) return;
+      e.preventDefault();
+      const input = form.querySelector('[data-plan-grade]');
+      if (!input) return;
+      if (!updatePlanSubjectGrade(form.dataset.planGradeForm, input.value)) {
+        input.setAttribute('aria-invalid', 'true');
+        input.focus();
+        input.select();
+      }
+    });
+
+    document.addEventListener('input', e => {
+      if (e.target.matches('[data-plan-grade]')) e.target.removeAttribute('aria-invalid');
+    });
 
     document.addEventListener('change', e => {
       const planCompleted = e.target.closest('[data-plan-completed]');
@@ -2407,6 +2550,8 @@
     });
 
     $('openPlanBtn').addEventListener('click', () => {
+      planGradeEditorSubjectId = null;
+      renderPlan();
       openModal('planModal');
       requestAnimationFrame(refreshPlanZoom);
     });
@@ -2511,6 +2656,14 @@
             return;
           }
 
+          const duplicate = findCompletedDuplicate(name, editId);
+          if (duplicate) {
+            showToast(`“${name}” ya está registrada en Materias realizadas.`);
+            row.querySelector('.row-name').setAttribute('aria-invalid', 'true');
+            row.querySelector('.row-name').focus();
+            return;
+          }
+
           const typeValue = row.querySelector('.row-type')?.value || detectCourseType(name) || 'obligatoria';
           const catedraVal = row.querySelector('.row-catedra').value.trim();
           const catOptions = row.querySelector('.row-catedra').options;
@@ -2562,6 +2715,26 @@
           showToast('Por favor, ingresá al menos una materia.');
           rows[0]?.querySelector('.row-name')?.focus();
           return;
+        }
+
+        const batchKeys = new Set();
+        for (const row of rowsWithData) {
+          const nameInput = row.querySelector('.row-name');
+          const name = nameInput.value.trim();
+          const key = completedCourseKey(name);
+          if (findCompletedDuplicate(name)) {
+            showToast(`“${name}” ya está registrada en Materias realizadas.`);
+            nameInput.setAttribute('aria-invalid', 'true');
+            nameInput.focus();
+            return;
+          }
+          if (batchKeys.has(key)) {
+            showToast(`“${name}” está repetida en esta carga.`);
+            nameInput.setAttribute('aria-invalid', 'true');
+            nameInput.focus();
+            return;
+          }
+          batchKeys.add(key);
         }
 
         // Validar cada fila con datos
