@@ -449,7 +449,7 @@
         <button data-close-modal class="text-gray-400 hover:text-gray-700 text-2xl">✕</button>
       </div>
 
-      <form id="completedForm" class="space-y-4">
+      <form id="completedForm" class="space-y-4" novalidate>
         <input id="completedEditId" type="hidden">
 
         <!-- Encabezados de columnas (estilo pastillas como la referencia) -->
@@ -713,24 +713,36 @@
     let planGradeEditorSubjectId = null;
 
     const CBC_SUBJECTS = [
-      { code: 'CBC16', name: 'Antropología' },
-      { code: 'CBC24', name: 'Sociedad y Estado', aliases: ['Introducción al Conocimiento de la Sociedad y el Estado', 'Introducción al Conocimiento de Sociedad y Estado'] },
-      { code: 'CBC14', name: 'Sociología' },
-      { code: 'CBC40', name: 'Introducción al Pensamiento Científico', aliases: ['Introducción al pensamiento científico (IPC)', 'IPC'] },
-      { code: 'CBC22', name: 'Ciencia Política' },
-      { code: 'CBC21', name: 'Economía' }
+      { code: 'CBC16', siuCodes: ['CBC31'], name: 'Antropología' },
+      { code: 'CBC24', siuCodes: ['CBC34'], name: 'Sociedad y Estado', aliases: ['Introducción al Conocimiento de la Sociedad y el Estado', 'Introducción al Conocimiento de Sociedad y Estado'] },
+      { code: 'CBC14', siuCodes: ['CBC33'], name: 'Sociología' },
+      { code: 'CBC40', siuCodes: ['CBC35'], name: 'Introducción al Pensamiento Científico', aliases: ['Introducción al pensamiento científico (IPC)', 'IPC'] },
+      { code: 'CBC22', siuCodes: ['CBC37'], name: 'Ciencia Política' },
+      { code: 'CBC21', siuCodes: ['CBC38'], name: 'Economía' }
     ];
 
     function getCbcSubject(value) {
       const text = typeof value === 'string' ? value : value?.name || value?.cleanName || '';
       const code = (typeof value === 'object' ? value?.cbcCode || value?.code : '') || text.match(/\((CBC\d+)\)/i)?.[1];
-      if (code) return CBC_SUBJECTS.find(subject => subject.code === String(code).toUpperCase()) || null;
-      const name = normalizedCourseName(text);
+      if (code) {
+        const normalizedCode = String(code).toUpperCase();
+        const codeMatch = CBC_SUBJECTS.find(subject => [subject.code, ...(subject.siuCodes || [])].includes(normalizedCode));
+        if (codeMatch) return codeMatch;
+      }
+      const name = normalizedCourseName(text
+        .replace(/\s*\(CBC\d+\)\s*$/i, '')
+        .replace(/\s+UBA\s*XXI\s*$/i, ''));
       return CBC_SUBJECTS.find(subject => [subject.name, ...(subject.aliases || [])].some(alias => normalizedCourseName(alias) === name)) || null;
     }
 
+    function parseAcademicGrade(value) {
+      if (value === null || value === undefined || String(value).trim() === '') return null;
+      const number = Number(String(value).trim().replace(',', '.'));
+      return Number.isInteger(number) && number >= 0 && number <= 10 ? number : null;
+    }
+
     function validGrade(value) {
-      return value !== null && value !== undefined && String(value).trim() !== '' && Number.isFinite(Number(value)) && Number(value) >= 0 && Number(value) <= 10;
+      return parseAcademicGrade(value) !== null;
     }
 
     function completedCourseKey(value) {
@@ -792,6 +804,9 @@
           if (!c.subtype) c.subtype = Number(c.hours) === 50 ? 'seminario' : 'taller';
           c.hours = c.subtype === 'seminario' ? 50 : 100;
         }
+        const normalizedGrade = parseAcademicGrade(c.grade);
+        if (normalizedGrade === null) delete c.grade;
+        else c.grade = normalizedGrade;
 
         const key = completedCourseKey(c);
         if (key && records.has(key)) {
@@ -1582,7 +1597,7 @@
         </div>
         <div>
           <span class="md:hidden text-xs font-bold text-slate-500 mb-1 block">Nota final <span class="font-normal text-gray-400">(opc.)</span></span>
-          <input class="row-grade w-full p-2.5 md:p-3 border border-gray-200 rounded-xl outline-none focus:border-primary text-sm text-center bg-white" type="number" min="0" max="10" step="0.01" placeholder="0–10" value="${initGrade}">
+          <input class="row-grade w-full p-2.5 md:p-3 border border-gray-200 rounded-xl outline-none focus:border-primary text-sm text-center bg-white" type="number" min="0" max="10" step="1" inputmode="numeric" placeholder="0–10" value="${initGrade}">
         </div>
         <div class="flex items-center justify-end md:justify-center ${isEdit ? 'hidden md:flex opacity-0 pointer-events-none' : ''}">
           <button type="button" class="row-remove w-8 h-8 md:w-9 md:h-9 flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors font-bold text-base shrink-0" title="Eliminar fila">✕</button>
@@ -2659,9 +2674,9 @@
           const gradeVal = row.querySelector('.row-grade').value.trim();
           let parsedGrade = undefined;
           if (gradeVal !== '') {
-            const num = Number(gradeVal.replace(',', '.'));
-            if (isNaN(num) || num < 0 || num > 10) {
-              showToast('La nota debe ser un número entre 0 y 10.');
+            const num = parseAcademicGrade(gradeVal);
+            if (num === null) {
+              showToast('La nota debe ser un número entero entre 0 y 10.');
               row.querySelector('.row-grade').focus();
               return;
             }
@@ -2737,9 +2752,9 @@
 
           const gradeVal = row.querySelector('.row-grade').value.trim();
           if (gradeVal !== '') {
-            const num = Number(gradeVal.replace(',', '.'));
-            if (isNaN(num) || num < 0 || num > 10) {
-              showToast(`La nota de "${name}" debe ser entre 0 y 10.`);
+            const num = parseAcademicGrade(gradeVal);
+            if (num === null) {
+              showToast(`La nota de "${name}" debe ser un número entero entre 0 y 10.`);
               row.querySelector('.row-grade').focus();
               return;
             }
@@ -2760,7 +2775,7 @@
             type: research ? 'investigacion' : typeValue
           };
           if (catedraVal) item.catedra = catedraVal;
-          if (gradeVal !== '') item.grade = Number(gradeVal.replace(',', '.'));
+          if (gradeVal !== '') item.grade = parseAcademicGrade(gradeVal);
           if (research) {
             item.subtype = typeValue;
             item.hours = typeValue === 'seminario' ? 50 : 100;
@@ -2926,13 +2941,11 @@
           }
         }
 
-        const numGradeMatch = rawNota.match(/^(\d+(?:\.\d+)?)\s*\(/);
+        const numGradeMatch = rawNota.match(/^(\d+(?:[.,]\d+)?)\s*\(/);
         if (numGradeMatch) {
-          const g = parseFloat(numGradeMatch[1]);
-          if (g <= 10) grade = g;
-        } else if (/^\d+(?:\.\d+)?$/.test(rawNota)) {
-          const g = parseFloat(rawNota);
-          if (g <= 10) grade = g;
+          grade = parseAcademicGrade(numGradeMatch[1]);
+        } else if (/^\d+(?:[.,]\d+)?$/.test(rawNota)) {
+          grade = parseAcademicGrade(rawNota);
         }
 
         courses.push({
@@ -3029,13 +3042,9 @@
           coursesToProcess.push(course);
         } else {
           const hasExistingGrade = existing.grade !== undefined && existing.grade !== null && existing.grade !== '';
-          const hasFileGrade = course.grade !== undefined && course.grade !== null && course.grade !== '';
-
-          const gExist = hasExistingGrade ? Number(existing.grade) : null;
-          const gFile = hasFileGrade ? Number(course.grade) : null;
-
-          const isGradeDifferent = (gExist !== null && gFile !== null && Math.abs(gExist - gFile) > 0.01) ||
-                                   (gExist === null && gFile !== null);
+          const gExist = parseAcademicGrade(existing.grade);
+          const gFile = parseAcademicGrade(course.grade);
+          const isGradeDifferent = gFile !== null && gExist !== gFile;
 
           const hExist = existing.hours ? Number(existing.hours) : null;
           const hFile = course.hours ? Number(course.hours) : null;
@@ -3046,7 +3055,7 @@
 
           if (isGradeDifferent || isHoursDifferent || isCatedraMissing || isCbcTypeDifferent) {
             course.isUpdate = true;
-            course.oldGrade = gExist;
+            course.oldGrade = hasExistingGrade ? existing.grade : null;
             course.oldHours = hExist;
             course.oldCatedra = existing.catedra || '';
             course.existingId = existing.id;
@@ -3117,7 +3126,7 @@
 
       const gradeBadge = $('siuCurrentSubjectGrade');
       if (course.isUpdate && course.oldGrade !== null && course.oldGrade !== undefined && course.grade !== null && course.grade !== undefined) {
-        gradeBadge.innerHTML = `<span class="line-through text-gray-400 mr-1.5 font-medium">${course.oldGrade}</span><span class="text-primary font-black text-sm">Nota: ${course.grade}</span>`;
+        gradeBadge.innerHTML = `<span class="line-through text-gray-400 mr-1.5 font-medium">${escapeHTML(course.oldGrade)}</span><span class="text-primary font-black text-sm">Nota: ${course.grade}</span>`;
         gradeBadge.classList.remove('hidden');
       } else if (course.grade !== null && course.grade !== undefined) {
         gradeBadge.textContent = `Nota: ${course.grade}`;
@@ -3243,7 +3252,7 @@
             ${c.selectedCatedra ? `<span class="text-xs text-gray-500 font-semibold bg-gray-50 border border-gray-200 px-2 py-0.5 rounded">${escapeHTML(formatCatedra(c.selectedCatedra))}</span>` : ''}
             <span class="font-bold text-xs ${c.grade !== null && c.grade !== undefined ? 'text-primary' : 'text-emerald-700'} bg-gray-50 border border-gray-200 px-2 py-0.5 rounded">
               ${c.isUpdate && c.oldGrade !== null && c.oldGrade !== undefined && c.grade !== null && c.grade !== undefined 
-                ? `<span class="line-through text-gray-400 mr-1 font-normal">${c.oldGrade}</span>${c.grade}` 
+                ? `<span class="line-through text-gray-400 mr-1 font-normal">${escapeHTML(c.oldGrade)}</span>${c.grade}` 
                 : (c.grade !== null && c.grade !== undefined ? `Nota: ${c.grade}` : c.type === 'investigacion' ? `${c.hours} h` : 'Sin nota')}
             </span>
           </div>
@@ -3399,8 +3408,9 @@
             item.catedra = course.selectedCatedra;
           }
 
-          if (course.grade !== null && course.grade !== undefined) {
-            item.grade = Number(course.grade);
+          const importedGrade = parseAcademicGrade(course.grade);
+          if (importedGrade !== null) {
+            item.grade = importedGrade;
           }
 
           if (course.type === 'investigacion') {
