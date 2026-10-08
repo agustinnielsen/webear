@@ -1963,7 +1963,6 @@
     function updatePlanSubjectGrade(subjectId, gradeValue) {
       const subject = PLAN_ESTUDIOS.find(item => item.id === subjectId && !item.isGroup);
       const course = subject && getCompletedCourseByPlanSubject(subject);
-      if (!course) return;
       if (!course) return false;
 
       const value = gradeValue.trim();
@@ -1973,8 +1972,6 @@
         const grade = Number(value);
         if (!Number.isInteger(grade) || grade < 0 || grade > 10) {
           showToast('La nota debe ser un número entero entre 0 y 10.');
-          renderPlan();
-          return;
           return false;
         }
         course.grade = grade;
@@ -2076,8 +2073,6 @@
       $('requirementsGrid').innerHTML = [
         requirementCard('foundation', 'CBC', progress.cbc, 6),
         requirementCard('school', 'Obligatorias', progress.mandatory, 16),
-        requirementCard(typeIcon('especial'), 'Sociologías especiales', progress.specialBase, 3, '', 'text-purple-600'),
-        requirementCard(typeIcon('teoria'), 'Teorías sociológicas', progress.theoryBase, 3, '', 'text-blue-600'),
         requirementCard(typeIcon('especial'), 'Sociologías especiales', progress.specialBase, 3),
         requirementCard(typeIcon('teoria'), 'Teorías sociológicas', progress.theoryBase, 3),
         requirementCard('add_circle', 'Adicionales esp./teoría', progress.extra, 3),
@@ -2382,12 +2377,6 @@
               </div>
 
 
-              ${!subj.isGroup && isPassed ? `
-                <label class="block mt-4 pt-3 border-t border-emerald-200/70">
-                  <span class="block text-[10px] font-black uppercase tracking-wider text-emerald-700 mb-1.5">Nota <span class="normal-case font-medium text-emerald-600/70">(opcional)</span></span>
-                  <div class="relative w-28">
-                    <input data-plan-grade="${escapeHTML(subj.id)}" type="number" min="0" max="10" step="1" inputmode="numeric" value="${Number.isFinite(Number(completedCourse.grade)) ? escapeHTML(completedCourse.grade) : ''}" class="w-full rounded-xl border border-emerald-200 bg-white px-3 py-2 pr-10 text-sm font-bold text-dark outline-none focus:border-primary focus:ring-2 focus:ring-primary/10" placeholder="0–10">
-                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">/10</span>
               ${!subj.isGroup && isPassed ? (isGradeEditorOpen ? `
                 <form data-plan-grade-form="${escapeHTML(subj.id)}" class="mt-4 pt-3 border-t border-emerald-200/70">
                   <label class="block">
@@ -2401,8 +2390,6 @@
                     <button type="button" data-plan-cancel-grade class="flex-1 min-h-[40px] px-3 py-2 rounded-xl border border-emerald-200 bg-white text-xs font-bold text-emerald-800 hover:bg-emerald-50">Cancelar</button>
                     <button type="submit" class="flex-1 min-h-[40px] px-3 py-2 rounded-xl bg-emerald-600 text-white text-xs font-black hover:bg-emerald-700">Guardar</button>
                   </div>
-                </label>
-              ` : ''}
                 </form>
               ` : `
                 <div class="mt-4 pt-3 border-t border-emerald-200/70 flex items-center justify-between gap-3">
@@ -2512,7 +2499,6 @@
       }
     });
 
-    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAllModals(); });
     document.addEventListener('keydown', e => {
       if (e.key !== 'Escape') return;
       if (planGradeEditorSubjectId && $('planModal').classList.contains('active')) {
@@ -2544,9 +2530,6 @@
     document.addEventListener('change', e => {
       const planCompleted = e.target.closest('[data-plan-completed]');
       if (planCompleted) setPlanSubjectCompleted(planCompleted.dataset.planCompleted, planCompleted.checked);
-
-      const planGrade = e.target.closest('[data-plan-grade]');
-      if (planGrade) updatePlanSubjectGrade(planGrade.dataset.planGrade, planGrade.value);
     });
 
     $('openPlanBtn').addEventListener('click', () => {
