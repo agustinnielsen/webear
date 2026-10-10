@@ -377,6 +377,10 @@
                     <button type="button" id="userDropdownBtn" class="gino-dropdown-trigger py-1.5 px-3.5 sm:px-4 bg-white hover:bg-orange-50 text-dark rounded-full font-bold text-sm gap-2 shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all select-none flex items-center outline-none cursor-pointer">
                         <span class="material-symbols-outlined text-primary text-lg">person</span>
                         <span class="text-sm font-bold text-dark">Mi Perfil</span>
+                        <span id="profileDot" class="hidden relative flex h-2 w-2">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                        </span>
                         <span class="material-symbols-outlined text-gray-400 text-lg chevron-icon">expand_more</span>
                     </button>
 
@@ -397,6 +401,10 @@
                                 <span class="flex items-center gap-2.5">
                                     <span class="material-symbols-outlined text-lg text-primary">route</span>
                                     <span class="item-text font-semibold text-sm">Mi Trayectoria</span>
+                                    <span id="trayectoriaDot" class="hidden relative flex h-2 w-2">
+                                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                                        <span class="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                                    </span>
                                 </span>
                                 <span class="material-symbols-outlined text-sm text-gray-400">chevron_right</span>
                             </button>
@@ -956,6 +964,50 @@
             </div>
         </div>
 
+        <!-- Modal Novedades de Gino -->
+        <div class="modal fixed inset-0 bg-black/65 z-[3500] hidden items-center justify-center p-4 backdrop-blur-sm select-none" id="novedadesModal">
+            <div class="bg-white p-6 md:p-8 rounded-3xl w-full max-w-lg shadow-2xl modal-content-animated relative border border-orange-100 overflow-hidden text-center">
+                <!-- Decoración de fondo suave -->
+                <div class="absolute -top-16 -right-16 w-36 h-36 bg-orange-100/50 rounded-full blur-2xl pointer-events-none"></div>
+                <div class="absolute -bottom-16 -left-16 w-36 h-36 bg-amber-100/50 rounded-full blur-2xl pointer-events-none"></div>
+
+                <!-- Cabecera / Título -->
+                <div class="mb-4 relative">
+                    <h2 class="text-2xl md:text-3xl font-black text-dark tracking-tight">¡Conocé lo nuevo de Gino!</h2>
+                </div>
+
+                <!-- Contenido descriptivo -->
+                <div class="space-y-4 text-gray-600 text-sm md:text-base leading-relaxed mb-6 relative">
+                    <p class="font-medium text-gray-700">
+                        Gino Social tiene una cara nueva. Estuvimos trabajando para que puedas manejarte por la página de forma más sencilla. A partir de ahora podés cargar tu trayectoria académica y guardar las materias que te interesen.
+                    </p>
+                    <p class="font-medium text-gray-700">
+                        ¡Proyectá tu carrera con las nuevas funciones de Gino! Combatí tu alto cortisol ordenando tu cursada.
+                    </p>
+                </div>
+
+                <!-- Control deslizante (Slider) para cerrar -->
+                <div class="relative w-full">
+                    <div id="closeSliderTrack" class="relative w-full h-14 bg-gray-100 rounded-full overflow-hidden select-none border border-gray-200/80 flex items-center p-1.5 cursor-pointer touch-none transition-all duration-200">
+                        <!-- Relleno del Slider al arrastrar -->
+                        <div id="closeSliderFill" class="absolute left-0 top-0 bottom-0 bg-gradient-to-r from-orange-200 to-orange-300 w-0 pointer-events-none transition-[width] duration-75"></div>
+
+                        <!-- Texto guía centrado -->
+                        <div id="closeSliderLabel" class="absolute inset-0 flex items-center justify-center text-xs md:text-sm font-bold text-gray-500 tracking-wide uppercase pointer-events-none transition-opacity duration-150 gap-1.5 select-none pl-6">
+                            <span>Deslizá para cerrar</span>
+                            <span class="material-symbols-outlined text-base text-gray-400">chevron_right</span>
+                        </div>
+
+                        <!-- Botón interactivo (Thumb) -->
+                        <div id="closeSliderHandle" class="relative z-10 w-11 h-11 bg-gradient-to-tr from-primary to-primaryDark text-white rounded-full shadow-md flex items-center justify-center cursor-grab active:cursor-grabbing select-none transition-transform duration-75">
+                            <span id="closeSliderIcon" class="material-symbols-outlined text-xl select-none">arrow_forward</span>
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-2 select-none">Deslizá el botón hacia la derecha para continuar</p>
+                </div>
+            </div>
+        </div>
+
         <div id="ginoEasterEgg" class="gino-overlay fixed inset-0 bg-black/95 z-[10001] hidden flex-col items-center justify-center text-white">
             <img src="168358-gino.jpeg" alt="Gino Germani" onerror="this.style.display='none';" class="max-w-[90%] max-h-[80%] rounded-xl shadow-[0_0_30px_rgba(255,125,41,0.6)] border-4 border-primary object-contain">
             <p class="text-4xl font-bold mt-6 text-shadow">¡Gino vive!</p>
@@ -1018,6 +1070,7 @@
                 configurarFormulario();
                 configurarFiltros();
                 configurarModales();
+                configurarPopupNovedades();
                 configurarBuscador();
                 configurarSort();
                 configurarTogglePasswords();
@@ -1027,6 +1080,7 @@
                 configurarOjosGino();
                 configurarPerfil();
                 initUserDropdown();
+                configurarPuntitoTrayectoria();
                 configurarSidebar();
 
                 window.addEventListener('hashchange', handleRoute);
@@ -1858,6 +1912,7 @@
                         if (mod('userAvatarMenu')) mod('userAvatarMenu').textContent = initial;
 
                         if (typeof initUserDropdown === 'function') initUserDropdown();
+                        if (typeof configurarPuntitoTrayectoria === 'function') configurarPuntitoTrayectoria();
 
                         if (appState.materiaSeleccionada) {
                             cargarEstadoTrayectoria(appState.materiaSeleccionada.id);
@@ -2105,6 +2160,9 @@
                         if (d !== wrapper) d.classList.remove('open');
                     });
                     wrapper.classList.toggle('open', !isOpen);
+                    if (wrapper.classList.contains('open') && mod('profileDot')) {
+                        mod('profileDot').classList.add('hidden');
+                    }
                 };
             }
 
@@ -2353,10 +2411,240 @@
                 cargarMaterias(cat);
             }
 
+            // --- POP-UP DE NOVEDADES Y SLIDER DE CIERRE ---
+            const NOVEDADES_STORAGE_KEY = 'gino_novedades_visto_v1';
+
+            function yaVioNovedades() {
+                try {
+                    if (localStorage.getItem(NOVEDADES_STORAGE_KEY) === 'true') return true;
+                } catch(e) {}
+                return document.cookie.split('; ').some(row => row.startsWith(NOVEDADES_STORAGE_KEY + '='));
+            }
+
+            function marcarNovedadesComoVistas() {
+                try {
+                    localStorage.setItem(NOVEDADES_STORAGE_KEY, 'true');
+                } catch(e) {}
+                try {
+                    document.cookie = `${NOVEDADES_STORAGE_KEY}=true; max-age=${60 * 60 * 24 * 365}; path=/; SameSite=Lax`;
+                } catch(e) {}
+            }
+
+            // --- INDICADOR TITILANDO DE TRAYECTORIA ---
+            const TRAYECTORIA_DOT_STORAGE_KEY = 'gino_trayectoria_dot_visto_v1';
+
+            function yaVioPuntitoTrayectoria() {
+                try {
+                    if (localStorage.getItem(TRAYECTORIA_DOT_STORAGE_KEY) === 'true') return true;
+                } catch(e) {}
+                return document.cookie.split('; ').some(row => row.startsWith(TRAYECTORIA_DOT_STORAGE_KEY + '='));
+            }
+
+            function marcarPuntitoTrayectoriaComoVisto() {
+                try {
+                    localStorage.setItem(TRAYECTORIA_DOT_STORAGE_KEY, 'true');
+                } catch(e) {}
+                try {
+                    document.cookie = `${TRAYECTORIA_DOT_STORAGE_KEY}=true; max-age=${60 * 60 * 24 * 365}; path=/; SameSite=Lax`;
+                } catch(e) {}
+            }
+
+            function ocultarPuntitosTrayectoria() {
+                const pDot = mod('profileDot');
+                const tDot = mod('trayectoriaDot');
+                if (pDot) pDot.classList.add('hidden');
+                if (tDot) tDot.classList.add('hidden');
+            }
+
+            function configurarPuntitoTrayectoria() {
+                if (yaVioPuntitoTrayectoria()) {
+                    ocultarPuntitosTrayectoria();
+                    return;
+                }
+                const pDot = mod('profileDot');
+                const tDot = mod('trayectoriaDot');
+                if (pDot) pDot.classList.remove('hidden');
+                if (tDot) tDot.classList.remove('hidden');
+                marcarPuntitoTrayectoriaComoVisto();
+            }
+
+            function configurarSliderNovedades() {
+                const track = mod('closeSliderTrack');
+                const handle = mod('closeSliderHandle');
+                const fill = mod('closeSliderFill');
+                const label = mod('closeSliderLabel');
+                const icon = mod('closeSliderIcon');
+
+                if (!track || !handle || !fill || !label || !icon) return;
+
+                let isDragging = false;
+                let startX = 0;
+                let currentSlide = 0;
+                let isCompleted = false;
+
+                function getPadding() {
+                    return 6; // Padding interno de 6px (p-1.5)
+                }
+
+                function getMaxSlide() {
+                    const trackWidth = track.clientWidth;
+                    const handleWidth = handle.offsetWidth || 44;
+                    return Math.max(0, trackWidth - handleWidth - (getPadding() * 2));
+                }
+
+                function startDrag(clientX) {
+                    if (isCompleted) return;
+                    isDragging = true;
+                    startX = clientX - currentSlide;
+                    handle.style.transition = 'none';
+                    fill.style.transition = 'none';
+                    handle.classList.add('cursor-grabbing');
+                    handle.classList.remove('cursor-grab');
+                }
+
+                function onMove(clientX) {
+                    if (!isDragging || isCompleted) return;
+                    const max = getMaxSlide();
+                    if (max <= 0) return;
+
+                    let slide = clientX - startX;
+                    if (slide < 0) slide = 0;
+                    if (slide > max) slide = max;
+                    currentSlide = slide;
+
+                    handle.style.transform = `translateX(${currentSlide}px)`;
+                    fill.style.width = `${currentSlide + (handle.offsetWidth || 44)}px`;
+
+                    const progress = currentSlide / max;
+                    label.style.opacity = Math.max(0, 1 - (progress * 1.5));
+                }
+
+                function endDrag() {
+                    if (!isDragging || isCompleted) return;
+                    isDragging = false;
+                    handle.classList.remove('cursor-grabbing');
+                    handle.classList.add('cursor-grab');
+
+                    const max = getMaxSlide();
+                    const progress = max > 0 ? (currentSlide / max) : 0;
+
+                    if (progress >= 0.70) {
+                        completeSlider(max);
+                    } else {
+                        resetSlider(true);
+                    }
+                }
+
+                function completeSlider(max) {
+                    if (isCompleted) return;
+                    isCompleted = true;
+                    handle.style.transition = 'transform 0.22s cubic-bezier(0.2, 0.9, 0.3, 1)';
+                    fill.style.transition = 'width 0.22s cubic-bezier(0.2, 0.9, 0.3, 1)';
+                    handle.style.transform = `translateX(${max}px)`;
+                    fill.style.width = '100%';
+                    icon.textContent = 'check';
+                    handle.classList.remove('from-primary', 'to-primaryDark');
+                    handle.classList.add('from-green-500', 'to-green-600');
+                    track.classList.add('border-green-400');
+                    marcarNovedadesComoVistas();
+
+                    setTimeout(() => {
+                        cerrarModal('novedadesModal');
+                        setTimeout(() => {
+                            resetSlider(false);
+                        }, 300);
+                    }, 320);
+                }
+
+                function resetSlider(animated) {
+                    isCompleted = false;
+                    currentSlide = 0;
+                    if (animated) {
+                        handle.style.transition = 'transform 0.25s cubic-bezier(0.2, 0.9, 0.3, 1)';
+                        fill.style.transition = 'width 0.25s cubic-bezier(0.2, 0.9, 0.3, 1)';
+                        label.style.transition = 'opacity 0.25s ease';
+                    } else {
+                        handle.style.transition = 'none';
+                        fill.style.transition = 'none';
+                        label.style.transition = 'none';
+                    }
+                    handle.style.transform = 'translateX(0px)';
+                    fill.style.width = '0px';
+                    label.style.opacity = '1';
+                    icon.textContent = 'arrow_forward';
+                    handle.classList.remove('from-green-500', 'to-green-600');
+                    handle.classList.add('from-primary', 'to-primaryDark');
+                    track.classList.remove('border-green-400');
+                }
+
+                // Eventos de ratón
+                handle.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    startDrag(e.clientX);
+                });
+
+                window.addEventListener('mousemove', (e) => {
+                    if (isDragging) onMove(e.clientX);
+                });
+
+                window.addEventListener('mouseup', () => {
+                    if (isDragging) endDrag();
+                });
+
+                // Eventos táctiles (móviles/tablets)
+                handle.addEventListener('touchstart', (e) => {
+                    if (e.touches && e.touches.length > 0) {
+                        startDrag(e.touches[0].clientX);
+                    }
+                }, { passive: true });
+
+                window.addEventListener('touchmove', (e) => {
+                    if (isDragging && e.touches && e.touches.length > 0) {
+                        onMove(e.touches[0].clientX);
+                        if (e.cancelable) e.preventDefault();
+                    }
+                }, { passive: false });
+
+                window.addEventListener('touchend', () => {
+                    if (isDragging) endDrag();
+                });
+
+                // Click o tap en la pista para accesibilidad
+                track.addEventListener('click', (e) => {
+                    if (isDragging || isCompleted) return;
+                    const rect = track.getBoundingClientRect();
+                    const clickX = e.clientX - rect.left;
+                    if (clickX > rect.width * 0.45) {
+                        completeSlider(getMaxSlide());
+                    }
+                });
+            }
+
+            function configurarPopupNovedades() {
+                configurarSliderNovedades();
+                if (!yaVioNovedades()) {
+                    setTimeout(() => {
+                        abrirModal('novedadesModal');
+                    }, 500);
+                }
+            }
+
             function configurarModales() {
                 document.querySelectorAll('[data-open]').forEach(btn => btn.onclick = e => { e.preventDefault(); abrirModal(btn.dataset.open); });
                 document.querySelectorAll('[data-dismiss="modal"]').forEach(btn => btn.onclick = e => cerrarModal(e.target.closest('.modal').id));
-                window.onclick = e => { if (e.target.classList.contains('modal')) cerrarModal(e.target.id); };
+                window.onclick = e => {
+                    if (e.target.classList.contains('modal')) {
+                        if (e.target.id === 'novedadesModal') {
+                            const track = mod('closeSliderTrack');
+                            if (track) {
+                                track.classList.add('ring-4', 'ring-primary/40');
+                                setTimeout(() => track.classList.remove('ring-4', 'ring-primary/40'), 350);
+                            }
+                            return;
+                        }
+                        cerrarModal(e.target.id);
+                    }
+                };
                 mod('switchToRegister').onclick = e => { e.preventDefault(); cerrarModal('loginModal'); abrirModal('registerModal'); };
                 if (mod('logoutBtn')) {
                     mod('logoutBtn').onclick = (e) => {
@@ -2476,6 +2764,7 @@
                 if (mod('myProfileBtn')) {
                     mod('myProfileBtn').onclick = (e) => {
                         if (e) e.stopPropagation();
+                        ocultarPuntitosTrayectoria();
                         if (mod('userInfo')) mod('userInfo').classList.remove('open');
                         if (appState.user) {
                             window.location.href = './perfil/';
