@@ -453,9 +453,10 @@
         <input id="completedEditId" type="hidden">
 
         <!-- Encabezados de columnas (estilo pastillas como la referencia) -->
-        <div id="completedTableHeaders" class="hidden md:grid grid-cols-[minmax(260px,3.2fr)_minmax(170px,1.8fr)_minmax(85px,0.8fr)_36px] gap-2.5 text-center text-xs font-bold text-slate-600">
+        <div id="completedTableHeaders" class="hidden md:grid grid-cols-[minmax(220px,2.8fr)_minmax(150px,1.8fr)_minmax(90px,1fr)_minmax(80px,0.9fr)_36px] gap-2.5 text-center text-xs font-bold text-slate-600">
           <div class="bg-slate-100/90 py-2.5 px-3 rounded-xl border border-slate-200/70 shadow-2xs">Materia / actividad</div>
           <div class="bg-slate-100/90 py-2.5 px-3 rounded-xl border border-slate-200/70 shadow-2xs">Cátedra</div>
+          <div class="bg-slate-100/90 py-2.5 px-3 rounded-xl border border-slate-200/70 shadow-2xs">Año cursado</div>
           <div class="bg-slate-100/90 py-2.5 px-3 rounded-xl border border-slate-200/70 shadow-2xs">Nota</div>
           <div class="bg-slate-100/90 py-2.5 px-1 rounded-xl border border-slate-200/70 flex items-center justify-center text-slate-400 shadow-2xs">✕</div>
         </div>
@@ -745,6 +746,21 @@
       return parseAcademicGrade(value) !== null;
     }
 
+    function parseAcademicYear(value) {
+      if (value === null || value === undefined || String(value).trim() === '') return null;
+      let number = Number(String(value).trim());
+      if (!Number.isInteger(number)) return null;
+      if (number >= 0 && number <= 99) {
+        number = number <= 40 ? 2000 + number : 1900 + number;
+      }
+      const maxYear = new Date().getFullYear() + 1;
+      return number >= 1970 && number <= maxYear ? number : null;
+    }
+
+    function validYear(value) {
+      return parseAcademicYear(value) !== null;
+    }
+
     function completedCourseKey(value) {
       const cbc = getCbcSubject(value);
       if (cbc) return `cbc:${cbc.code}`;
@@ -808,10 +824,20 @@
         if (normalizedGrade === null) delete c.grade;
         else c.grade = normalizedGrade;
 
+        const normalizedYear = parseAcademicYear(c.anioCursada ?? c.year);
+        if (normalizedYear === null) {
+          delete c.anioCursada;
+          delete c.year;
+        } else {
+          c.anioCursada = normalizedYear;
+          delete c.year;
+        }
+
         const key = completedCourseKey(c);
         if (key && records.has(key)) {
           const existing = records.get(key);
           if (!validGrade(existing.grade) && validGrade(c.grade)) existing.grade = Number(c.grade);
+          if (!validYear(existing.anioCursada) && validYear(c.anioCursada)) existing.anioCursada = Number(c.anioCursada);
           const existingCatedra = String(existing.catedra || '').trim();
           const incomingCatedra = String(c.catedra || '').trim();
           const existingHasUsefulCatedra = existingCatedra && !['Única', 'Cátedra única'].includes(existingCatedra);
@@ -874,6 +900,8 @@
         const item = { ...course };
         if (!validGrade(item.grade)) delete item.grade;
         else item.grade = Number(item.grade);
+        if (!validYear(item.anioCursada)) delete item.anioCursada;
+        else item.anioCursada = Number(item.anioCursada);
         return item;
       });
       return JSON.parse(JSON.stringify({
@@ -976,9 +1004,9 @@
           const normalizedName = normalizedCourseName(materiaNombre);
           
           // Filtro Absoluto: Verifica si la materia ya está en "Materias Realizadas" ignorando tildes y mayúsculas
-          const exists = state.completed.some(c => normalizedCourseName(c.name) === normalizedName);
+          const existingCourse = state.completed.find(c => normalizedCourseName(c.name) === normalizedName);
           
-          if (!exists) {
+          if (!existingCourse) {
             let courseType = 'especial'; // Por defecto
             
             // Detección heurística de categorías
@@ -998,8 +1026,13 @@
             if (review.catedra && review.catedra !== 'Cátedra única') {
               newCompletedItem.catedra = review.catedra;
             }
+            if (validYear(review.anioCursada)) {
+              newCompletedItem.anioCursada = parseAcademicYear(review.anioCursada);
+            }
             state.completed.push(newCompletedItem);
             importedCount++;
+          } else if (!validYear(existingCourse.anioCursada) && validYear(review.anioCursada)) {
+            existingCourse.anioCursada = parseAcademicYear(review.anioCursada);
           }
         });
 
@@ -1560,7 +1593,7 @@
 
     function createCompletedRow(data = null, isEdit = false) {
       const row = document.createElement('div');
-      row.className = 'completed-row grid grid-cols-1 md:grid-cols-[minmax(260px,3.2fr)_minmax(170px,1.8fr)_minmax(85px,0.8fr)_36px] gap-2.5 items-center p-3.5 md:p-0 bg-slate-50/80 md:bg-transparent border border-slate-200/80 md:border-none rounded-2xl md:rounded-none relative transition-all';
+      row.className = 'completed-row grid grid-cols-1 md:grid-cols-[minmax(220px,2.8fr)_minmax(150px,1.8fr)_minmax(90px,1fr)_minmax(80px,0.9fr)_36px] gap-2.5 items-center p-3.5 md:p-0 bg-slate-50/80 md:bg-transparent border border-slate-200/80 md:border-none rounded-2xl md:rounded-none relative transition-all';
 
       const initName = data?.name || '';
       let initType = '';
@@ -1575,6 +1608,7 @@
         initType = detectCourseType(initName) || 'obligatoria';
       }
       const initGrade = data?.grade !== undefined && data?.grade !== null ? data.grade : '';
+      const initYear = data?.anioCursada !== undefined && data?.anioCursada !== null ? data.anioCursada : (data?.year || '');
       const initCatedra = data?.catedra || '';
       row.dataset.originalName = initName;
       row.dataset.selectedCourse = initName;
@@ -1596,6 +1630,10 @@
           </select>
         </div>
         <div>
+          <span class="md:hidden text-xs font-bold text-slate-500 mb-1 block">Año cursado <span class="font-normal text-gray-400">(opc.)</span></span>
+          <input class="row-year w-full p-2.5 md:p-3 border border-gray-200 rounded-xl outline-none focus:border-primary text-sm text-center bg-white" type="number" min="1970" max="${new Date().getFullYear() + 1}" step="1" inputmode="numeric" placeholder="Año" value="${escapeHTML(initYear)}">
+        </div>
+        <div>
           <span class="md:hidden text-xs font-bold text-slate-500 mb-1 block">Nota final <span class="font-normal text-gray-400">(opc.)</span></span>
           <input class="row-grade w-full p-2.5 md:p-3 border border-gray-200 rounded-xl outline-none focus:border-primary text-sm text-center bg-white" type="number" min="0" max="10" step="1" inputmode="numeric" placeholder="0–10" value="${initGrade}">
         </div>
@@ -1608,6 +1646,7 @@
       const clearBtn = row.querySelector('.row-clear');
       const typeInput = row.querySelector('.row-type');
       const catSelect = row.querySelector('.row-catedra');
+      const yearInput = row.querySelector('.row-year');
       const gradeInput = row.querySelector('.row-grade');
       const removeBtn = row.querySelector('.row-remove');
 
@@ -1685,6 +1724,7 @@
           clearBtn.classList.add('hidden');
           typeInput.value = '';
           updateRowCatedraOptions(row);
+          yearInput.value = '';
           gradeInput.value = '';
         }
       });
@@ -2138,7 +2178,9 @@
                 const hasCatedra = c.catedra && c.catedra !== 'Única' && c.catedra !== 'Cátedra única';
                 const catPart = hasCatedra ? `<span class="font-semibold text-gray-600">${escapeHTML(formatCatedra(c.catedra))}</span>` : '';
                 const typePart = c.type === 'investigacion' ? escapeHTML(typeLabel(c.type, c.subtype)) : '';
-                const metaText = (typePart && catPart) ? `${typePart} · ${catPart}` : (typePart || catPart);
+                const yearPart = c.anioCursada ? `<span class="font-semibold text-gray-500">Cursada ${escapeHTML(c.anioCursada)}</span>` : '';
+                const metaSegments = [typePart, catPart, yearPart].filter(Boolean);
+                const metaText = metaSegments.join(' · ');
 
                 return `
                 <div class="px-4 sm:px-5 md:px-7 py-3 md:py-4 hover:bg-slate-50 transition-colors bg-white">
@@ -2415,6 +2457,7 @@
                       <span class="text-xs text-gray-400">${validGrade(completedCourse.grade) ? '/10' : 'Sin nota'}</span>
                     </div>
                   </div>
+                  ${completedCourse.anioCursada ? `<span class="text-[11px] font-bold text-emerald-700 bg-emerald-100/70 px-2.5 py-1 rounded-full self-center">Cursada ${escapeHTML(completedCourse.anioCursada)}</span>` : ''}
                   <button type="button" data-plan-edit-grade="${escapeHTML(subj.id)}" aria-label="Editar nota de ${escapeHTML(subj.name)}" title="Editar nota" class="w-11 h-11 shrink-0 rounded-xl border border-emerald-200 bg-white text-emerald-700 hover:bg-emerald-100 transition-colors flex items-center justify-center">
                     <span class="material-symbols-outlined text-[20px]" aria-hidden="true">edit</span>
                   </button>
@@ -2671,6 +2714,18 @@
             return;
           }
 
+          const yearVal = row.querySelector('.row-year')?.value.trim() || '';
+          let parsedYear = undefined;
+          if (yearVal !== '') {
+            const numYear = parseAcademicYear(yearVal);
+            if (numYear === null) {
+              showToast('El año cursado debe ser un año válido (ej. 2024).');
+              row.querySelector('.row-year')?.focus();
+              return;
+            }
+            parsedYear = numYear;
+          }
+
           const gradeVal = row.querySelector('.row-grade').value.trim();
           let parsedGrade = undefined;
           if (gradeVal !== '') {
@@ -2690,6 +2745,7 @@
             type: research ? 'investigacion' : typeValue
           };
           if (catedraVal) item.catedra = catedraVal;
+          if (parsedYear !== undefined) item.anioCursada = parsedYear;
           if (parsedGrade !== undefined) item.grade = parsedGrade;
           if (research) {
             item.subtype = typeValue;
@@ -2750,6 +2806,16 @@
             return;
           }
 
+          const yearVal = row.querySelector('.row-year')?.value.trim() || '';
+          if (yearVal !== '') {
+            const numYear = parseAcademicYear(yearVal);
+            if (numYear === null) {
+              showToast(`El año cursado de “${name}” debe ser un año válido (ej. 2024).`);
+              row.querySelector('.row-year')?.focus();
+              return;
+            }
+          }
+
           const gradeVal = row.querySelector('.row-grade').value.trim();
           if (gradeVal !== '') {
             const num = parseAcademicGrade(gradeVal);
@@ -2766,6 +2832,7 @@
           const name = row.querySelector('.row-name').value.trim();
           const typeValue = row.querySelector('.row-type')?.value || detectCourseType(name) || 'obligatoria';
           const catedraVal = row.querySelector('.row-catedra').value.trim();
+          const yearVal = row.querySelector('.row-year')?.value.trim() || '';
           const gradeVal = row.querySelector('.row-grade').value.trim();
           const research = typeValue === 'taller' || typeValue === 'seminario';
 
@@ -2775,6 +2842,7 @@
             type: research ? 'investigacion' : typeValue
           };
           if (catedraVal) item.catedra = catedraVal;
+          if (yearVal !== '') item.anioCursada = parseAcademicYear(yearVal);
           if (gradeVal !== '') item.grade = parseAcademicGrade(gradeVal);
           if (research) {
             item.subtype = typeValue;
@@ -2862,6 +2930,7 @@
       if (!Array.isArray(rows) || !rows.length) return [];
 
       let headerRowIndex = -1;
+      let colFecha = 0;
       let colMateria = 1;
       let colTipo = 2;
       let colNota = 3;
@@ -2875,6 +2944,8 @@
         if (mIdx !== -1 && rIdx !== -1) {
           headerRowIndex = i;
           colMateria = mIdx;
+          const fIdx = lowerRow.findIndex(c => c.includes('fecha'));
+          if (fIdx !== -1) colFecha = fIdx;
           const tIdx = lowerRow.findIndex(c => c.includes('tipo'));
           if (tIdx !== -1) colTipo = tIdx;
           const nIdx = lowerRow.findIndex(c => c.includes('nota') || c.includes('calificaci'));
@@ -2948,11 +3019,19 @@
           grade = parseAcademicGrade(rawNota);
         }
 
+        let year = null;
+        if (colFecha !== -1) {
+          const rawFecha = String(row[colFecha] || '').trim();
+          const matchYear = rawFecha.match(/\b(19\d\d|20\d\d)\b/);
+          if (matchYear) year = parseInt(matchYear[1], 10);
+        }
+
         courses.push({
           original: rawMateria,
           cleanName,
           code,
           grade,
+          year,
           isResearch,
           researchHours
         });
@@ -3024,12 +3103,13 @@
           subtype,
           hours,
           grade,
+          anioCursada: item.year,
           catedras,
           selectedCatedra: ''
         });
       }
 
-      // 1. Clasificar materias: nuevas, para actualizar (si cambia la nota/horas o falta cátedra), o ya al día
+      // 1. Clasificar materias: nuevas, para actualizar (si cambia la nota/horas/año o falta cátedra), o ya al día
       const coursesToProcess = [];
       let alreadyLoadedCount = 0;
 
@@ -3050,14 +3130,19 @@
           const hFile = course.hours ? Number(course.hours) : null;
           const isHoursDifferent = Boolean(hExist && hFile && hExist !== hFile);
 
+          const yExist = parseAcademicYear(existing.anioCursada);
+          const yFile = parseAcademicYear(course.anioCursada);
+          const isYearDifferent = Boolean(yFile && (!yExist || yFile !== yExist));
+
           const isCatedraMissing = course.type !== 'cbc' && (!existing.catedra || !existing.catedra.trim()) && course.catedras.length > 0;
           const isCbcTypeDifferent = course.type === 'cbc' && (existing.type !== 'cbc' || existing.cbcCode !== course.cbcCode);
 
-          if (isGradeDifferent || isHoursDifferent || isCatedraMissing || isCbcTypeDifferent) {
+          if (isGradeDifferent || isHoursDifferent || isCatedraMissing || isCbcTypeDifferent || isYearDifferent) {
             course.isUpdate = true;
             course.oldGrade = hasExistingGrade ? existing.grade : null;
             course.oldHours = hExist;
             course.oldCatedra = existing.catedra || '';
+            course.oldAnioCursada = yExist;
             course.existingId = existing.id;
             if (course.oldCatedra && course.catedras.includes(course.oldCatedra)) {
               course.selectedCatedra = course.oldCatedra;
@@ -3070,7 +3155,7 @@
       }
 
       if (coursesToProcess.length === 0) {
-        showToast(`Tu perfil ya está al día. Las ${alreadyLoadedCount} materias del archivo ya se encuentran cargadas con las mismas notas y cátedras.`);
+        showToast(`Tu perfil ya está al día. Las ${alreadyLoadedCount} materias del archivo ya se encuentran cargadas con las mismas notas, años y cátedras.`);
         showSiuStep('upload');
         return;
       }
@@ -3125,19 +3210,21 @@
       typeBadge.className = `inline-flex px-2.5 py-0.5 rounded-full text-xs font-bold ${typeClasses(course.type)}`;
 
       const gradeBadge = $('siuCurrentSubjectGrade');
+      let badgeHtml = '';
       if (course.isUpdate && course.oldGrade !== null && course.oldGrade !== undefined && course.grade !== null && course.grade !== undefined) {
-        gradeBadge.innerHTML = `<span class="line-through text-gray-400 mr-1.5 font-medium">${escapeHTML(course.oldGrade)}</span><span class="text-primary font-black text-sm">Nota: ${course.grade}</span>`;
-        gradeBadge.classList.remove('hidden');
+        badgeHtml = `<span class="line-through text-gray-400 mr-1.5 font-medium">${escapeHTML(course.oldGrade)}</span><span class="text-primary font-black text-sm">Nota: ${course.grade}</span>`;
       } else if (course.grade !== null && course.grade !== undefined) {
-        gradeBadge.textContent = `Nota: ${course.grade}`;
-        gradeBadge.classList.remove('hidden');
+        badgeHtml = `Nota: ${course.grade}`;
       } else if (course.hours) {
-        gradeBadge.textContent = `${course.hours} horas`;
-        gradeBadge.classList.remove('hidden');
+        badgeHtml = `${course.hours} horas`;
       } else {
-        gradeBadge.textContent = 'Aprobada';
-        gradeBadge.classList.remove('hidden');
+        badgeHtml = 'Aprobada';
       }
+      if (course.anioCursada) {
+        badgeHtml += ` · Cursada ${escapeHTML(course.anioCursada)}`;
+      }
+      gradeBadge.innerHTML = badgeHtml;
+      gradeBadge.classList.remove('hidden');
 
       const container = $('siuCatedrasOptionsContainer');
       container.innerHTML = '';
@@ -3250,6 +3337,7 @@
           </div>
           <div class="flex items-center gap-2.5 shrink-0">
             ${c.selectedCatedra ? `<span class="text-xs text-gray-500 font-semibold bg-gray-50 border border-gray-200 px-2 py-0.5 rounded">${escapeHTML(formatCatedra(c.selectedCatedra))}</span>` : ''}
+            ${c.anioCursada ? `<span class="text-xs text-gray-500 font-semibold bg-gray-50 border border-gray-200 px-2 py-0.5 rounded">Cursada ${escapeHTML(c.anioCursada)}</span>` : ''}
             <span class="font-bold text-xs ${c.grade !== null && c.grade !== undefined ? 'text-primary' : 'text-emerald-700'} bg-gray-50 border border-gray-200 px-2 py-0.5 rounded">
               ${c.isUpdate && c.oldGrade !== null && c.oldGrade !== undefined && c.grade !== null && c.grade !== undefined 
                 ? `<span class="line-through text-gray-400 mr-1 font-normal">${escapeHTML(c.oldGrade)}</span>${c.grade}` 
@@ -3411,6 +3499,13 @@
           const importedGrade = parseAcademicGrade(course.grade);
           if (importedGrade !== null) {
             item.grade = importedGrade;
+          }
+
+          const importedYear = parseAcademicYear(course.anioCursada);
+          if (importedYear !== null) {
+            item.anioCursada = importedYear;
+          } else if (existingIndex >= 0 && state.completed[existingIndex].anioCursada) {
+            item.anioCursada = state.completed[existingIndex].anioCursada;
           }
 
           if (course.type === 'investigacion') {
