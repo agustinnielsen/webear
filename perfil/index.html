@@ -2457,7 +2457,6 @@
                       <span class="text-xs text-gray-400">${validGrade(completedCourse.grade) ? '/10' : 'Sin nota'}</span>
                     </div>
                   </div>
-                  ${completedCourse.anioCursada ? `<span class="text-[11px] font-bold text-emerald-700 bg-emerald-100/70 px-2.5 py-1 rounded-full self-center">Cursada ${escapeHTML(completedCourse.anioCursada)}</span>` : ''}
                   <button type="button" data-plan-edit-grade="${escapeHTML(subj.id)}" aria-label="Editar nota de ${escapeHTML(subj.name)}" title="Editar nota" class="w-11 h-11 shrink-0 rounded-xl border border-emerald-200 bg-white text-emerald-700 hover:bg-emerald-100 transition-colors flex items-center justify-center">
                     <span class="material-symbols-outlined text-[20px]" aria-hidden="true">edit</span>
                   </button>
