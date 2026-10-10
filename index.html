@@ -541,7 +541,7 @@
 
             <!-- VISTA DE MATERIA INDIVIDUAL -->
             <div id="materia-view" class="view-section">
-                <div class="bg-primary pt-24 pb-6 px-6 md:px-12 text-white mb-6">
+                <div class="bg-primary pt-20 pb-6 px-6 md:px-12 text-white mb-6">
                     <div class="max-w-6xl mx-auto flex flex-col gap-4">
                         <h1 id="materiaPageTitle" class="text-4xl md:text-5xl font-black drop-shadow-sm">Cargando Materia...</h1>
                         <div id="materiaCatedrasList" class="flex flex-wrap gap-2 text-lg opacity-90 items-center"></div>
@@ -1105,7 +1105,7 @@
                     menuBtn.setAttribute('title', 'Volver al inicio');
                     menuBtn.setAttribute('aria-label', 'Volver al inicio');
                 }
-
+                
                 mod('materiaPageTitle').textContent = materia.nombre;
                 const categoryNames = { materias: "Materia Obligatoria", especiales: "Sociología Especial", teorias: "Teoría Sociológica", horasdeinv: "Taller / Seminario", idiomas: "Idioma" };
                 mod('materiaCategoriaDisplay').textContent = categoryNames[materia.tipo] || "Materia";
