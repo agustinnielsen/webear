@@ -318,6 +318,40 @@
             .file-icon.file { color: #3498db; }
             .file-icon.pdf { color: #e74c3c; }
             .file-name { font-size: 0.8rem; line-height: 1.3; font-weight: 600; word-break: normal; overflow-wrap: break-word; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; width: 100%; padding: 0 4px; }
+
+            /* Punto naranja titilando para orientación del usuario */
+            .gino-pulse-dot {
+                position: relative;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 10px;
+                height: 10px;
+                margin-left: 6px;
+                vertical-align: middle;
+                flex-shrink: 0;
+            }
+            .gino-pulse-dot .dot-core {
+                width: 10px;
+                height: 10px;
+                border-radius: 9999px;
+                background-color: #ff7d29;
+                box-shadow: 0 0 8px rgba(255, 125, 41, 0.9);
+                position: relative;
+                z-index: 2;
+            }
+            .gino-pulse-dot .dot-ring {
+                position: absolute;
+                inset: -3px;
+                border-radius: 9999px;
+                background-color: rgba(255, 125, 41, 0.7);
+                animation: ginoPing 1.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+                z-index: 1;
+            }
+            @keyframes ginoPing {
+                0% { transform: scale(0.8); opacity: 0.95; }
+                75%, 100% { transform: scale(2.4); opacity: 0; }
+            }
         </style>
     </head>
     <body class="bg-slate-50 text-dark flex flex-col min-h-screen font-sans">
@@ -377,9 +411,9 @@
                     <button type="button" id="userDropdownBtn" class="gino-dropdown-trigger py-1.5 px-3.5 sm:px-4 bg-white hover:bg-orange-50 text-dark rounded-full font-bold text-sm gap-2 shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all select-none flex items-center outline-none cursor-pointer">
                         <span class="material-symbols-outlined text-primary text-lg">person</span>
                         <span class="text-sm font-bold text-dark">Mi Perfil</span>
-                        <span id="profileDot" class="hidden relative flex h-2 w-2">
-                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                            <span class="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                        <span id="profileDot" class="gino-pulse-dot" style="display: none;">
+                            <span class="dot-ring"></span>
+                            <span class="dot-core"></span>
                         </span>
                         <span class="material-symbols-outlined text-gray-400 text-lg chevron-icon">expand_more</span>
                     </button>
@@ -401,9 +435,9 @@
                                 <span class="flex items-center gap-2.5">
                                     <span class="material-symbols-outlined text-lg text-primary">route</span>
                                     <span class="item-text font-semibold text-sm">Mi Trayectoria</span>
-                                    <span id="trayectoriaDot" class="hidden relative flex h-2 w-2">
-                                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                                        <span class="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                                    <span id="trayectoriaDot" class="gino-pulse-dot" style="display: none;">
+                                        <span class="dot-ring"></span>
+                                        <span class="dot-core"></span>
                                     </span>
                                 </span>
                                 <span class="material-symbols-outlined text-sm text-gray-400">chevron_right</span>
@@ -1080,7 +1114,6 @@
                 configurarOjosGino();
                 configurarPerfil();
                 initUserDropdown();
-                configurarPuntitoTrayectoria();
                 configurarSidebar();
 
                 window.addEventListener('hashchange', handleRoute);
@@ -1912,13 +1945,16 @@
                         if (mod('userAvatarMenu')) mod('userAvatarMenu').textContent = initial;
 
                         if (typeof initUserDropdown === 'function') initUserDropdown();
-                        if (typeof configurarPuntitoTrayectoria === 'function') configurarPuntitoTrayectoria();
+                        if (typeof verificarYMostrarPuntitoTrayectoria === 'function') {
+                            verificarYMostrarPuntitoTrayectoria(user);
+                        }
 
                         if (appState.materiaSeleccionada) {
                             cargarEstadoTrayectoria(appState.materiaSeleccionada.id);
                         }
                     } else {
                         if (mod('userInfo')) mod('userInfo').classList.remove('open');
+                        if (typeof ocultarPuntitosTrayectoria === 'function') ocultarPuntitosTrayectoria();
                         actualizarBotonesTrayectoriaUI(null);
                     }
                 });
@@ -2161,7 +2197,7 @@
                     });
                     wrapper.classList.toggle('open', !isOpen);
                     if (wrapper.classList.contains('open') && mod('profileDot')) {
-                        mod('profileDot').classList.add('hidden');
+                        mod('profileDot').style.display = 'none';
                     }
                 };
             }
@@ -2431,41 +2467,82 @@
             }
 
             // --- INDICADOR TITILANDO DE TRAYECTORIA ---
-            const TRAYECTORIA_DOT_STORAGE_KEY = 'gino_trayectoria_dot_visto_v1';
+            const TRAYECTORIA_DOT_STORAGE_KEY = 'gino_dot_trayectoria_v4';
+            const TRAYECTORIA_SESSION_KEY = 'gino_dot_sesion_v4';
 
-            function yaVioPuntitoTrayectoria() {
+            function yaVioPuntitoTrayectoria(user) {
+                const uid = user && user.uid ? `_${user.uid}` : '';
+                const key = TRAYECTORIA_DOT_STORAGE_KEY + uid;
+                const sessKey = TRAYECTORIA_SESSION_KEY + uid;
+
                 try {
-                    if (localStorage.getItem(TRAYECTORIA_DOT_STORAGE_KEY) === 'true') return true;
+                    if (localStorage.getItem(key) === 'true') return true;
                 } catch(e) {}
-                return document.cookie.split('; ').some(row => row.startsWith(TRAYECTORIA_DOT_STORAGE_KEY + '='));
+                if (document.cookie.split('; ').some(row => row.startsWith(key + '='))) return true;
+
+                // Si ya fue mostrado y el usuario recargó la página (F5) en esta pestaña
+                try {
+                    if (sessionStorage.getItem(sessKey) === 'recargada') return true;
+                } catch(e) {}
+
+                return false;
             }
 
-            function marcarPuntitoTrayectoriaComoVisto() {
+            function marcarPuntitoTrayectoriaComoVisto(user) {
+                const targetUser = user || appState.user;
+                const uid = targetUser && targetUser.uid ? `_${targetUser.uid}` : '';
+                const key = TRAYECTORIA_DOT_STORAGE_KEY + uid;
+                const sessKey = TRAYECTORIA_SESSION_KEY + uid;
+
                 try {
-                    localStorage.setItem(TRAYECTORIA_DOT_STORAGE_KEY, 'true');
+                    localStorage.setItem(key, 'true');
                 } catch(e) {}
                 try {
-                    document.cookie = `${TRAYECTORIA_DOT_STORAGE_KEY}=true; max-age=${60 * 60 * 24 * 365}; path=/; SameSite=Lax`;
+                    document.cookie = `${key}=true; max-age=${60 * 60 * 24 * 365}; path=/; SameSite=Lax`;
+                } catch(e) {}
+                try {
+                    sessionStorage.setItem(sessKey, 'recargada');
                 } catch(e) {}
             }
 
             function ocultarPuntitosTrayectoria() {
                 const pDot = mod('profileDot');
                 const tDot = mod('trayectoriaDot');
-                if (pDot) pDot.classList.add('hidden');
-                if (tDot) tDot.classList.add('hidden');
+                if (pDot) pDot.style.display = 'none';
+                if (tDot) tDot.style.display = 'none';
             }
 
-            function configurarPuntitoTrayectoria() {
-                if (yaVioPuntitoTrayectoria()) {
+            function mostrarPuntitosTrayectoria() {
+                const pDot = mod('profileDot');
+                const tDot = mod('trayectoriaDot');
+                if (pDot) pDot.style.display = 'inline-flex';
+                if (tDot) tDot.style.display = 'inline-flex';
+            }
+
+            function verificarYMostrarPuntitoTrayectoria(user) {
+                if (!user) {
                     ocultarPuntitosTrayectoria();
                     return;
                 }
-                const pDot = mod('profileDot');
-                const tDot = mod('trayectoriaDot');
-                if (pDot) pDot.classList.remove('hidden');
-                if (tDot) tDot.classList.remove('hidden');
-                marcarPuntitoTrayectoriaComoVisto();
+
+                if (yaVioPuntitoTrayectoria(user)) {
+                    ocultarPuntitosTrayectoria();
+                    return;
+                }
+
+                // Mostrar en la sesión actual para el usuario autenticado
+                mostrarPuntitosTrayectoria();
+
+                // Marcar que si la página se recarga (F5) ya no se vuelva a mostrar
+                const uid = user.uid ? `_${user.uid}` : '';
+                const sessKey = TRAYECTORIA_SESSION_KEY + uid;
+                try {
+                    sessionStorage.setItem(sessKey, 'recargada');
+                } catch(e) {}
+
+                window.addEventListener('beforeunload', () => {
+                    marcarPuntitoTrayectoriaComoVisto(user);
+                });
             }
 
             function configurarSliderNovedades() {
@@ -2765,6 +2842,7 @@
                     mod('myProfileBtn').onclick = (e) => {
                         if (e) e.stopPropagation();
                         ocultarPuntitosTrayectoria();
+                        marcarPuntitoTrayectoriaComoVisto();
                         if (mod('userInfo')) mod('userInfo').classList.remove('open');
                         if (appState.user) {
                             window.location.href = './perfil/';
