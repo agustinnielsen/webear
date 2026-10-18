@@ -7,6 +7,30 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Gino Social</title>
 
+        <!-- Anti-FOUC Auth Cookie Check (Evita parpadeo de Iniciar Sesión / Registrarse) -->
+        <script>
+            (function() {
+                try {
+                    var hasCookie = /(?:^|;\s*)gino_auth_session=1/.test(document.cookie);
+                    var hasLocal = false;
+                    try {
+                        hasLocal = localStorage.getItem('gino_auth_session') === '1' || !!localStorage.getItem('gino_user_cache');
+                    } catch(e) {}
+                    if (hasCookie || hasLocal) {
+                        document.documentElement.classList.add('gino-auth-active');
+                    }
+                } catch(e) {}
+            })();
+        </script>
+        <style id="gino-auth-antiflicker">
+            html.gino-auth-active #authButtons {
+                display: none !important;
+            }
+            html.gino-auth-active #userInfo {
+                display: flex !important;
+            }
+        </style>
+
         <!-- Tailwind CSS -->
         <script src="https://cdn.tailwindcss.com"></script>
         <script>
@@ -454,6 +478,36 @@
                         </div>
                     </div>
                 </div>
+                <!-- Hidratación temprana de datos de usuario en caso de sesión activa -->
+                <script>
+                    (function() {
+                        try {
+                            if (document.documentElement.classList.contains('gino-auth-active')) {
+                                var raw = localStorage.getItem('gino_user_cache');
+                                if (raw) {
+                                    var u = JSON.parse(raw);
+                                    if (u.displayName) {
+                                        var fn = u.displayName.split(' ')[0];
+                                        var un = document.getElementById('userName');
+                                        if (un) un.textContent = fn;
+                                        var ufn = document.getElementById('userFullName');
+                                        if (ufn) ufn.textContent = u.displayName;
+                                    }
+                                    if (u.email) {
+                                        var ue = document.getElementById('userEmail');
+                                        if (ue) ue.textContent = u.email;
+                                    }
+                                    if (u.initial) {
+                                        var ua = document.getElementById('userAvatar');
+                                        if (ua) ua.textContent = u.initial;
+                                        var uam = document.getElementById('userAvatarMenu');
+                                        if (uam) uam.textContent = u.initial;
+                                    }
+                                }
+                            }
+                        } catch(e) {}
+                    })();
+                </script>
                 <div id="authButtons" class="flex gap-2">
                     <button id="loginBtn" class="px-4 py-2 bg-white text-primary font-bold rounded-full shadow-md text-sm hover:-translate-y-0.5 transition-transform" data-open="loginModal">Iniciar sesión</button>
                     <button id="registerBtn" class="hidden md:block px-4 py-2 border-2 border-white text-white font-bold rounded-full shadow-md text-sm hover:bg-white hover:text-primary transition-colors" data-open="registerModal">Registrarse</button>
@@ -1915,6 +1969,34 @@
                 btn.onclick = () => window.scrollTo({top:0, behavior:'smooth'});
             }
 
+            // --- GESTIÓN DE COOKIE Y CACHE DE AUTENTICACIÓN ---
+            const AUTH_SESSION_COOKIE = 'gino_auth_session';
+            const AUTH_USER_CACHE_KEY = 'gino_user_cache';
+
+            function actualizarSesionAuthCookie(user, displayName, initial) {
+                try {
+                    const isSecure = location.protocol === 'https:' ? '; Secure' : '';
+                    document.cookie = `${AUTH_SESSION_COOKIE}=1; max-age=${60 * 60 * 24 * 365}; path=/; SameSite=Lax${isSecure}`;
+                    document.documentElement.classList.add('gino-auth-active');
+                    localStorage.setItem(AUTH_SESSION_COOKIE, '1');
+                    localStorage.setItem(AUTH_USER_CACHE_KEY, JSON.stringify({
+                        displayName: user.displayName || displayName || 'Usuario',
+                        email: user.email || '',
+                        initial: initial || 'U'
+                    }));
+                } catch(e) {}
+            }
+
+            function limpiarSesionAuthCookie() {
+                try {
+                    const isSecure = location.protocol === 'https:' ? '; Secure' : '';
+                    document.cookie = `${AUTH_SESSION_COOKIE}=; max-age=0; path=/; SameSite=Lax${isSecure}`;
+                    document.documentElement.classList.remove('gino-auth-active');
+                    localStorage.removeItem(AUTH_SESSION_COOKIE);
+                    localStorage.removeItem(AUTH_USER_CACHE_KEY);
+                } catch(e) {}
+            }
+
             function configurarFirebaseAuth() {
                 auth.onAuthStateChanged(user => {
                     appState.user = user;
@@ -1944,6 +2026,8 @@
                         if (mod('userAvatar')) mod('userAvatar').textContent = initial;
                         if (mod('userAvatarMenu')) mod('userAvatarMenu').textContent = initial;
 
+                        actualizarSesionAuthCookie(user, displayName, initial);
+
                         if (typeof initUserDropdown === 'function') initUserDropdown();
                         if (typeof verificarYMostrarPuntitoTrayectoria === 'function') {
                             verificarYMostrarPuntitoTrayectoria(user);
@@ -1953,6 +2037,7 @@
                             cargarEstadoTrayectoria(appState.materiaSeleccionada.id);
                         }
                     } else {
+                        limpiarSesionAuthCookie();
                         if (mod('userInfo')) mod('userInfo').classList.remove('open');
                         if (typeof ocultarPuntitosTrayectoria === 'function') ocultarPuntitosTrayectoria();
                         actualizarBotonesTrayectoriaUI(null);
@@ -2727,6 +2812,11 @@
                     mod('logoutBtn').onclick = (e) => {
                         if (e) e.stopPropagation();
                         if (mod('userInfo')) mod('userInfo').classList.remove('open');
+                        limpiarSesionAuthCookie();
+                        mod('userInfo').classList.add('hidden');
+                        mod('userInfo').classList.remove('flex');
+                        mod('authButtons').classList.remove('hidden');
+                        mod('authButtons').classList.add('flex');
                         auth.signOut();
                     };
                 }
@@ -2735,7 +2825,16 @@
                     e.preventDefault();
                     try {
                         const cred = await auth.signInWithEmailAndPassword(mod('loginEmail').value, mod('loginPassword').value);
-                        if(!cred.user.emailVerified) { await auth.signOut(); mod('loginError').textContent = "Verifica tu email."; mod('loginError').classList.remove('hidden'); return; }
+                        if(!cred.user.emailVerified) {
+                            limpiarSesionAuthCookie();
+                            await auth.signOut();
+                            mod('loginError').textContent = "Verifica tu email.";
+                            mod('loginError').classList.remove('hidden');
+                            return;
+                        }
+                        const u = cred.user;
+                        const dName = u.displayName || (u.email ? u.email.split('@')[0] : 'Usuario');
+                        actualizarSesionAuthCookie(u, dName, (dName || 'U')[0].toUpperCase());
                         cerrarModal('loginModal'); mod('loginError').classList.add('hidden');
                     } catch(err) { mod('loginError').textContent = "Credenciales incorrectas."; mod('loginError').classList.remove('hidden'); }
                 };
@@ -2776,6 +2875,7 @@
                         await cred.user.updateProfile({ displayName: `${pendingRegistrationData.firstName} ${pendingRegistrationData.lastName}` });
                         await cred.user.sendEmailVerification();
                         await db.collection("usuarios").doc(cred.user.uid).set({ nombre: pendingRegistrationData.firstName, apellido: pendingRegistrationData.lastName, email: pendingRegistrationData.email, tycAceptados: true, fechaAceptacionTyC: firebase.firestore.FieldValue.serverTimestamp() });
+                        limpiarSesionAuthCookie();
                         mostrarNotificacion('Cuenta creada. Revisa tu email.', 'success'); cerrarModal('tycModal'); auth.signOut();
                     } catch (error) {
                         cerrarModal('tycModal'); abrirModal('registerModal');
