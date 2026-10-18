@@ -723,6 +723,12 @@
       { code: 'CBC21', siuCodes: ['CBC38'], name: 'Economía' }
     ];
 
+    const LANGUAGE_LEVELS = [
+      { code: 'IDIOMA1', level: 1, name: 'Idioma · Nivel 1', aliases: ['Idioma Nivel 1', 'Idioma Nivel I'] },
+      { code: 'IDIOMA2', level: 2, name: 'Idioma · Nivel 2', aliases: ['Idioma Nivel 2', 'Idioma Nivel II'] },
+      { code: 'IDIOMA3', level: 3, name: 'Idioma · Nivel 3', aliases: ['Idioma Nivel 3', 'Idioma Nivel III'] }
+    ];
+
     function getCbcSubject(value) {
       const text = typeof value === 'string' ? value : value?.name || value?.cleanName || '';
       const code = (typeof value === 'object' ? value?.cbcCode || value?.code : '') || text.match(/\((CBC\d+)\)/i)?.[1];
@@ -735,6 +741,33 @@
         .replace(/\s*\(CBC\d+\)\s*$/i, '')
         .replace(/\s+UBA\s*XXI\s*$/i, ''));
       return CBC_SUBJECTS.find(subject => [subject.name, ...(subject.aliases || [])].some(alias => normalizedCourseName(alias) === name)) || null;
+    }
+
+    function getLanguageLevels(value) {
+      const text = typeof value === 'string' ? value : value?.name || value?.cleanName || value?.original || '';
+      const explicitCode = typeof value === 'object' ? value?.languageCode || value?.code : '';
+      const code = String(explicitCode || '').toUpperCase();
+      const direct = LANGUAGE_LEVELS.find(level => level.code === code);
+      if (direct) return [direct];
+
+      const normalized = normalizedCourseName(text);
+      const named = LANGUAGE_LEVELS.find(level => [level.name, ...(level.aliases || [])].some(alias => normalizedCourseName(alias) === normalized));
+      if (named) return [named];
+
+      const languageLike = /\bidioma\b/i.test(text) || /\((?:981)\)/i.test(text) || code === '981';
+      if (!languageLike) return [];
+      if (/examen\s+global/i.test(text) || /\(981\)/i.test(text) || code === '981') return [...LANGUAGE_LEVELS];
+
+      const levelMatch = text.match(/\bnivel\s*(1|2|3|i{1,3})\b/i);
+      if (!levelMatch) return [];
+      const roman = { i: 1, ii: 2, iii: 3 };
+      const levelNumber = Number(levelMatch[1]) || roman[levelMatch[1].toLowerCase()];
+      return LANGUAGE_LEVELS.filter(level => level.level === levelNumber);
+    }
+
+    function getLanguageLevel(value) {
+      const levels = getLanguageLevels(value);
+      return levels.length === 1 ? levels[0] : null;
     }
 
     function parseAcademicGrade(value) {
@@ -770,13 +803,23 @@
       return String(value || '').toLowerCase().startsWith('regulariz') ? 'regularizado' : 'aprobado';
     }
 
+    function normalizeLanguageStatus(value) {
+      return normalizeResearchStatus(value);
+    }
+
     function researchStatusLabel(value) {
       return normalizeResearchStatus(value) === 'regularizado' ? 'Regularizado' : 'Aprobado';
+    }
+
+    function languageStatusLabel(value) {
+      return normalizeLanguageStatus(value) === 'regularizado' ? 'Regularizado' : 'Aprobado';
     }
 
     function completedCourseKey(value) {
       const cbc = getCbcSubject(value);
       if (cbc) return `cbc:${cbc.code}`;
+      const language = getLanguageLevel(value);
+      if (language) return `idioma:${language.code}`;
       const name = typeof value === 'string' ? value : value?.name;
       const normalized = normalizedCourseName(name);
       return normalized ? `course:${normalized}` : '';
@@ -790,6 +833,7 @@
 
     const PLAN_ESTUDIOS = [
       ...CBC_SUBJECTS.map(subject => ({ id: subject.code, name: subject.name, type: 'cbc', req: [], tier: 0 })),
+      ...LANGUAGE_LEVELS.map(level => ({ id: level.code, name: level.name, type: 'idioma', req: ['CBC'], tier: 0.5 })),
       { id: '251', name: 'Sociología General', req: ['CBC'], tier: 1 },
       { id: '252', name: 'Filosofía', req: ['CBC'], tier: 1 },
       { id: '253', name: 'Historia Social Moderna y Contemporánea', req: ['CBC'], tier: 1 },
@@ -829,13 +873,26 @@
           delete c.subtype;
           delete c.hours;
         }
+        const language = getLanguageLevel(c);
+        if (language) {
+          c.name = language.name;
+          c.type = 'idioma';
+          c.languageCode = language.code;
+          c.languageStatus = normalizeLanguageStatus(c.languageStatus || c.status);
+          delete c.grade;
+          delete c.catedra;
+          delete c.subtype;
+          delete c.hours;
+          delete c.researchStatus;
+          delete c.status;
+        }
         if (c.type === 'investigacion') {
           if (!c.subtype) c.subtype = Number(c.hours) === 50 ? 'seminario' : 'taller';
           c.hours = Number(c.hours) === 50 ? 50 : Number(c.hours) === 100 ? 100 : (c.subtype === 'seminario' ? 50 : 100);
           c.researchStatus = normalizeResearchStatus(c.researchStatus);
           delete c.grade;
         }
-        if (c.type !== 'investigacion') {
+        if (c.type !== 'investigacion' && c.type !== 'idioma') {
           const normalizedGrade = parseAcademicGrade(c.grade);
           if (normalizedGrade === null) delete c.grade;
           else c.grade = normalizedGrade;
@@ -868,6 +925,9 @@
               existing.researchStatus = 'aprobado';
               existing.hours = c.hours;
             }
+          }
+          if (existing.type === 'idioma' && existing.languageStatus === 'regularizado' && c.languageStatus === 'aprobado') {
+            existing.languageStatus = 'aprobado';
           }
           return;
         }
@@ -1278,12 +1338,13 @@
 
     function typeLabel(type, subtype) {
       if (type === 'investigacion') return subtype === 'seminario' ? 'Seminario de investigación' : 'Taller de investigación';
-      return ({ cbc: 'CBC', obligatoria: 'Obligatoria', especial: 'Sociología especial', teoria: 'Teoría sociológica' })[type] || type;
+      return ({ cbc: 'CBC', idioma: 'Idioma', obligatoria: 'Obligatoria', especial: 'Sociología especial', teoria: 'Teoría sociológica' })[type] || type;
     }
 
     function typeClasses(type) {
       return ({
         cbc: 'bg-sky-100 text-sky-700',
+        idioma: 'bg-amber-100 text-amber-700',
         obligatoria: 'bg-slate-100 text-slate-700',
         especial: 'bg-purple-100 text-purple-700',
         teoria: 'bg-blue-100 text-blue-700',
@@ -1294,6 +1355,7 @@
     function typeIcon(type) {
       return ({
         cbc: 'foundation',
+        idioma: 'translate',
         obligatoria: 'school',
         especial: 'interests',
         teoria: 'psychology',
@@ -1356,7 +1418,9 @@
     function detectCourseType(courseName) {
       if (!courseName) return null;
       if (getCbcSubject(courseName)) return 'cbc';
+      if (getLanguageLevel(courseName)) return 'idioma';
       const norm = normalizedCourseName(courseName);
+      if (/\bidioma\b/.test(norm)) return 'idioma';
 
       if (PLAN_ESTUDIOS.some(p => !p.isGroup && normalizedCourseName(p.name) === norm)) {
         return 'obligatoria';
@@ -1396,7 +1460,7 @@
     }
 
     function getCatedrasForCourseName(courseName, preferredType) {
-      if (preferredType === 'cbc' || getCbcSubject(courseName)) return [];
+      if (preferredType === 'cbc' || preferredType === 'idioma' || getCbcSubject(courseName) || getLanguageLevel(courseName)) return [];
       if (!courseName) return [];
       const norm = normalizedCourseName(courseName);
 
@@ -1423,7 +1487,9 @@
     function searchCatalogCourses(query = '', preferredType = '', includeCbc = false) {
       const q = normalizedCourseName(query);
       const cbcMatches = includeCbc ? CBC_SUBJECTS.filter(subject => !q || [subject.name, ...(subject.aliases || []), subject.code].some(name => normalizedCourseName(name).includes(q))).map(subject => ({ name: subject.name, type: 'cbc', badge: 'CBC', matchedCatedra: null })) : [];
-      if (!q && includeCbc && preferredType === 'cbc') return cbcMatches;
+      const languageMatches = includeCbc ? LANGUAGE_LEVELS.filter(level => !q || [level.name, ...(level.aliases || []), level.code].some(name => normalizedCourseName(name).includes(q))).map(level => ({ name: level.name, type: 'idioma', badge: 'Idioma', matchedCatedra: null })) : [];
+      const localMatches = [...cbcMatches, ...languageMatches];
+      if (!q && includeCbc && (preferredType === 'cbc' || preferredType === 'idioma')) return localMatches.filter(course => course.type === preferredType);
       if (q !== '') {
         const collectionsOrder = [
           { col: 'materias', type: 'obligatoria', label: 'Obligatoria' },
@@ -1432,13 +1498,13 @@
           { col: 'horasdeinv', type: 'horasdeinv', label: 'Investigación' }
         ];
 
-        let matches = [...cbcMatches];
+        let matches = [...localMatches];
         collectionsOrder.forEach(entry => {
           const list = courseCatalogItems[entry.col] || (courseCatalogCache[entry.col] || []).map(n => ({ name: n, catedras: [] }));
           let items = [...list];
           if (entry.col === 'materias') {
             PLAN_ESTUDIOS.forEach(p => {
-              if (!p.isGroup && p.type !== 'cbc' && !items.some(x => normalizedCourseName(x.name) === normalizedCourseName(p.name))) {
+              if (!p.isGroup && p.type !== 'cbc' && p.type !== 'idioma' && !items.some(x => normalizedCourseName(x.name) === normalizedCourseName(p.name))) {
                 items.push({ name: p.name, catedras: [] });
               }
             });
@@ -1469,7 +1535,7 @@
 
       const collection = preferredType ? collectionForCourseType(preferredType) : 'materias';
       const list = courseCatalogItems[collection] || (courseCatalogCache[collection] || []).map(n => ({ name: n }));
-      return [...cbcMatches, ...list.slice(0, 30).map(c => ({
+      return [...localMatches, ...list.slice(0, 30).map(c => ({
         name: c.name,
         type: preferredType || 'obligatoria',
         badge: '',
@@ -1486,11 +1552,14 @@
 
       const courseName = nameInput.value.trim();
       const cbc = getCbcSubject(courseName);
+      const language = getLanguageLevel(courseName) || typeInput?.value === 'idioma';
+      const hasNoCatedra = Boolean(cbc || language);
       row.classList.toggle('is-cbc', Boolean(cbc));
-      catSelect.parentElement.hidden = Boolean(cbc);
-      catSelect.disabled = Boolean(cbc);
-      if (cbc) {
-        if (typeInput) typeInput.value = 'cbc';
+      row.classList.toggle('is-language', Boolean(language));
+      catSelect.parentElement.hidden = hasNoCatedra;
+      catSelect.disabled = hasNoCatedra;
+      if (hasNoCatedra) {
+        if (typeInput) typeInput.value = cbc ? 'cbc' : 'idioma';
         catSelect.innerHTML = '<option value=""></option>';
         catSelect.value = '';
         return;
@@ -1594,7 +1663,7 @@
       const name = row.querySelector('.row-name').value.trim();
       const typeInput = row.querySelector('.row-type');
       const catSelect = row.querySelector('.row-catedra');
-      if (!name || getCbcSubject(name)) {
+      if (!name || getCbcSubject(name) || getLanguageLevel(name) || typeInput?.value === 'idioma') {
         updateRowCatedraOptions(row);
         return true;
       }
@@ -1619,7 +1688,7 @@
       } finally {
         if (row.courseRequest === request) {
           row.courseRequest = null;
-          catSelect.disabled = Boolean(getCbcSubject(row.querySelector('.row-name').value.trim()));
+          catSelect.disabled = Boolean(getCbcSubject(row.querySelector('.row-name').value.trim()) || getLanguageLevel(row.querySelector('.row-name').value.trim()));
           catSelect.removeAttribute('aria-busy');
         }
       }
@@ -1627,19 +1696,24 @@
 
     function updateRowResearchControls(row) {
       const research = isResearchType(row.querySelector('.row-type')?.value);
+      const language = row.querySelector('.row-type')?.value === 'idioma';
       const gradeField = row.querySelector('.row-grade-field');
       const gradeInput = row.querySelector('.row-grade');
       const researchFields = row.querySelector('.row-research-fields');
+      const languageFields = row.querySelector('.row-language-fields');
       const hoursSelect = row.querySelector('.row-hours');
       const statusSelect = row.querySelector('.row-research-status');
-      gradeField?.classList.toggle('hidden', research);
+      const languageStatusSelect = row.querySelector('.row-language-status');
+      gradeField?.classList.toggle('hidden', research || language);
       researchFields?.classList.toggle('hidden', !research);
+      languageFields?.classList.toggle('hidden', !language);
       if (gradeInput) {
-        gradeInput.disabled = research;
-        if (research) gradeInput.value = '';
+        gradeInput.disabled = research || language;
+        if (research || language) gradeInput.value = '';
       }
       if (hoursSelect) hoursSelect.disabled = !research;
       if (statusSelect) statusSelect.disabled = !research;
+      if (languageStatusSelect) languageStatusSelect.disabled = !language;
     }
 
     function createCompletedRow(data = null, isEdit = false) {
@@ -1663,6 +1737,7 @@
       const initCatedra = data?.catedra || '';
       const initHours = Number(data?.hours) === 50 ? 50 : 100;
       const initResearchStatus = normalizeResearchStatus(data?.researchStatus);
+      const initLanguageStatus = normalizeLanguageStatus(data?.languageStatus);
       row.dataset.originalName = initName;
       row.dataset.selectedCourse = initName;
 
@@ -1704,6 +1779,15 @@
               <select class="row-research-status w-full p-2.5 md:p-3 border border-gray-200 rounded-xl outline-none focus:border-primary bg-white text-dark text-sm font-semibold">
                 <option value="aprobado" ${initResearchStatus === 'aprobado' ? 'selected' : ''}>Aprobado</option>
                 <option value="regularizado" ${initResearchStatus === 'regularizado' ? 'selected' : ''}>Regularizado</option>
+              </select>
+            </label>
+          </div>
+          <div class="row-language-fields hidden">
+            <label class="block">
+              <span class="md:hidden text-xs font-bold text-slate-500 mb-1 block">Estado</span>
+              <select class="row-language-status w-full p-2.5 md:p-3 border border-gray-200 rounded-xl outline-none focus:border-primary bg-white text-dark text-sm font-semibold">
+                <option value="aprobado" ${initLanguageStatus === 'aprobado' ? 'selected' : ''}>Aprobado</option>
+                <option value="regularizado" ${initLanguageStatus === 'regularizado' ? 'selected' : ''}>Regularizado</option>
               </select>
             </label>
           </div>
@@ -2040,11 +2124,19 @@
 
     function getCompletedCourseByPlanSubject(subject) {
       if (subject.type === 'cbc') return state.completed.find(course => getCbcSubject(course)?.code === subject.id);
+      if (subject.type === 'idioma') return state.completed.find(course => getLanguageLevel(course)?.code === subject.id);
       return state.completed.find(course => normalizedCourseName(course.name) === normalizedCourseName(subject.name));
     }
 
     function completedCbcCount() {
       return new Set(state.completed.map(course => getCbcSubject(course)?.code).filter(Boolean)).size;
+    }
+
+    function completedLanguageCount() {
+      return new Set(state.completed
+        .filter(course => course.type === 'idioma' && normalizeLanguageStatus(course.languageStatus) === 'aprobado')
+        .map(course => getLanguageLevel(course)?.code)
+        .filter(Boolean)).size;
     }
 
     function planRequirementDetails(subject) {
@@ -2063,7 +2155,19 @@
       if (!subject) return;
 
       const existingCourse = getCompletedCourseByPlanSubject(subject);
-      if (completed && existingCourse) return;
+      if (completed && existingCourse) {
+        if (subject.type !== 'idioma' || normalizeLanguageStatus(existingCourse.languageStatus) === 'aprobado') return;
+        if (!planRequirementDetails(subject).every(requirement => requirement.passed)) {
+          showToast('Primero completá el CBC para aprobar este nivel de Idioma.');
+          return;
+        }
+        existingCourse.languageStatus = 'aprobado';
+        expandedGroups.add('idioma');
+        saveState();
+        render();
+        showToast(`“${subject.name}” fue marcado como aprobado.`);
+        return;
+      }
       if (completed && !planRequirementDetails(subject).every(requirement => requirement.passed)) {
         showToast('Primero completá las correlativas de esta materia.');
         return;
@@ -2072,7 +2176,7 @@
       if (!completed) {
         if (!existingCourse) return;
         if (planGradeEditorSubjectId === subjectId) planGradeEditorSubjectId = null;
-        state.completed = state.completed.filter(course => normalizedCourseName(course.name) !== normalizedCourseName(subject.name));
+        state.completed = state.completed.filter(course => course.id !== existingCourse.id);
         saveState();
         render();
         showToast(`“${subject.name}” volvió a estar pendiente.`);
@@ -2083,7 +2187,8 @@
         id: `c-${Date.now()}-${subject.id}`,
         name: subject.name,
         type: subject.type || 'obligatoria',
-        ...(subject.type === 'cbc' ? { cbcCode: subject.id } : {})
+        ...(subject.type === 'cbc' ? { cbcCode: subject.id } : {}),
+        ...(subject.type === 'idioma' ? { languageCode: subject.id, languageStatus: 'aprobado' } : {})
       });
       expandedGroups.add(subject.type || 'obligatoria');
       saveState();
@@ -2094,7 +2199,7 @@
     function updatePlanSubjectGrade(subjectId, gradeValue) {
       const subject = PLAN_ESTUDIOS.find(item => item.id === subjectId && !item.isGroup);
       const course = subject && getCompletedCourseByPlanSubject(subject);
-      if (!course) return false;
+      if (!course || subject.type === 'idioma') return false;
 
       const value = gradeValue.trim();
       if (!value) {
@@ -2151,6 +2256,7 @@
 
     function calcProgress() {
       const cbc = completedCbcCount();
+      const languages = completedLanguageCount();
       const mandatory = state.completed.filter(c => c.type === 'obligatoria').length;
       const special = state.completed.filter(c => c.type === 'especial').length;
       const theory = state.completed.filter(c => c.type === 'teoria').length;
@@ -2162,10 +2268,11 @@
       const extra = Math.min(Math.max(special - 3, 0) + Math.max(theory - 3, 0), 3);
       const researchHours = Math.min(researchHoursRaw, 200);
       const researchUnits = researchHours / 100;
-      const earned = cbc + Math.min(mandatory, 16) + specialBase + theoryBase + extra + researchUnits;
-      const total = 33;
+      const earned = cbc + languages + Math.min(mandatory, 16) + specialBase + theoryBase + extra + researchUnits;
+      const total = 36;
       return {
         cbc,
+        languages,
         percent: Math.min(100, Math.round((earned / total) * 100)),
         earned,
         total,
@@ -2205,6 +2312,7 @@
       const progress = calcProgress();
       $('requirementsGrid').innerHTML = [
         requirementCard('foundation', 'CBC', progress.cbc, 6),
+        requirementCard('translate', 'Idiomas', progress.languages, 3),
         requirementCard('school', 'Obligatorias', progress.mandatory, 16),
         requirementCard(typeIcon('especial'), 'Sociologías especiales', progress.specialBase, 3),
         requirementCard(typeIcon('teoria'), 'Teorías sociológicas', progress.theoryBase, 3),
@@ -2240,6 +2348,7 @@
 
       const groupsConfig = [
         { id: 'cbc', title: 'CBC · Ciclo Básico Común', icon: 'foundation' },
+        { id: 'idioma', title: 'Idiomas', icon: 'translate' },
         { id: 'obligatoria', title: 'Obligatorias', icon: 'school' },
         { id: 'especial', title: 'Especiales', icon: typeIcon('especial') },
         { id: 'teoria', title: 'Teorías', icon: typeIcon('teoria') },
@@ -2261,6 +2370,8 @@
                 const metaText = metaSegments.join(' · ');
                 const researchStatus = normalizeResearchStatus(c.researchStatus);
                 const researchStatusText = researchStatusLabel(researchStatus);
+                const languageStatus = normalizeLanguageStatus(c.languageStatus);
+                const languageStatusText = languageStatusLabel(languageStatus);
 
                 return `
                 <div class="px-4 sm:px-5 md:px-7 py-3 md:py-4 hover:bg-slate-50 transition-colors bg-white">
@@ -2269,11 +2380,12 @@
                       <p class="profile-wrap font-bold text-dark leading-snug sm:truncate">${escapeHTML(c.name)}</p>
                       ${metaText ? `<p class="profile-wrap text-xs text-gray-500 mt-1">${metaText}</p>` : ''}
                       ${c.type === 'investigacion' ? `<p class="text-xs font-bold ${researchStatus === 'regularizado' ? 'text-amber-600' : 'text-emerald-600'} mt-1">${c.hours || 0} h · ${researchStatusText}${researchStatus === 'regularizado' ? ' · No suma al progreso' : ''}</p>` : ''}
+                      ${c.type === 'idioma' ? `<p class="text-xs font-bold ${languageStatus === 'regularizado' ? 'text-amber-600' : 'text-emerald-600'} mt-1">${languageStatusText}${languageStatus === 'regularizado' ? ' · No suma al progreso' : ''}</p>` : ''}
                     </div>
                     <button type="button" data-edit-completed="${escapeHTML(c.id)}" aria-label="Editar ${escapeHTML(c.name)}" class="group/edit shrink-0 min-h-[44px] flex items-center gap-1.5 sm:gap-2 rounded-xl px-2 py-1.5 bg-slate-50 sm:bg-transparent border border-slate-100 sm:border-transparent hover:bg-orange-50 transition-colors" title="Editar registro">
                       <div class="text-right shrink-0">
-                        ${c.type === 'investigacion'
-                          ? `<span class="inline-flex px-2 py-1 rounded-lg text-[11px] font-black ${researchStatus === 'regularizado' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}">${researchStatusText}</span>`
+                        ${c.type === 'investigacion' || c.type === 'idioma'
+                          ? `<span class="inline-flex px-2 py-1 rounded-lg text-[11px] font-black ${(c.type === 'idioma' ? languageStatus : researchStatus) === 'regularizado' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}">${c.type === 'idioma' ? languageStatusText : researchStatusText}</span>`
                           : `<div class="flex items-baseline justify-end gap-1"><span class="text-xl sm:text-2xl font-black text-dark group-hover/edit:text-primary transition-colors">${validGrade(c.grade) ? escapeHTML(c.grade) : '—'}</span><span class="text-xs text-gray-400">/10</span></div>`}
                       </div>
                       <span class="material-symbols-outlined text-lg text-primary sm:text-gray-400 group-hover/edit:text-primary transition-colors" aria-hidden="true">edit</span>
@@ -2514,16 +2626,20 @@
 
       let html = '';
       Object.keys(tiers).sort((a, b) => Number(a) - Number(b)).forEach(tierNum => {
+        const columnLabel = tierNum === '0' ? 'CBC' : tierNum === '0.5' ? 'Idiomas' : tierNum;
         html += `
           <div class="plan-column w-72 md:w-80 shrink-0 flex flex-col gap-4 relative">
             <div class="flex items-center gap-2 mb-2 px-1">
-              <span class="${tierNum === '0' ? 'px-3' : 'w-6'} h-6 rounded-full bg-slate-200 text-slate-700 font-black text-[11px] flex items-center justify-center">${tierNum === '0' ? 'CBC' : tierNum}</span>
+              <span class="${tierNum === '0' || tierNum === '0.5' ? 'px-3' : 'w-6'} h-6 rounded-full bg-slate-200 text-slate-700 font-black text-[11px] flex items-center justify-center">${columnLabel}</span>
             </div>`;
             
         tiers[tierNum].forEach(subj => {
           const completedCourse = subj.isGroup ? null : getCompletedCourseByPlanSubject(subj);
-          const isPassed = Boolean(completedCourse);
-          const isGradeEditorOpen = isPassed && planGradeEditorSubjectId === subj.id;
+          const isLanguage = subj.type === 'idioma';
+          const languageStatus = isLanguage && completedCourse ? normalizeLanguageStatus(completedCourse.languageStatus) : '';
+          const isRegularized = Boolean(isLanguage && completedCourse && languageStatus === 'regularizado');
+          const isPassed = Boolean(completedCourse) && (!isLanguage || languageStatus === 'aprobado');
+          const isGradeEditorOpen = isPassed && !isLanguage && planGradeEditorSubjectId === subj.id;
           
           const reqDetails = planRequirementDetails(subj);
           const reqsMet = reqDetails.every(requirement => requirement.passed);
@@ -2532,6 +2648,8 @@
           
           if (isPassed) {
             cardStyle = 'bg-emerald-50 border-emerald-200 shadow-sm';
+          } else if (isRegularized) {
+            cardStyle = 'bg-amber-50 border-amber-200 shadow-sm';
           } else if (reqsMet) {
             cardStyle = 'bg-white border-primary/40 shadow-md ring-2 ring-primary/10';
           } else {
@@ -2544,13 +2662,25 @@
                 <h4 class="font-black text-dark leading-tight text-[15px] pr-2">${escapeHTML(subj.name)}</h4>
                 ${!subj.isGroup ? `
                   <label class="shrink-0 min-w-[44px] min-h-[44px] -mt-2 -mr-2 flex items-center justify-center" title="${isPassed ? 'Desmarcar como hecha' : reqsMet ? 'Marcar como hecha' : 'Requiere completar las correlativas'}">
-                    <input data-plan-completed="${escapeHTML(subj.id)}" type="checkbox" aria-label="${isPassed ? 'Desmarcar como hecha' : 'Marcar como hecha'}" ${isPassed ? 'checked' : ''} ${!isPassed && !reqsMet ? 'disabled' : ''} class="size-5 rounded border-2 ${isPassed ? 'border-emerald-500 accent-emerald-600' : reqsMet ? 'border-primary accent-primary cursor-pointer' : 'border-slate-300 accent-slate-400 cursor-not-allowed'}">
+                    <input data-plan-completed="${escapeHTML(subj.id)}" type="checkbox" aria-label="${isPassed ? 'Desmarcar como hecha' : isLanguage ? 'Marcar como aprobado' : 'Marcar como hecha'}" ${isPassed ? 'checked' : ''} ${!isPassed && !reqsMet ? 'disabled' : ''} class="size-5 rounded border-2 ${isPassed ? 'border-emerald-500 accent-emerald-600' : reqsMet ? 'border-primary accent-primary cursor-pointer' : 'border-slate-300 accent-slate-400 cursor-not-allowed'}">
                   </label>
                 ` : ''}
               </div>
 
 
-              ${!subj.isGroup && isPassed ? (isGradeEditorOpen ? `
+              ${isLanguage && completedCourse ? `
+                <div class="mt-4 pt-3 border-t ${isRegularized ? 'border-amber-200/70' : 'border-emerald-200/70'} flex items-center justify-between gap-3">
+                  <div>
+                    <span class="block text-[10px] font-black uppercase tracking-wider ${isRegularized ? 'text-amber-700' : 'text-emerald-700'}">Estado</span>
+                    <span class="inline-flex mt-1 px-2 py-1 rounded-lg text-[11px] font-black ${isRegularized ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}">${languageStatusLabel(languageStatus)}</span>
+                  </div>
+                  <button type="button" data-edit-completed="${escapeHTML(completedCourse.id)}" aria-label="Editar ${escapeHTML(subj.name)}" title="Editar estado" class="w-11 h-11 shrink-0 rounded-xl border ${isRegularized ? 'border-amber-200 text-amber-700 hover:bg-amber-100' : 'border-emerald-200 text-emerald-700 hover:bg-emerald-100'} bg-white transition-colors flex items-center justify-center">
+                    <span class="material-symbols-outlined text-[20px]" aria-hidden="true">edit</span>
+                  </button>
+                </div>
+              ` : ''}
+
+              ${!subj.isGroup && isPassed && !isLanguage ? (isGradeEditorOpen ? `
                 <form data-plan-grade-form="${escapeHTML(subj.id)}" class="mt-4 pt-3 border-t border-emerald-200/70">
                   <label class="block">
                     <span class="block text-[10px] font-black uppercase tracking-wider text-emerald-700 mb-1.5">Editar nota <span class="normal-case font-medium text-emerald-600/70">(opcional)</span></span>
@@ -2827,6 +2957,19 @@
 
           const typeValue = row.querySelector('.row-type')?.value || detectCourseType(name) || 'obligatoria';
           const research = isResearchType(typeValue);
+          const language = typeValue === 'idioma';
+          const languageLevel = language ? getLanguageLevel(name) : null;
+          const previous = state.completed.find(course => course.id === editId);
+          const nextLanguageStatus = language ? normalizeLanguageStatus(row.querySelector('.row-language-status')?.value) : '';
+          if (language && !languageLevel) {
+            showToast('Seleccioná uno de los tres niveles de Idioma.');
+            row.querySelector('.row-name').focus();
+            return;
+          }
+          if (language && completedCbcCount() < 6 && (!previous || previous.type !== 'idioma' || normalizeLanguageStatus(previous.languageStatus) !== nextLanguageStatus)) {
+            showToast('Para registrar un nivel de Idioma primero tenés que completar el CBC.');
+            return;
+          }
           const catedraVal = row.querySelector('.row-catedra').value.trim();
           const catOptions = row.querySelector('.row-catedra').options;
           if (catOptions.length > 1 && !catedraVal) {
@@ -2849,7 +2992,7 @@
 
           const gradeVal = row.querySelector('.row-grade').value.trim();
           let parsedGrade = undefined;
-          if (!research && gradeVal !== '') {
+          if (!research && !language && gradeVal !== '') {
             const num = parseAcademicGrade(gradeVal);
             if (num === null) {
               showToast('La nota debe ser un número entero entre 0 y 10.');
@@ -2861,16 +3004,20 @@
 
           const item = {
             id: editId,
-            name,
+            name: language ? languageLevel.name : name,
             type: research ? 'investigacion' : typeValue
           };
-          if (catedraVal) item.catedra = catedraVal;
+          if (catedraVal && !language) item.catedra = catedraVal;
           if (parsedYear !== undefined) item.anioCursada = parsedYear;
           if (parsedGrade !== undefined) item.grade = parsedGrade;
           if (research) {
             item.subtype = typeValue === 'seminario' ? 'seminario' : 'taller';
             item.hours = Number(row.querySelector('.row-hours')?.value) === 50 ? 50 : 100;
             item.researchStatus = normalizeResearchStatus(row.querySelector('.row-research-status')?.value);
+          }
+          if (language) {
+            item.languageCode = languageLevel.code;
+            item.languageStatus = nextLanguageStatus;
           }
 
           expandedGroups.add(item.type);
@@ -2917,8 +3064,19 @@
           const name = row.querySelector('.row-name').value.trim();
           const typeValue = row.querySelector('.row-type')?.value || detectCourseType(name) || 'obligatoria';
           const research = isResearchType(typeValue);
+          const language = typeValue === 'idioma';
           const typeInput = row.querySelector('.row-type');
           if (typeInput) typeInput.value = typeValue;
+
+          if (language && !getLanguageLevel(name)) {
+            showToast('Seleccioná uno de los tres niveles de Idioma.');
+            row.querySelector('.row-name').focus();
+            return;
+          }
+          if (language && completedCbcCount() < 6) {
+            showToast('Para registrar un nivel de Idioma primero tenés que completar el CBC.');
+            return;
+          }
 
           const catedraVal = row.querySelector('.row-catedra').value.trim();
           const catOptions = row.querySelector('.row-catedra').options;
@@ -2939,7 +3097,7 @@
           }
 
           const gradeVal = row.querySelector('.row-grade').value.trim();
-          if (!research && gradeVal !== '') {
+          if (!research && !language && gradeVal !== '') {
             const num = parseAcademicGrade(gradeVal);
             if (num === null) {
               showToast(`La nota de "${name}" debe ser un número entero entre 0 y 10.`);
@@ -2957,19 +3115,25 @@
           const yearVal = row.querySelector('.row-year')?.value.trim() || '';
           const gradeVal = row.querySelector('.row-grade').value.trim();
           const research = isResearchType(typeValue);
+          const language = typeValue === 'idioma';
+          const languageLevel = language ? getLanguageLevel(name) : null;
 
           const item = {
             id: `c-${Date.now()}-${idx}-${Math.random().toString(36).slice(2, 6)}`,
-            name,
+            name: language ? languageLevel.name : name,
             type: research ? 'investigacion' : typeValue
           };
-          if (catedraVal) item.catedra = catedraVal;
+          if (catedraVal && !language) item.catedra = catedraVal;
           if (yearVal !== '') item.anioCursada = parseAcademicYear(yearVal);
-          if (!research && gradeVal !== '') item.grade = parseAcademicGrade(gradeVal);
+          if (!research && !language && gradeVal !== '') item.grade = parseAcademicGrade(gradeVal);
           if (research) {
             item.subtype = typeValue === 'seminario' ? 'seminario' : 'taller';
             item.hours = Number(row.querySelector('.row-hours')?.value) === 50 ? 50 : 100;
             item.researchStatus = normalizeResearchStatus(row.querySelector('.row-research-status')?.value);
+          }
+          if (language) {
+            item.languageCode = languageLevel.code;
+            item.languageStatus = normalizeLanguageStatus(row.querySelector('.row-language-status')?.value);
           }
 
           expandedGroups.add(item.type);
@@ -3101,21 +3265,18 @@
         const researchLikeName = /horas? de investigaci[oó]n|taller|seminario/i.test(rawMateria);
         const researchNotaMatch = rawNota.match(/^(50|100)\s*\((Aprobado|Aprobada|A|Regularizado|Regularizada|R)\)/i);
         const regularizedResearch = researchLikeName && /regularizad[oa]/i.test(`${rawResultado} ${rawTipo} ${rawNota}`);
+        const languageLevels = getLanguageLevels({ name: rawMateria, original: rawMateria });
+        const regularizedLanguage = languageLevels.length > 0 && /regularizad[oa]|^r$/i.test(`${rawResultado} ${rawTipo} ${rawNota}`.trim());
 
         // Check approval
         const isApproved = /^(aprobado|aprobada|a|promocion|promoción)$/i.test(rawResultado) ||
                            /^(aprobado|aprobada|promocion|promoción)$/i.test(rawTipo) ||
-                           /aprobado/i.test(rawNota) || Boolean(researchNotaMatch) || regularizedResearch;
+                           /aprobado/i.test(rawNota) || Boolean(researchNotaMatch) || regularizedResearch || regularizedLanguage;
         if (!isApproved) continue;
 
         // Aceptar las seis materias conocidas del CBC; omitir otras actividades de ese ciclo.
         const cbcSubject = getCbcSubject(rawMateria);
         if (!cbcSubject && (/cbc/i.test(rawMateria) || /ubaxxi/i.test(rawMateria) || /ciclo\s*b[aá]sico/i.test(rawMateria))) {
-          continue;
-        }
-
-        // Filter Idioma requirement
-        if (/^idioma/i.test(rawMateria) || /\(981\)/.test(rawMateria)) {
           continue;
         }
 
@@ -3163,7 +3324,9 @@
           year,
           isResearch,
           researchHours,
-          researchStatus
+          researchStatus,
+          languageLevels: getLanguageLevels({ name: rawMateria, cleanName, code }),
+          languageStatus: regularizedLanguage ? 'regularizado' : 'aprobado'
         });
       }
 
@@ -3171,7 +3334,7 @@
     }
 
     async function processSiuCourses(rawCourses) {
-      if (courseCatalogDb && rawCourses.some(course => !getCbcSubject(course))) {
+      if (courseCatalogDb && rawCourses.some(course => !getCbcSubject(course) && !(course.languageLevels || getLanguageLevels(course)).length)) {
         try {
           await preloadAllCourseCatalogs();
         } catch (e) {
@@ -3182,6 +3345,22 @@
       const allParsedCourses = [];
 
       for (const item of rawCourses) {
+        const languageLevels = item.languageLevels?.length ? item.languageLevels : getLanguageLevels(item);
+        if (languageLevels.length) {
+          languageLevels.forEach(level => {
+            allParsedCourses.push({
+              languageCode: level.code,
+              name: level.name,
+              type: 'idioma',
+              languageStatus: normalizeLanguageStatus(item.languageStatus),
+              grade: null,
+              anioCursada: item.year,
+              catedras: [],
+              selectedCatedra: ''
+            });
+          });
+          continue;
+        }
         let type = 'especial';
         let name = item.cleanName;
         let subtype = undefined;
@@ -3242,13 +3421,21 @@
         });
       }
 
+      const parsedByKey = new Map();
+      allParsedCourses.forEach(course => {
+        const key = completedCourseKey(course);
+        const existing = parsedByKey.get(key);
+        if (!existing || (course.type === 'idioma' && existing.languageStatus === 'regularizado' && course.languageStatus === 'aprobado')) {
+          parsedByKey.set(key, course);
+        }
+      });
+
       // 1. Clasificar materias: nuevas, para actualizar (si cambia la nota/horas/año o falta cátedra), o ya al día
       const coursesToProcess = [];
       let alreadyLoadedCount = 0;
 
-      for (const course of allParsedCourses) {
-        const norm = normalizeSiuCourseName(course.name);
-        const existing = state.completed.find(c => course.type === 'cbc' ? getCbcSubject(c)?.code === course.cbcCode : normalizeSiuCourseName(c.name) === norm);
+      for (const course of parsedByKey.values()) {
+        const existing = state.completed.find(c => completedCourseKey(c) === completedCourseKey(course));
 
         if (!existing) {
           course.isUpdate = false;
@@ -3263,19 +3450,22 @@
           const hFile = course.hours ? Number(course.hours) : null;
           const isHoursDifferent = Boolean(hExist && hFile && hExist !== hFile);
           const isResearchStatusDifferent = course.type === 'investigacion' && normalizeResearchStatus(existing.researchStatus) !== normalizeResearchStatus(course.researchStatus);
+          const isLanguageStatusDifferent = course.type === 'idioma' && normalizeLanguageStatus(existing.languageStatus) !== normalizeLanguageStatus(course.languageStatus);
 
           const yExist = parseAcademicYear(existing.anioCursada);
           const yFile = parseAcademicYear(course.anioCursada);
           const isYearDifferent = Boolean(yFile && (!yExist || yFile !== yExist));
 
-          const isCatedraMissing = course.type !== 'cbc' && (!existing.catedra || !existing.catedra.trim()) && course.catedras.length > 0;
+          const isCatedraMissing = course.type !== 'cbc' && course.type !== 'idioma' && (!existing.catedra || !existing.catedra.trim()) && course.catedras.length > 0;
           const isCbcTypeDifferent = course.type === 'cbc' && (existing.type !== 'cbc' || existing.cbcCode !== course.cbcCode);
+          const isLanguageTypeDifferent = course.type === 'idioma' && (existing.type !== 'idioma' || existing.languageCode !== course.languageCode);
 
-          if (isGradeDifferent || isHoursDifferent || isResearchStatusDifferent || isCatedraMissing || isCbcTypeDifferent || isYearDifferent) {
+          if (isGradeDifferent || isHoursDifferent || isResearchStatusDifferent || isLanguageStatusDifferent || isCatedraMissing || isCbcTypeDifferent || isLanguageTypeDifferent || isYearDifferent) {
             course.isUpdate = true;
             course.oldGrade = hasExistingGrade ? existing.grade : null;
             course.oldHours = hExist;
             course.oldResearchStatus = existing.researchStatus;
+            course.oldLanguageStatus = existing.languageStatus;
             course.oldCatedra = existing.catedra || '';
             course.oldAnioCursada = yExist;
             course.existingId = existing.id;
@@ -3304,7 +3494,7 @@
           course.selectedCatedra = course.catedras[0];
           autoAssigned.push(course);
         } else if (course.catedras.length === 0) {
-          course.selectedCatedra = course.type === 'cbc' ? '' : course.oldCatedra || '';
+          course.selectedCatedra = course.type === 'cbc' || course.type === 'idioma' ? '' : course.oldCatedra || '';
           autoAssigned.push(course);
         } else {
           manualSelection.push(course);
@@ -3443,6 +3633,9 @@
 
       const mand = allCourses.filter(c => c.type === 'obligatoria').length;
       const cbc = allCourses.filter(c => c.type === 'cbc').length;
+      const languages = allCourses.filter(c => c.type === 'idioma');
+      const approvedLanguages = languages.filter(c => normalizeLanguageStatus(c.languageStatus) === 'aprobado').length;
+      const regularizedLanguages = languages.length - approvedLanguages;
       const esp = allCourses.filter(c => c.type === 'especial').length;
       const teo = allCourses.filter(c => c.type === 'teoria').length;
       const inv = allCourses.filter(c => c.type === 'investigacion');
@@ -3455,6 +3648,8 @@
       if (updateCount > 0) parts.push(`${updateCount} con datos actualizados`);
       if (mand) parts.push(`${mand} obligatoria${mand > 1 ? 's' : ''}`);
       if (cbc) parts.push(`${cbc} del CBC`);
+      if (approvedLanguages) parts.push(`${approvedLanguages} nivel${approvedLanguages > 1 ? 'es' : ''} de idioma aprobado${approvedLanguages > 1 ? 's' : ''}`);
+      if (regularizedLanguages) parts.push(`${regularizedLanguages} nivel${regularizedLanguages > 1 ? 'es' : ''} de idioma regularizado${regularizedLanguages > 1 ? 's' : ''}`);
       if (esp) parts.push(`${esp} especial${esp > 1 ? 'es' : ''}`);
       if (teo) parts.push(`${teo} teoría${teo > 1 ? 's' : ''}`);
       if (approvedInv.length) parts.push(`${invHours} h de investigación aprobadas`);
@@ -3479,7 +3674,7 @@
             <span class="font-bold text-xs ${c.grade !== null && c.grade !== undefined ? 'text-primary' : 'text-emerald-700'} bg-gray-50 border border-gray-200 px-2 py-0.5 rounded">
               ${c.isUpdate && c.oldGrade !== null && c.oldGrade !== undefined && c.grade !== null && c.grade !== undefined 
                 ? `<span class="line-through text-gray-400 mr-1 font-normal">${escapeHTML(c.oldGrade)}</span>${c.grade}` 
-                : (c.grade !== null && c.grade !== undefined ? `Nota: ${c.grade}` : c.type === 'investigacion' ? `${c.hours} h · ${researchStatusLabel(c.researchStatus)}` : 'Sin nota')}
+                : (c.grade !== null && c.grade !== undefined ? `Nota: ${c.grade}` : c.type === 'investigacion' ? `${c.hours} h · ${researchStatusLabel(c.researchStatus)}` : c.type === 'idioma' ? languageStatusLabel(c.languageStatus) : 'Sin nota')}
             </span>
           </div>
         </div>
@@ -3618,11 +3813,11 @@
         let updatedCount = 0;
 
         allCourses.forEach(course => {
-          const norm = normalizeSiuCourseName(course.name);
-          const existingIndex = state.completed.findIndex(c => course.type === 'cbc' ? getCbcSubject(c)?.code === course.cbcCode : normalizeSiuCourseName(c.name) === norm);
+          const existingIndex = state.completed.findIndex(c => completedCourseKey(c) === completedCourseKey(course));
 
           const item = {
             ...(course.type === 'cbc' ? { cbcCode: course.cbcCode } : {}),
+            ...(course.type === 'idioma' ? { languageCode: course.languageCode, languageStatus: normalizeLanguageStatus(course.languageStatus) } : {}),
             id: (existingIndex >= 0 && state.completed[existingIndex].id) 
               ? state.completed[existingIndex].id 
               : `c-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
@@ -3630,12 +3825,12 @@
             type: course.type
           };
 
-          if (course.selectedCatedra && course.type !== 'cbc') {
+          if (course.selectedCatedra && course.type !== 'cbc' && course.type !== 'idioma') {
             item.catedra = course.selectedCatedra;
           }
 
           const importedGrade = parseAcademicGrade(course.grade);
-          if (importedGrade !== null) {
+          if (importedGrade !== null && course.type !== 'idioma') {
             item.grade = importedGrade;
           }
 
