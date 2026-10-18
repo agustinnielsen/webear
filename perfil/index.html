@@ -440,45 +440,63 @@
   </div>
 
   <!-- Modal materia realizada: alta y edición -->
-  <div id="completedModal" class="modal fixed inset-0 bg-black/60 z-50 items-center justify-center p-3 sm:p-4 backdrop-blur-sm">
-    <div class="modal-card mobile-safe-bottom bg-white rounded-3xl w-full max-w-4xl max-h-[92vh] overflow-y-auto shadow-2xl p-5 sm:p-6 md:p-8">
-      <div class="flex items-center justify-between gap-4 mb-5">
-        <div class="flex items-center gap-2.5">
-          <span class="material-symbols-outlined text-primary text-2xl">school</span>
-          <h2 id="completedModalTitle" class="text-xl md:text-2xl font-black text-dark">Cargar materias realizadas</h2>
+  <div id="completedModal" class="modal fixed inset-0 bg-black/60 z-50 items-center justify-center p-3 sm:p-4 md:p-6 backdrop-blur-sm">
+    <div class="modal-card mobile-safe-bottom bg-white rounded-3xl w-full max-w-5xl lg:max-w-6xl xl:max-w-7xl max-h-[92vh] overflow-y-auto shadow-2xl p-5 sm:p-7 md:p-8 relative">
+      <div class="flex items-center justify-between gap-4 mb-4 pb-3 border-b border-gray-100">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 md:w-11 md:h-11 rounded-2xl bg-orange-100 text-primary flex items-center justify-center shrink-0 shadow-2xs">
+            <span class="material-symbols-outlined text-2xl md:text-[26px]">school</span>
+          </div>
+          <div>
+            <h2 id="completedModalTitle" class="text-xl md:text-2xl font-black text-dark leading-tight">Cargar materias realizadas</h2>
+            <p class="text-xs md:text-sm text-gray-500 mt-0.5 hidden sm:block">Registrá tus materias aprobadas, notas y cátedras para actualizar tu progreso académico.</p>
+          </div>
         </div>
-        <button data-close-modal class="text-gray-400 hover:text-gray-700 text-2xl">✕</button>
+        <button data-close-modal class="text-gray-400 hover:text-gray-700 text-2xl w-9 h-9 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors" title="Cerrar ventana">✕</button>
       </div>
 
       <form id="completedForm" class="space-y-4" novalidate>
         <input id="completedEditId" type="hidden">
 
-        <!-- Encabezados de columnas (estilo pastillas como la referencia) -->
-        <div id="completedTableHeaders" class="hidden md:grid grid-cols-[minmax(210px,2.5fr)_minmax(135px,1.5fr)_minmax(85px,0.8fr)_minmax(190px,1.6fr)_36px] gap-2.5 text-center text-xs font-bold text-slate-600">
-          <div class="bg-slate-100/90 py-2.5 px-3 rounded-xl border border-slate-200/70 shadow-2xs">Materia / actividad</div>
-          <div class="bg-slate-100/90 py-2.5 px-3 rounded-xl border border-slate-200/70 shadow-2xs">Cátedra</div>
-          <div class="bg-slate-100/90 py-2.5 px-3 rounded-xl border border-slate-200/70 shadow-2xs">Año cursado</div>
-          <div class="bg-slate-100/90 py-2.5 px-3 rounded-xl border border-slate-200/70 shadow-2xs">Nota / investigación</div>
-          <div class="bg-slate-100/90 py-2.5 px-1 rounded-xl border border-slate-200/70 flex items-center justify-center text-slate-400 shadow-2xs">✕</div>
+        <!-- Encabezados de columnas (estilo pastillas amplias con íconos) -->
+        <div id="completedTableHeaders" class="hidden md:grid sticky top-0 z-20 bg-white/95 backdrop-blur-sm pt-1 pb-2 md:grid-cols-[minmax(220px,3fr)_minmax(150px,1.8fr)_minmax(85px,0.8fr)_minmax(190px,1.8fr)_36px] lg:grid-cols-[minmax(290px,3.5fr)_minmax(190px,2fr)_minmax(105px,1fr)_minmax(230px,2fr)_40px] gap-3 text-center text-xs font-bold text-slate-700">
+          <div class="bg-slate-100 py-2.5 px-3 rounded-xl border border-slate-200/80 shadow-2xs flex items-center justify-center gap-1.5">
+            <span class="material-symbols-outlined text-sm text-primary">menu_book</span>
+            <span>Materia / actividad</span>
+          </div>
+          <div class="bg-slate-100 py-2.5 px-3 rounded-xl border border-slate-200/80 shadow-2xs flex items-center justify-center gap-1.5">
+            <span class="material-symbols-outlined text-sm text-primary">person</span>
+            <span>Cátedra</span>
+          </div>
+          <div class="bg-slate-100 py-2.5 px-3 rounded-xl border border-slate-200/80 shadow-2xs flex items-center justify-center gap-1.5">
+            <span class="material-symbols-outlined text-sm text-primary">calendar_today</span>
+            <span>Año cursado</span>
+          </div>
+          <div class="bg-slate-100 py-2.5 px-3 rounded-xl border border-slate-200/80 shadow-2xs flex items-center justify-center gap-1.5">
+            <span class="material-symbols-outlined text-sm text-primary">grade</span>
+            <span>Nota / investigación</span>
+          </div>
+          <div class="bg-slate-100 py-2.5 px-1 rounded-xl border border-slate-200/80 flex items-center justify-center text-slate-400 shadow-2xs" title="Eliminar fila">✕</div>
         </div>
 
         <!-- Contenedor dinámico de filas -->
-        <div id="completedRowsContainer" class="space-y-3">
+        <div id="completedRowsContainer" class="space-y-3.5 pb-2 min-h-[140px]">
           <!-- Filas inyectadas dinámicamente -->
         </div>
 
         <!-- Botón agregar otra materia -->
-        <div id="completedAddRowBtnContainer" class="flex justify-center pt-2">
-          <button type="button" id="completedAddRowBtn" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-sm transition-all flex items-center gap-2 shadow-2xs active:scale-[0.98]">
-            <span class="material-symbols-outlined text-lg text-primary">add</span>
+        <div id="completedAddRowBtnContainer" class="flex justify-center pt-2 pb-1">
+          <button type="button" id="completedAddRowBtn" class="px-6 py-2.5 bg-orange-50/90 hover:bg-orange-100 text-primary hover:text-primaryDark border border-orange-200/80 font-bold rounded-xl text-sm transition-all flex items-center gap-2 shadow-2xs hover:shadow-xs active:scale-[0.98]">
+            <span class="material-symbols-outlined text-lg">add_circle</span>
             <span>Agregar otra materia</span>
           </button>
         </div>
 
         <!-- Pie del modal -->
-        <div class="completed-form-footer flex items-center justify-between gap-3 pt-4 border-t border-gray-100 mt-4">
-          <button id="deleteCompletedBtn" type="button" class="hidden px-3.5 py-2.5 border border-red-200 text-red-600 font-bold rounded-xl hover:bg-red-50 hover:border-red-300 transition-all text-sm shadow-xs" title="Eliminar registro">
+        <div class="completed-form-footer sticky bottom-0 z-20 bg-white/95 backdrop-blur-sm flex items-center justify-between gap-3 pt-4 pb-1 border-t border-gray-100 mt-4">
+          <button id="deleteCompletedBtn" type="button" class="hidden px-4 py-2.5 border border-red-200 text-red-600 font-bold rounded-xl hover:bg-red-50 hover:border-red-300 transition-all text-sm shadow-xs" title="Eliminar registro">
             <span class="material-symbols-outlined text-lg align-middle">delete</span>
+            <span class="hidden sm:inline ml-1 text-xs">Eliminar</span>
           </button>
           <div class="completed-form-actions flex items-center justify-end gap-3 ml-auto flex-1 sm:flex-initial">
             <button type="button" data-close-modal class="flex-1 sm:flex-initial px-5 py-2.5 border border-gray-200 text-gray-600 font-bold rounded-xl hover:bg-gray-50 hover:text-dark transition-all text-sm shadow-xs">Cancelar</button>
@@ -1093,9 +1111,26 @@
       state = cloneDefault();
       if (!user || !user.emailVerified) {
         activeProfileUser = null;
+        try {
+          const isSecure = location.protocol === 'https:' ? '; Secure' : '';
+          document.cookie = `gino_auth_session=; max-age=0; path=/; SameSite=Lax${isSecure}`;
+          localStorage.removeItem('gino_auth_session');
+          localStorage.removeItem('gino_user_cache');
+        } catch(e) {}
         setProfileAccess('signedout');
         return;
       }
+      try {
+        const isSecure = location.protocol === 'https:' ? '; Secure' : '';
+        document.cookie = `gino_auth_session=1; max-age=${60 * 60 * 24 * 365}; path=/; SameSite=Lax${isSecure}`;
+        localStorage.setItem('gino_auth_session', '1');
+        const dName = user.displayName || (user.email ? user.email.split('@')[0] : 'Usuario');
+        localStorage.setItem('gino_user_cache', JSON.stringify({
+          displayName: user.displayName || dName,
+          email: user.email || '',
+          initial: ((user.displayName || user.email || 'U')[0]).toUpperCase()
+        }));
+      } catch(e) {}
       setProfileAccess('checking');
       if (!courseCatalogDb) { setProfileAccess('error'); return; }
 
@@ -1644,7 +1679,7 @@
 
     function createCompletedRow(data = null, isEdit = false) {
       const row = document.createElement('div');
-      row.className = 'completed-row grid grid-cols-1 md:grid-cols-[minmax(210px,2.5fr)_minmax(135px,1.5fr)_minmax(85px,0.8fr)_minmax(190px,1.6fr)_36px] gap-2.5 items-center p-3.5 md:p-0 bg-slate-50/80 md:bg-transparent border border-slate-200/80 md:border-none rounded-2xl md:rounded-none relative transition-all';
+      row.className = 'completed-row grid grid-cols-1 md:grid-cols-[minmax(220px,3fr)_minmax(150px,1.8fr)_minmax(85px,0.8fr)_minmax(190px,1.8fr)_36px] lg:grid-cols-[minmax(290px,3.5fr)_minmax(190px,2fr)_minmax(105px,1fr)_minmax(230px,2fr)_40px] gap-3 items-center p-3.5 md:p-1 bg-slate-50/80 md:bg-white border border-slate-200/80 md:border-transparent rounded-2xl md:rounded-xl relative transition-all hover:md:bg-slate-50/50';
 
       const initName = data?.name || '';
       let initType = '';
@@ -1671,37 +1706,37 @@
         <div class="row-name-field relative relative-dropdown-container">
           <span class="md:hidden text-xs font-bold text-slate-500 mb-1 block">Materia / actividad</span>
           <div class="relative">
-            <input class="row-name w-full p-2.5 md:p-3 pr-8 border border-gray-200 rounded-xl outline-none focus:border-primary text-sm bg-white" placeholder="Buscá una materia…" autocomplete="off" value="${escapeHTML(initName)}">
+            <input class="row-name w-full p-2.5 md:py-2.5 md:px-3.5 pr-8 border border-gray-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 text-sm font-medium bg-white transition-all" placeholder="Buscá una materia…" autocomplete="off" value="${escapeHTML(initName)}">
             <button type="button" class="row-clear ${initName ? '' : 'hidden'} absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 w-5 h-5 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-xs font-bold" title="Borrar texto">✕</button>
           </div>
           <div class="custom-dropdown row-dropdown hidden absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-2xl z-[70] flex-col overflow-hidden max-h-56"></div>
         </div>
         <div>
           <span class="md:hidden text-xs font-bold text-slate-500 mb-1 block">Cátedra</span>
-          <select class="row-catedra w-full p-2.5 md:p-3 border border-gray-200 rounded-xl outline-none focus:border-primary bg-white text-dark text-sm cursor-pointer transition-colors">
+          <select class="row-catedra w-full p-2.5 md:py-2.5 md:px-3 border border-gray-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 bg-white text-dark text-sm cursor-pointer transition-all font-medium">
             <option value="">Seleccionar</option>
           </select>
         </div>
         <div>
           <span class="md:hidden text-xs font-bold text-slate-500 mb-1 block">Año cursado <span class="font-normal text-gray-400">(opc.)</span></span>
-          <input class="row-year w-full p-2.5 md:p-3 border border-gray-200 rounded-xl outline-none focus:border-primary text-sm text-center bg-white" type="number" min="1970" max="${new Date().getFullYear() + 1}" step="1" inputmode="numeric" placeholder="Año" value="${escapeHTML(initYear)}">
+          <input class="row-year w-full p-2.5 md:py-2.5 md:px-2 border border-gray-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 text-sm text-center bg-white transition-all font-medium" type="number" min="1970" max="${new Date().getFullYear() + 1}" step="1" inputmode="numeric" placeholder="Año" value="${escapeHTML(initYear)}">
         </div>
         <div class="row-result-field">
           <div class="row-grade-field">
             <span class="md:hidden text-xs font-bold text-slate-500 mb-1 block">Nota final <span class="font-normal text-gray-400">(opc.)</span></span>
-            <input class="row-grade w-full p-2.5 md:p-3 border border-gray-200 rounded-xl outline-none focus:border-primary text-sm text-center bg-white" type="number" min="0" max="10" step="1" inputmode="numeric" placeholder="0–10" value="${initGrade}">
+            <input class="row-grade w-full p-2.5 md:py-2.5 md:px-2 border border-gray-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 text-sm text-center bg-white transition-all font-bold text-dark" type="number" min="0" max="10" step="1" inputmode="numeric" placeholder="0–10" value="${initGrade}">
           </div>
           <div class="row-research-fields hidden grid grid-cols-2 gap-2">
             <label class="min-w-0">
               <span class="md:hidden text-xs font-bold text-slate-500 mb-1 block">Horas</span>
-              <select class="row-hours w-full p-2.5 md:p-3 border border-gray-200 rounded-xl outline-none focus:border-primary bg-white text-dark text-sm font-semibold">
+              <select class="row-hours w-full p-2.5 md:py-2.5 md:px-2 border border-gray-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 bg-white text-dark text-xs md:text-sm font-semibold transition-all">
                 <option value="50" ${initHours === 50 ? 'selected' : ''}>50 h</option>
                 <option value="100" ${initHours === 100 ? 'selected' : ''}>100 h</option>
               </select>
             </label>
             <label class="min-w-0">
               <span class="md:hidden text-xs font-bold text-slate-500 mb-1 block">Estado</span>
-              <select class="row-research-status w-full p-2.5 md:p-3 border border-gray-200 rounded-xl outline-none focus:border-primary bg-white text-dark text-sm font-semibold">
+              <select class="row-research-status w-full p-2.5 md:py-2.5 md:px-2 border border-gray-200 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 bg-white text-dark text-xs md:text-sm font-semibold transition-all">
                 <option value="aprobado" ${initResearchStatus === 'aprobado' ? 'selected' : ''}>Aprobado</option>
                 <option value="regularizado" ${initResearchStatus === 'regularizado' ? 'selected' : ''}>Regularizado</option>
               </select>
@@ -1709,7 +1744,7 @@
           </div>
         </div>
         <div class="flex items-center justify-end md:justify-center ${isEdit ? 'hidden md:flex opacity-0 pointer-events-none' : ''}">
-          <button type="button" class="row-remove w-8 h-8 md:w-9 md:h-9 flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors font-bold text-base shrink-0" title="Eliminar fila">✕</button>
+          <button type="button" class="row-remove w-8 h-8 md:w-9 md:h-9 flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all font-bold text-base shrink-0 active:scale-90" title="Eliminar fila">✕</button>
         </div>
       `;
 
