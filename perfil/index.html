@@ -833,7 +833,7 @@
 
     const PLAN_ESTUDIOS = [
       ...CBC_SUBJECTS.map(subject => ({ id: subject.code, name: subject.name, type: 'cbc', req: [], tier: 0 })),
-      ...LANGUAGE_LEVELS.map(level => ({ id: level.code, name: level.name, type: 'idioma', req: ['CBC'], tier: 0.5 })),
+      ...LANGUAGE_LEVELS.map(level => ({ id: level.code, name: level.name, type: 'idioma', req: ['CBC'], tier: 7 })),
       { id: '251', name: 'Sociología General', req: ['CBC'], tier: 1 },
       { id: '252', name: 'Filosofía', req: ['CBC'], tier: 1 },
       { id: '253', name: 'Historia Social Moderna y Contemporánea', req: ['CBC'], tier: 1 },
@@ -2626,11 +2626,11 @@
 
       let html = '';
       Object.keys(tiers).sort((a, b) => Number(a) - Number(b)).forEach(tierNum => {
-        const columnLabel = tierNum === '0' ? 'CBC' : tierNum === '0.5' ? 'Idiomas' : tierNum;
+        const columnLabel = tierNum === '0' ? 'CBC' : tierNum === '7' ? 'Idiomas' : tierNum;
         html += `
           <div class="plan-column w-72 md:w-80 shrink-0 flex flex-col gap-4 relative">
             <div class="flex items-center gap-2 mb-2 px-1">
-              <span class="${tierNum === '0' || tierNum === '0.5' ? 'px-3' : 'w-6'} h-6 rounded-full bg-slate-200 text-slate-700 font-black text-[11px] flex items-center justify-center">${columnLabel}</span>
+              <span class="${tierNum === '0' || tierNum === '7' ? 'px-3' : 'w-6'} h-6 rounded-full bg-slate-200 text-slate-700 font-black text-[11px] flex items-center justify-center">${columnLabel}</span>
             </div>`;
             
         tiers[tierNum].forEach(subj => {
