@@ -3001,7 +3001,8 @@
                     };
                 }
 
-                // El perfil actual no contempla idiomas dentro de wanted/completed.
+                // Los idiomas del catálogo no representan un nivel concreto; se registran
+                // como Nivel 1, 2 o 3 desde el perfil académico.
                 return null;
             }
 
@@ -3137,7 +3138,7 @@
 
                 const descriptor = descriptorPerfilMateria(materia);
                 if (!descriptor) {
-                    mostrarNotificacion('El perfil académico actual todavía no registra idiomas.', 'info');
+                    mostrarNotificacion('Registrá el nivel de Idioma correspondiente desde tu perfil académico.', 'info');
                     return;
                 }
 
