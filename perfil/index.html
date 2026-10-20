@@ -311,12 +311,14 @@
       align-items: start;
     }
 
-    .completed-row.is-cbc .row-name-field {
+    .completed-row.is-cbc .row-name-field,
+    .completed-row.is-language .row-name-field {
       grid-column: span 2;
     }
 
     @media (max-width: 767px) {
-      .completed-row.is-cbc .row-name-field {
+      .completed-row.is-cbc .row-name-field,
+      .completed-row.is-language .row-name-field {
         grid-column: auto;
       }
     }
@@ -1123,11 +1125,86 @@
       { code: 'CBC21', siuCodes: ['CBC38'], name: 'Economía' }
     ];
 
+    const LANGUAGE_KEYWORDS = ['idioma', 'idiomas', 'ingles', 'frances'];
+
     const LANGUAGE_LEVELS = [
-      { code: 'IDIOMA1', level: 1, name: 'Idioma · Nivel 1', aliases: ['Idioma Nivel 1', 'Idioma Nivel I'] },
-      { code: 'IDIOMA2', level: 2, name: 'Idioma · Nivel 2', aliases: ['Idioma Nivel 2', 'Idioma Nivel II'] },
-      { code: 'IDIOMA3', level: 3, name: 'Idioma · Nivel 3', aliases: ['Idioma Nivel 3', 'Idioma Nivel III'] }
+      {
+        code: 'IDIOMA1',
+        level: 1,
+        roman: 'i',
+        name: 'Idioma · Nivel 1',
+        aliases: [
+          'Idioma Nivel 1', 'Idioma Nivel I', 'Idioma 1', 'Idioma I',
+          'Inglés 1', 'Inglés I', 'Inglés Nivel 1', 'Inglés Nivel I', 'Idioma Inglés 1', 'Idioma Inglés I', 'Idioma Inglés Nivel 1', 'Idioma Inglés Nivel I',
+          'Francés 1', 'Francés I', 'Francés Nivel 1', 'Francés Nivel I', 'Idioma Francés 1', 'Idioma Francés I', 'Idioma Francés Nivel 1', 'Idioma Francés Nivel I'
+        ]
+      },
+      {
+        code: 'IDIOMA2',
+        level: 2,
+        roman: 'ii',
+        name: 'Idioma · Nivel 2',
+        aliases: [
+          'Idioma Nivel 2', 'Idioma Nivel II', 'Idioma 2', 'Idioma II',
+          'Inglés 2', 'Inglés II', 'Inglés Nivel 2', 'Inglés Nivel II', 'Idioma Inglés 2', 'Idioma Inglés II', 'Idioma Inglés Nivel 2', 'Idioma Inglés Nivel II',
+          'Francés 2', 'Francés II', 'Francés Nivel 2', 'Francés Nivel II', 'Idioma Francés 2', 'Idioma Francés II', 'Idioma Francés Nivel 2', 'Idioma Francés Nivel II'
+        ]
+      },
+      {
+        code: 'IDIOMA3',
+        level: 3,
+        roman: 'iii',
+        name: 'Idioma · Nivel 3',
+        aliases: [
+          'Idioma Nivel 3', 'Idioma Nivel III', 'Idioma 3', 'Idioma III',
+          'Inglés 3', 'Inglés III', 'Inglés Nivel 3', 'Inglés Nivel III', 'Idioma Inglés 3', 'Idioma Inglés III', 'Idioma Inglés Nivel 3', 'Idioma Inglés Nivel III',
+          'Francés 3', 'Francés III', 'Francés Nivel 3', 'Francés Nivel III', 'Idioma Francés 3', 'Idioma Francés III', 'Idioma Francés Nivel 3', 'Idioma Francés Nivel III'
+        ]
+      }
     ];
+
+    function parseLanguageQueryLevel(words) {
+      const roman = { i: 1, ii: 2, iii: 3 };
+      for (const word of words) {
+        if (word === '1' || word === '2' || word === '3') return Number(word);
+        if (word === 'idioma1' || word === 'idioma2' || word === 'idioma3') return Number(word.slice(-1));
+        if (roman[word] && (words.length > 1 || word.length > 1)) return roman[word];
+      }
+      return null;
+    }
+
+    function isLanguageCourseQuery(value) {
+      const text = typeof value === 'string' ? value : value?.name || value?.cleanName || value?.original || '';
+      const q = normalizedCourseName(text).replace(/([a-z])(1|2|3)\b/g, '$1 $2').trim();
+      if (!q) return false;
+      const words = q.split(/\s+/).filter(Boolean);
+      const allowedTokens = [...LANGUAGE_KEYWORDS, 'nivel', 'de', 'en', 'extranjero', 'examen', 'global', '1', '2', '3', 'i', 'ii', 'iii', 'idioma1', 'idioma2', 'idioma3'];
+      const hasLanguageKeyword = words.some(word => LANGUAGE_KEYWORDS.includes(word) || /^idioma[123]$/.test(word));
+      return hasLanguageKeyword && words.every(word => allowedTokens.includes(word));
+    }
+
+    function matchesLanguageSearch(level, query = '') {
+      const q = normalizedCourseName(query).replace(/([a-z])(1|2|3)\b/g, '$1 $2').trim();
+      if (!q) return true;
+
+      const words = q.split(/\s+/).filter(Boolean);
+      const requestedLevel = parseLanguageQueryLevel(words);
+      if (requestedLevel !== null && requestedLevel !== level.level) return false;
+
+      const mainTokens = [...LANGUAGE_KEYWORDS, 'nivel', level.code.toLowerCase()];
+      const fillerTokens = ['de', 'en', 'extranjero', 'examen', 'global'];
+      const numberTokens = [String(level.level), level.roman];
+
+      const hasMainToken = words.some(word => mainTokens.some(token => token.startsWith(word)));
+      if (!hasMainToken) return false;
+
+      return words.every(word => {
+        if (['1', '2', '3', 'i', 'ii', 'iii'].includes(word) && (words.length > 1 || word !== 'i')) {
+          return numberTokens.includes(word);
+        }
+        return mainTokens.some(token => token.startsWith(word)) || fillerTokens.some(token => token.startsWith(word));
+      });
+    }
 
     function getCbcSubject(value) {
       const text = typeof value === 'string' ? value : value?.name || value?.cleanName || '';
@@ -1150,18 +1227,17 @@
       const direct = LANGUAGE_LEVELS.find(level => level.code === code);
       if (direct) return [direct];
 
-      const normalized = normalizedCourseName(text);
+      const normalized = normalizedCourseName(text).replace(/([a-z])(1|2|3)\b/g, '$1 $2').trim();
       const named = LANGUAGE_LEVELS.find(level => [level.name, ...(level.aliases || [])].some(alias => normalizedCourseName(alias) === normalized));
       if (named) return [named];
 
-      const languageLike = /\bidioma\b/i.test(text) || /\((?:981)\)/i.test(text) || code === '981';
+      const languageLike = isLanguageCourseQuery(text) || /\bidioma\b/i.test(text) || /\((?:981)\)/i.test(text) || code === '981';
       if (!languageLike) return [];
       if (/examen\s+global/i.test(text) || /\(981\)/i.test(text) || code === '981') return [...LANGUAGE_LEVELS];
 
-      const levelMatch = text.match(/\bnivel\s*(1|2|3|i{1,3})\b/i);
-      if (!levelMatch) return [];
-      const roman = { i: 1, ii: 2, iii: 3 };
-      const levelNumber = Number(levelMatch[1]) || roman[levelMatch[1].toLowerCase()];
+      const words = normalized.split(/\s+/).filter(Boolean);
+      const levelNumber = parseLanguageQueryLevel(words);
+      if (!levelNumber) return [];
       return LANGUAGE_LEVELS.filter(level => level.level === levelNumber);
     }
 
@@ -1835,7 +1911,7 @@
     function detectCourseType(courseName) {
       if (!courseName) return null;
       if (getCbcSubject(courseName)) return 'cbc';
-      if (getLanguageLevel(courseName)) return 'idioma';
+      if (getLanguageLevel(courseName) || isLanguageCourseQuery(courseName)) return 'idioma';
       const norm = normalizedCourseName(courseName);
       if (/\bidioma\b/.test(norm)) return 'idioma';
 
@@ -1904,9 +1980,9 @@
     function searchCatalogCourses(query = '', preferredType = '', includeCbc = false) {
       const q = normalizedCourseName(query);
       const cbcMatches = includeCbc ? CBC_SUBJECTS.filter(subject => !q || [subject.name, ...(subject.aliases || []), subject.code].some(name => normalizedCourseName(name).includes(q))).map(subject => ({ name: subject.name, type: 'cbc', badge: 'CBC', matchedCatedra: null })) : [];
-      const languageMatches = includeCbc ? LANGUAGE_LEVELS.filter(level => !q || [level.name, ...(level.aliases || []), level.code].some(name => normalizedCourseName(name).includes(q))).map(level => ({ name: level.name, type: 'idioma', badge: 'Idioma', matchedCatedra: null })) : [];
+      const languageMatches = LANGUAGE_LEVELS.filter(level => matchesLanguageSearch(level, query)).map(level => ({ name: level.name, type: 'idioma', badge: 'Idioma', matchedCatedra: null }));
       const localMatches = [...cbcMatches, ...languageMatches];
-      if (!q && includeCbc && (preferredType === 'cbc' || preferredType === 'idioma')) return localMatches.filter(course => course.type === preferredType);
+      if (!q && (preferredType === 'cbc' || preferredType === 'idioma')) return localMatches.filter(course => course.type === preferredType);
       if (q !== '') {
         const collectionsOrder = [
           { col: 'materias', type: 'obligatoria', label: 'Obligatoria' },
@@ -2238,8 +2314,8 @@
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(async () => {
           if (!row.isConnected || nameInput.value.trim() !== val || !val || row.dataset.selectedCourse) return;
-          // CBC and required-course names are already available locally.
-          if (searchCatalogCourses(val, 'cbc', true).some(course => course.type === 'cbc')) return;
+          // CBC, language, and required-course names are already available locally.
+          if (searchCatalogCourses(val, '', true).some(course => course.type === 'cbc' || course.type === 'idioma')) return;
           if (PLAN_ESTUDIOS.some(course => !course.isGroup && normalizedCourseName(course.name).includes(normalizedCourseName(val)))) return;
           await loadCompletedSearchCatalogs(row);
           if (row.isConnected && nameInput.value.trim() === val && !row.dataset.selectedCourse) {
@@ -2282,7 +2358,7 @@
         syncSelectPlaceholder(catSelect);
       });
       catSelect.addEventListener('focus', () => {
-        if (nameInput.value.trim() && !getCbcSubject(nameInput.value)) prepareCompletedRowCourse(row);
+        if (nameInput.value.trim() && !getCbcSubject(nameInput.value) && !getLanguageLevel(nameInput.value) && typeInput.value !== 'idioma') prepareCompletedRowCourse(row);
       });
 
       removeBtn.addEventListener('click', () => {
@@ -2305,7 +2381,7 @@
         }
       });
 
-      if (data && !getCbcSubject(initName)) {
+      if (data && !getCbcSubject(initName) && !getLanguageLevel(initName) && initType !== 'idioma') {
         // Keep the saved chair even if the catalog changed; grade editing needs no lookup.
         if (initCatedra) catSelect.add(new Option(formatCatedra(initCatedra), initCatedra));
         catSelect.value = initCatedra;
@@ -2320,18 +2396,22 @@
 
     async function updateWantedCatedraOptions(targetCatedra = null) {
       const catSelect = $('wantedCatedra');
+      const catField = $('wantedCatedraField');
       const loader = $('wantedCatedraLoading');
       if (!catSelect) return;
 
       const courseName = $('wantedName')?.value.trim() || '';
-      if (!courseName) {
+      const courseType = $('wantedType')?.value || '';
+      const isLanguage = Boolean(courseName && (courseType === 'idioma' || getLanguageLevel(courseName) || detectCourseType(courseName) === 'idioma'));
+      if (catField) catField.classList.toggle('hidden', isLanguage);
+      catSelect.disabled = isLanguage;
+
+      if (!courseName || isLanguage) {
         catSelect.innerHTML = '<option value="">Seleccionar</option>';
         catSelect.value = '';
         syncSelectPlaceholder(catSelect);
         return;
       }
-
-      const courseType = $('wantedType')?.value || '';
       const collection = collectionForCourseType(courseType);
 
       if (courseCatalogDb && courseName) {
@@ -2411,7 +2491,9 @@
 
         const type = $(typeId).value;
         const query = input.value;
-        const matches = searchCatalogCourses(query, type).filter(course => !findCompletedDuplicate(course.name));
+        const allMatches = searchCatalogCourses(query, type);
+        const uncompletedMatches = allMatches.filter(course => !findCompletedDuplicate(course.name));
+        const matches = query.trim() ? allMatches : (uncompletedMatches.length ? uncompletedMatches : allMatches);
 
         let html = '';
         if (matches.length === 0) {
@@ -2509,7 +2591,7 @@
 
           const matchedCatedra = dropdownItem.dataset.dropdownCatedra || '';
           updateRowCatedraOptions(row, matchedCatedra);
-          if (autoType !== 'cbc') prepareCompletedRowCourse(row, matchedCatedra);
+          if (autoType !== 'cbc' && autoType !== 'idioma') prepareCompletedRowCourse(row, matchedCatedra);
           if (clearBtn) clearBtn.classList.remove('hidden');
           return;
         }
@@ -3282,8 +3364,16 @@
         return;
       }
       let typeVal = $('wantedType')?.value || detectCourseType(nameVal) || 'obligatoria';
-      if (findCompletedDuplicate(nameVal)) {
-        showToast(`“${nameVal}” ya está en Materias realizadas.`);
+      const languageLevel = getLanguageLevel(nameVal);
+      if (languageLevel) typeVal = 'idioma';
+      if (typeVal === 'idioma' && !languageLevel) {
+        showToast('Seleccioná uno de los tres niveles de Idioma.');
+        $('wantedName').focus();
+        return;
+      }
+      const canonicalName = languageLevel ? languageLevel.name : nameVal;
+      if (findCompletedDuplicate(canonicalName)) {
+        showToast(`“${canonicalName}” ya está en Materias realizadas.`);
         $('wantedName').focus();
         return;
       }
@@ -3293,17 +3383,18 @@
       }
       if (typeVal === 'taller' || typeVal === 'seminario' || typeVal === 'horasdeinv') typeVal = 'investigacion';
 
-      const catedraVal = $('wantedCatedra').value.trim();
+      const catedraVal = typeVal === 'idioma' ? '' : $('wantedCatedra').value.trim();
       const catOptions = $('wantedCatedra').options;
-      if (catOptions.length > 1 && !catedraVal) {
+      if (typeVal !== 'idioma' && catOptions.length > 1 && !catedraVal) {
         showToast('Por favor, seleccioná una cátedra.');
         $('wantedCatedra').focus();
         return;
       }
       const item = {
         id: `w-${Date.now()}`,
-        name: nameVal,
+        name: canonicalName,
         type: typeVal,
+        ...(languageLevel ? { languageCode: languageLevel.code } : {}),
         note: $('wantedNote').value.trim()
       };
       if (catedraVal) {
@@ -3317,13 +3408,14 @@
 
     let wantedNameTimer = null;
     $('wantedName').addEventListener('input', () => {
+      const val = $('wantedName').value.trim();
+      let autoType = val ? (detectCourseType(val) || 'obligatoria') : '';
+      if (autoType === 'taller' || autoType === 'seminario' || autoType === 'horasdeinv') autoType = 'investigacion';
+      if ($('wantedType')) {
+        $('wantedType').value = autoType;
+      }
       clearTimeout(wantedNameTimer);
       wantedNameTimer = setTimeout(() => {
-        let autoType = detectCourseType($('wantedName').value.trim()) || 'obligatoria';
-        if (autoType === 'taller' || autoType === 'seminario' || autoType === 'horasdeinv') autoType = 'investigacion';
-        if ($('wantedType')) {
-          $('wantedType').value = autoType;
-        }
         updateWantedCatedraOptions();
       }, 300);
     });
