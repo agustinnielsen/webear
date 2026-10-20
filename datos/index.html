@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="GinoLogo.ico">
     <title>Datos - Gino Social</title>
 
     <!-- Fuentes e Iconos -->
@@ -1364,6 +1365,18 @@
         const HelpCircle = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>;
 
         // --- LÓGICA CORE MONITOR ---
+        const normalizeCatalogName = (value) => String(value || '')
+            .normalize('NFC').trim().replace(/\s+/g, ' ').toLocaleLowerCase('es');
+
+        // El código identifica la cátedra aunque cambie su titular entre programas.
+        const getCatedraKey = (row) => {
+            const id = String(row['IDCATEDRA'] || '').trim().toUpperCase();
+            if (id) return `id:${id}`;
+            const materia = normalizeCatalogName(row['Materia']);
+            const catedra = normalizeCatalogName(row['Catedra']);
+            return catedra ? `nombre:${materia}::${catedra}` : null;
+        };
+
         const getAuthorName = (row) => {
             const apellido = (row['Apellido 1'] || '').trim();
             const nombre = (row['Nombre 1'] || '').trim();
@@ -2082,9 +2095,9 @@
                     const catedra = (row['Catedra'] || '').trim();
                     const materia = (row['Materia'] || '').trim();
 
-                    if (materia) materiasSet.add(materia);
-                    if (catedra && materia) catedrasSet.add(`${materia}::${catedra}`);
-                    else if (catedra) catedrasSet.add(catedra);
+                    const catedraKey = getCatedraKey(row);
+                    if (materia) materiasSet.add(normalizeCatalogName(materia));
+                    if (catedraKey) catedrasSet.add(catedraKey);
 
                     if (!author) return;
 
@@ -2181,7 +2194,7 @@
                                 </div>
                                 <div className="p-6 overflow-y-auto bg-white flex-1 custom-scrollbar">
                                     <p className="text-slate-700 text-sm leading-relaxed mb-4">
-                                        El monitor sociológico es una visualización de datos en colaboración con el Observatorio Pedagógico impulsado por la <strong>Lista 22, Sentido en Fuga</strong>. Fueron codificados los programas de 33 cátedras de materias obligatorias, utilizando los últimos disponibles en la página de la carrera mientras que otros fueron compartidos por compañeros que cursaron estas materias en la actualidad.
+                                        El monitor sociológico es una visualización de datos en colaboración con el Observatorio Pedagógico impulsado por la <strong>Lista 22, Sentido en Fuga</strong>. La base reúne programas de {stats.uniqueCatedras} cátedras de {stats.uniqueMaterias} materias obligatorias, utilizando los últimos disponibles en la página de la carrera mientras que otros fueron compartidos por compañeros que cursaron estas materias en la actualidad.
                                     </p>
                                     <p className="text-slate-700 text-sm leading-relaxed mb-4">
                                         Podés solicitarnos la base completa para seguir explorando y cruzando datos por tu cuenta. Aún quedan por buscar y cargar los programas de todas las materias optativas, los programas anteriores de las ya existentes cátedras, y muchas cosas más. Si querés colaborar, podés sumarte a este proyecto escribiendo a:
